@@ -10,7 +10,7 @@ public int Score { get; set; }
 public Point Position { get; set; }
 public bool IsGrounded { get; set; }
 
-private float VerticalVelocity;
+        private float VerticalVelocity;
 private const int MoveSpeed = 5;
 private const float Gravity = 1.0f;
 private const int JumpStrength = 15;
