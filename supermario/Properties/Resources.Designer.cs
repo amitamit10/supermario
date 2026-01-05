@@ -83,6 +83,16 @@ namespace supermario.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap dcaeqy1_614416a8_3ae1_4448_94b4_e3ecefa3e53a {
+            get {
+                object obj = ResourceManager.GetObject("dcaeqy1-614416a8-3ae1-4448-94b4-e3ecefa3e53a", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap oie_cnoULepStRjX {
             get {
                 object obj = ResourceManager.GetObject("oie_cnoULepStRjX", resourceCulture);
