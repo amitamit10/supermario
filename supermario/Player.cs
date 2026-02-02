@@ -124,13 +124,8 @@ namespace supermario
                 VerticalVelocity = 0;
             }
 
-            // Floor collision (safety net)
-            if (Position.Y >= 450)
-            {
-                Position = new Point(Position.X, 450);
-                IsGrounded = true;
-                VerticalVelocity = 0;
-            }
+            // REMOVED: Hardcoded floor collision that was causing the bug
+            // The mainWin.cs CheckPlatformCollisions() handles all collisions properly
         }
 
         public void Jump()
