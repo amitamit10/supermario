@@ -28,6 +28,9 @@ namespace supermario
         private const float JumpReleaseGravityMultiplier = 2f;
         private bool isJumpHeld = false;
 
+        // Event to notify when player takes damage
+        public event System.Action OnDamageTaken;
+
         public Player(Point startPosition, Image playerImage)
         {
             Health = 3;
@@ -152,6 +155,9 @@ namespace supermario
         {
             Health -= amount;
             if (Health < 0) Health = 0;
+
+            // Notify listeners that damage was taken
+            OnDamageTaken?.Invoke();
         }
 
         public void Respawn(Point startPosition)
