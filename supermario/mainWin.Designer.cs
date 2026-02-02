@@ -42,6 +42,7 @@
             this.picboxplayer.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.picboxplayer.TabIndex = 1;
             this.picboxplayer.TabStop = false;
+            this.picboxplayer.WaitOnLoad = true;
             // 
             // mainWin
             // 
@@ -55,6 +56,7 @@
             this.MinimumSize = new System.Drawing.Size(1000, 600);
             this.Name = "mainWin";
             this.Text = "Super Mario";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.mainWin_Load);
             ((System.ComponentModel.ISupportInitialize)(this.picboxplayer)).EndInit();
             this.ResumeLayout(false);
