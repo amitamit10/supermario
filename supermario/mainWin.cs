@@ -161,30 +161,34 @@ namespace supermario
 
             for (int i = 0; i < xPos.Length && i < yPos.Length; i++)
             {
+                // Create the yellow question block
                 PictureBox box = new PictureBox
                 {
                     Size = new Size(50, 50),
                     Location = new Point(xPos[i], yPos[i]),
                     BackColor = Color.Gold,
                     BorderStyle = BorderStyle.FixedSingle
+                    // NO SizeMode - we want solid color background!
                 };
-                Controls.Add(box);
 
+                Controls.Add(box);
+                box.SendToBack();
+
+                // Create question mark label ON TOP of the box
                 Label lbl = new Label
                 {
                     Text = "?",
-                    Font = new Font("Arial", 24, FontStyle.Bold),
+                    Font = new Font("Arial", 32, FontStyle.Bold),
                     ForeColor = Color.Black,
                     TextAlign = ContentAlignment.MiddleCenter,
                     Size = new Size(50, 50),
-                    Location = box.Location,
+                    Location = new Point(xPos[i], yPos[i]),
                     BackColor = Color.Transparent
                 };
                 Controls.Add(lbl);
+                lbl.BringToFront();
 
                 questionBlocks.Add(new QuestionBlock(box.Location, box, lbl, PowerUpType.Mushroom));
-                box.BringToFront();
-                lbl.BringToFront();
             }
         }
 
