@@ -25,27 +25,38 @@ namespace supermario
         private PlatformData[][] allLevels;
         private Random levelRandom = new Random();
 
-        // ── FIX: Stopwatch-based fixed-timestep accumulator ──────────────────
+        // ── Goombas ───────────────────────────────────────────────────────────
+        private List<Goomba> goombas = new List<Goomba>();
+
+        // Goomba spawn X positions per level (Y = ground top 513 − goomba height 48 = 465)
+        private static readonly int[] GOOMBA_X_LEVEL_1 = { 420, 750, 1100, 1450, 1820, 2180, 2450 };
+        private static readonly int[] GOOMBA_X_LEVEL_2 = { 350, 650, 950, 1320, 1650, 1950, 2300 };
+        private const int GOOMBA_GROUND_Y = 465;
+
+        // ── Fixed-timestep accumulator ────────────────────────────────────────
         private Stopwatch _stopwatch = new Stopwatch();
         private long _lastTickMs = 0;
         private long _accumulatedMs = 0;
-        private const long FIXED_STEP_MS = 16;   // physics always advances in 16 ms steps
+        private const long FIXED_STEP_MS = 16;
         // ─────────────────────────────────────────────────────────────────────
 
         private bool moveRight = false, moveLeft = false, jump = false;
         private int cameraX = 0;
         private const int SCROLL_THRESHOLD = 400;
-        private bool isPlayerSuper = false;
+
+        // ── Mario sizes ───────────────────────────────────────────────────────
         private Size originalPlayerSize = new Size(75, 60);
         private Size superPlayerSize = new Size(90, 72);
+
+        // ── Death animation ───────────────────────────────────────────────────
         private bool isDying = false;
         private float deathTimer = 0f;
         private const float DEATH_ANIMATION_DURATION = 2000f;
-        private float maxFallStartY = 0;
-        private bool wasGroundedLastFrame = false;
-        private const float FALL_DAMAGE_THRESHOLD = 60f;
-        private bool canTakeFallDamage = true;
 
+        // ── Pit detection – Mario dies if he falls below this Y ───────────────
+        private const int PIT_DEATH_Y = 580;
+
+        // ── Level data ────────────────────────────────────────────────────────
         private static readonly PlatformData[] SECTION_STAIRS = new PlatformData[] { new PlatformData(0, 30, 120, 20), new PlatformData(150, -20, 120, 20), new PlatformData(300, -70, 120, 20) };
         private static readonly PlatformData[] SECTION_GAP_JUMPS = new PlatformData[] { new PlatformData(0, -20, 100, 20), new PlatformData(170, -20, 100, 20), new PlatformData(340, -20, 100, 20) };
         private static readonly PlatformData[] SECTION_WAVE = new PlatformData[] { new PlatformData(0, 0, 100, 20), new PlatformData(150, -40, 100, 20), new PlatformData(300, 0, 100, 20), new PlatformData(450, -40, 100, 20) };
@@ -56,6 +67,7 @@ namespace supermario
         private static readonly PlatformData[] LEVEL_1 = new PlatformData[] { new PlatformData(200, 483, 120, 20), new PlatformData(350, 433, 120, 20), new PlatformData(500, 383, 120, 20), new PlatformData(700, 433, 100, 20), new PlatformData(870, 433, 100, 20), new PlatformData(1040, 433, 100, 20), new PlatformData(1200, 413, 100, 20), new PlatformData(1350, 353, 100, 20), new PlatformData(1500, 413, 100, 20), new PlatformData(1650, 333, 100, 20), new PlatformData(1800, 283, 100, 20), new PlatformData(1950, 333, 100, 20), new PlatformData(2100, 433, 120, 20), new PlatformData(2270, 433, 120, 20), new PlatformData(2440, 433, 120, 20), new PlatformData(2650, 383, 200, 20) };
         private static readonly PlatformData[] LEVEL_2 = new PlatformData[] { new PlatformData(150, 473, 80, 20), new PlatformData(300, 433, 80, 20), new PlatformData(450, 393, 80, 20), new PlatformData(600, 353, 80, 20), new PlatformData(750, 403, 70, 20), new PlatformData(880, 353, 70, 20), new PlatformData(1010, 403, 70, 20), new PlatformData(1140, 353, 70, 20), new PlatformData(1270, 303, 100, 20), new PlatformData(1420, 253, 100, 20), new PlatformData(1570, 303, 100, 20), new PlatformData(1720, 253, 100, 20), new PlatformData(1870, 353, 100, 20), new PlatformData(2020, 403, 100, 20), new PlatformData(2170, 433, 100, 20), new PlatformData(2300, 373, 80, 20), new PlatformData(2430, 333, 80, 20), new PlatformData(2560, 373, 80, 20), new PlatformData(2700, 383, 200, 20) };
 
+        // ═════════════════════════════════════════════════════════════════════
         public mainWin()
         {
             InitializeComponent();
@@ -84,16 +96,16 @@ namespace supermario
 
             player = new Player(new Point(100, 405), null);
             player.IsGrounded = true;
-            player.Health = 3;
-            player.OnDamageTaken += () => { BecomeNormal(); };
+
+            // ── Wire up the new SMB-style events ──────────────────────────────
+            player.OnBecameSmall += HandleBecameSmall;   // Super → Small (no life lost)
+            player.OnDied += HandlePlayerDied;    // Small hit or pit → life lost
 
             picboxplayer.Location = player.Position;
             picboxplayer.BringToFront();
 
             CreateLongLevel();
 
-            // ── FIX: timer fires every 8 ms so the accumulator always has
-            //         fresh wall-clock data; actual physics steps are 16 ms each.
             gameTimer = new Timer { Interval = 8 };
             gameTimer.Tick += GameLoop;
             KeyDown += MainWin_KeyDown;
@@ -102,24 +114,19 @@ namespace supermario
             Text = $"Super Mario - Level {currentLevelNumber}";
         }
 
-        // ── FIX: GameLoop now drives a fixed-timestep accumulator ─────────────
+        // ── Main game loop (fixed timestep) ───────────────────────────────────
         private void GameLoop(object sender, EventArgs e)
         {
             if (!gameManager.IsGameRunning) return;
 
-            // Measure real elapsed time since last call
             long now = _stopwatch.ElapsedMilliseconds;
             long elapsed = now - _lastTickMs;
             _lastTickMs = now;
 
-            // Clamp to 100 ms to avoid a "spiral of death" after a hitch/breakpoint
             if (elapsed > 100) elapsed = 100;
-
             _accumulatedMs += elapsed;
 
             bool didStep = false;
-
-            // Run as many fixed 16 ms physics steps as have accumulated
             while (_accumulatedMs >= FIXED_STEP_MS)
             {
                 PhysicsStep();
@@ -127,13 +134,12 @@ namespace supermario
                 didStep = true;
             }
 
-            // Only re-render when at least one physics step ran
             if (didStep)
             {
                 UpdateCamera();
-                DrawHearts();
+                DrawHUD();
                 CheckWinCondition();
-                Text = $"Super Mario - Level {currentLevelNumber} | Health: {player.Health} | {(isPlayerSuper ? "SUPER!" : "Normal")} | Pos:({player.Position.X},{player.Position.Y})";
+                Text = $"Super Mario - Level {currentLevelNumber} | Lives: {player.Lives} | {(player.State == MarioState.Super ? "SUPER MARIO" : "Small Mario")} | Pos:({player.Position.X},{player.Position.Y})";
             }
         }
 
@@ -142,7 +148,6 @@ namespace supermario
         {
             if (isDying)
             {
-                // ── FIX: advance death timer by exactly one fixed step (16 ms)
                 HandleDeathAnimation(FIXED_STEP_MS);
                 return;
             }
@@ -150,11 +155,229 @@ namespace supermario
             int dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
             player.Move(dir, jump);
 
+            player.UpdateInvincibility(FIXED_STEP_MS);
+
             CheckPlatformCollisions();
             CheckQuestionBlockCollisions();
-            HandleFallDamage();
+            CheckPitFall();
+            UpdateGoombas();
         }
 
+        // ── Pit detection: replaces fall-damage system ─────────────────────────
+        /// <summary>
+        /// If Mario falls below the screen he always loses a life,
+        /// regardless of whether he is Small or Super.
+        /// </summary>
+        private void CheckPitFall()
+        {
+            if (isDying) return;
+            if (player.Position.Y > PIT_DEATH_Y)
+                player.FallIntoPit();
+        }
+
+        // ── Goomba system ─────────────────────────────────────────────────────
+
+        private void UpdateGoombas()
+        {
+            for (int i = goombas.Count - 1; i >= 0; i--)
+            {
+                Goomba g = goombas[i];
+
+                if (!g.IsAlive)
+                {
+                    Controls.Remove(g.Visual);
+                    g.Visual.Dispose();
+                    goombas.RemoveAt(i);
+                    continue;
+                }
+
+                if (g.IsSquished)
+                {
+                    if (g.UpdateSquish(FIXED_STEP_MS)) g.Kill();
+                    g.Visual.Location = new Point(g.Position.X - cameraX, g.Position.Y);
+                    continue;
+                }
+
+                CheckGoombaEdge(g);
+                g.Update();
+                ApplyGoombaPhysics(g);
+                CheckGoombaPlayerCollision(g);
+
+                g.Visual.Location = new Point(g.Position.X - cameraX, g.Position.Y);
+            }
+        }
+
+        private void ApplyGoombaPhysics(Goomba g)
+        {
+            if (!g.IsGrounded)
+            {
+                g.VerticalVelocity += 0.6f;
+                if (g.VerticalVelocity > 15f) g.VerticalVelocity = 15f;
+                g.Position = new Point(g.Position.X, g.Position.Y + (int)g.VerticalVelocity);
+            }
+            else
+            {
+                g.VerticalVelocity = 0f;
+            }
+
+            Rectangle gRect = g.Bounds;
+            bool landed = false;
+
+            foreach (var plat in platforms)
+            {
+                Rectangle pRect = new Rectangle(plat.Position.X, plat.Position.Y,
+                                                plat.PictureBox.Width, plat.PictureBox.Height);
+                if (!gRect.IntersectsWith(pRect)) continue;
+
+                int overlapTop = gRect.Bottom - pRect.Top;
+                if (overlapTop > 0 && overlapTop < 20)
+                {
+                    g.Position = new Point(g.Position.X, pRect.Top - g.Visual.Height);
+                    g.IsGrounded = true;
+                    landed = true;
+                    break;
+                }
+                // Wall bounce
+                int overlapLeft = gRect.Right - pRect.Left;
+                int overlapRight = pRect.Right - gRect.Left;
+                if (Math.Min(overlapLeft, overlapRight) < 15) g.ReverseDirection();
+            }
+
+            if (!landed) g.IsGrounded = false;
+            if (g.Position.Y > PIT_DEATH_Y) g.Kill();
+        }
+
+        /// <summary>Turn around when the ground ahead disappears (classic SMB edge AI).</summary>
+        private void CheckGoombaEdge(Goomba g)
+        {
+            if (!g.IsGrounded) return;
+            int leadX = g.Direction == 1 ? g.Position.X + g.Visual.Width + 2 : g.Position.X - 2;
+            int checkY = g.Position.Y + g.Visual.Height + 4;
+            if (!HasGroundAt(leadX, checkY)) g.ReverseDirection();
+        }
+
+        private bool HasGroundAt(int worldX, int worldY)
+        {
+            foreach (var plat in platforms)
+            {
+                int l = plat.Position.X, r = l + plat.PictureBox.Width;
+                int t = plat.Position.Y, b = t + plat.PictureBox.Height;
+                if (worldX >= l && worldX <= r && worldY >= t && worldY <= b) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Stomp  = Mario's feet enter Goomba from the top → squish + bounce.
+        /// Side hit = Mario takes damage (with invincibility window).
+        /// </summary>
+        private void CheckGoombaPlayerCollision(Goomba g)
+        {
+            if (player.IsInvincible) return;
+
+            Rectangle playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                                 picboxplayer.Width, picboxplayer.Height);
+            Rectangle gRect = g.Bounds;
+            if (!playerRect.IntersectsWith(gRect)) return;
+
+            int overlapTop = playerRect.Bottom - gRect.Top;
+
+            bool isStomp = overlapTop > 0
+                        && overlapTop < 26
+                        && playerRect.Bottom > gRect.Top
+                        && player.Position.Y < g.Position.Y;   // Mario centre above Goomba centre
+
+            if (isStomp)
+            {
+                g.Squish();
+                player.StompBounce();
+            }
+            else
+            {
+                player.TakeDamage();
+            }
+        }
+
+        private void SpawnGoombas()
+        {
+            int[] spawnXArr;
+
+            if (currentLevelNumber == 1) spawnXArr = GOOMBA_X_LEVEL_1;
+            else if (currentLevelNumber == 2) spawnXArr = GOOMBA_X_LEVEL_2;
+            else
+            {
+                var xList = new List<int>();
+                for (int x = 400; x < 2700; x += 380 + levelRandom.Next(-60, 60))
+                    xList.Add(x);
+                spawnXArr = xList.ToArray();
+            }
+
+            foreach (int spawnX in spawnXArr)
+            {
+                var g = new Goomba(new Point(spawnX, GOOMBA_GROUND_Y));
+                Controls.Add(g.Visual);
+                g.Visual.BringToFront();
+                goombas.Add(g);
+            }
+
+            picboxplayer.BringToFront();  // always keep Mario on top
+        }
+
+        private void ClearGoombas()
+        {
+            foreach (var g in goombas) { Controls.Remove(g.Visual); g.Visual.Dispose(); }
+            goombas.Clear();
+        }
+
+        // ── Player event handlers ─────────────────────────────────────────────
+
+        /// <summary>Super Mario was hit → shrink to Small, no life lost.</summary>
+        private void HandleBecameSmall()
+        {
+            // player.State is already MarioState.Small when this fires
+            picboxplayer.Size = originalPlayerSize;
+            player.Position = new Point(player.Position.X, player.Position.Y + (superPlayerSize.Height - originalPlayerSize.Height));
+        }
+
+        /// <summary>Mario lost a life (hit as Small, or fell into a pit).</summary>
+        private void HandlePlayerDied()
+        {
+            if (isDying) return; // already in death animation
+
+            if (player.Lives <= 0)
+            {
+                HandleGameOver();
+            }
+            else
+            {
+                // Start the classic "bounce up, fall" death animation
+                isDying = true;
+                deathTimer = 0f;
+            }
+        }
+
+        /// <summary>Game Over: show screen, reset everything including lives.</summary>
+        private void HandleGameOver()
+        {
+            gameTimer.Stop();
+            _stopwatch.Stop();
+            gameManager.EndGame();
+
+            DialogResult result = MessageBox.Show(
+                "GAME OVER!\n\nYou ran out of lives.\n\nClick OK to play again from Level 1.",
+                "Game Over",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            if (result == DialogResult.OK)
+            {
+                currentLevelNumber = 1;
+                currentLevel = allLevels[0];
+                FullReset();
+            }
+        }
+
+        // ── Win condition ──────────────────────────────────────────────────────
         private void CheckWinCondition()
         {
             if (player.Position.X >= 2750)
@@ -168,12 +391,14 @@ namespace supermario
                 else
                 {
                     MessageBox.Show("Congratulations! You've completed all levels!", "Game Complete!", MessageBoxButtons.OK);
-                    RestartLevel();
+                    currentLevelNumber = 1;
+                    currentLevel = allLevels[0];
+                    FullReset();
                 }
             }
         }
-        // ─────────────────────────────────────────────────────────────────────
 
+        // ── Level creation ────────────────────────────────────────────────────
         private void CreateLongLevel()
         {
             CreateBrickGround();
@@ -188,6 +413,7 @@ namespace supermario
             platforms.Add(new GameObjectS(finishLine, finishLine.Location, "finish"));
 
             picboxplayer.BringToFront();
+            SpawnGoombas();
         }
 
         private void CreateBrickGround()
@@ -242,6 +468,7 @@ namespace supermario
             questionBlocks.Clear();
         }
 
+        // ── Input ─────────────────────────────────────────────────────────────
         private void MainWin_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.D) moveRight = true;
@@ -250,7 +477,6 @@ namespace supermario
 
             if (e.KeyCode == Keys.Enter && !gameManager.IsGameRunning)
             {
-                // ── FIX: reset stopwatch state on each game start
                 _stopwatch.Restart();
                 _lastTickMs = 0;
                 _accumulatedMs = 0;
@@ -276,6 +502,7 @@ namespace supermario
             if (e.KeyCode == Keys.W || e.KeyCode == Keys.Space) jump = false;
         }
 
+        // ── Collision ─────────────────────────────────────────────────────────
         private void CheckPlatformCollisions()
         {
             Rectangle playerRect = new Rectangle(player.Position.X, player.Position.Y, picboxplayer.Width, picboxplayer.Height);
@@ -307,45 +534,53 @@ namespace supermario
             if (!foundGround) player.IsGrounded = false;
         }
 
+        /// <summary>
+        /// Hitting a ? block from below:
+        ///   - Small Mario  → grows into Super Mario (collect mushroom)
+        ///   - Super Mario  → block deactivates (no extra power-up, like in original SMB
+        ///                    where the block just turns grey)
+        /// </summary>
         private void CheckQuestionBlockCollisions()
         {
-            Rectangle headRect = new Rectangle(player.Position.X, player.Position.Y, picboxplayer.Width, 30);
+            // Check the top edge of Mario's sprite (his head)
+            Rectangle headRect = new Rectangle(player.Position.X + 10, player.Position.Y, picboxplayer.Width - 20, 20);
 
             foreach (var block in questionBlocks)
             {
                 if (block.IsHit) continue;
+
                 Rectangle blockRect = new Rectangle(block.Position.X, block.Position.Y, block.Visual.Width, block.Visual.Height);
 
                 if (headRect.IntersectsWith(blockRect))
                 {
+                    // Deactivate block visually
                     block.IsHit = true;
                     block.Visual.BackColor = Color.LightGray;
                     block.QuestionLabel.Text = "";
 
-                    if (!isPlayerSuper) BecomeSuper();
-                    else player.Health = Math.Min(player.Health + 1, 3);
+                    if (player.State == MarioState.Small)
+                    {
+                        // Small → Super: let Player update its state, then resize sprite
+                        player.CollectMushroom();
+                        GrowToSuper();
+                    }
+                    // If already Super: block just turns grey (no power-up in this build)
                 }
             }
         }
 
-        private void BecomeSuper()
+        // ── Size changes ──────────────────────────────────────────────────────
+
+        /// <summary>Grow Mario's sprite when he becomes Super.</summary>
+        private void GrowToSuper()
         {
-            isPlayerSuper = true;
+            int heightDiff = superPlayerSize.Height - originalPlayerSize.Height;
             picboxplayer.Size = superPlayerSize;
-            player.Health = Math.Min(player.Health + 1, 3);
-            player.Position = new Point(player.Position.X, player.Position.Y - 16);
+            // Shift up so feet stay on the ground
+            player.Position = new Point(player.Position.X, player.Position.Y - heightDiff);
         }
 
-        private void BecomeNormal()
-        {
-            if (isPlayerSuper)
-            {
-                isPlayerSuper = false;
-                picboxplayer.Size = originalPlayerSize;
-                player.Position = new Point(player.Position.X, player.Position.Y + 16);
-            }
-        }
-
+        // ── Camera / rendering ────────────────────────────────────────────────
         private void UpdateCamera()
         {
             int screenX = player.Position.X - cameraX;
@@ -369,99 +604,141 @@ namespace supermario
 
             picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
             picboxplayer.BringToFront();
+
+            // Invincibility flicker: toggle visibility each 100 ms
+            picboxplayer.Visible = player.IsVisible();
         }
 
         private void ScrollObjects(int scroll)
         {
             foreach (var p in platforms) p.PictureBox.Left -= scroll;
             foreach (var b in questionBlocks) { b.Visual.Left -= scroll; b.QuestionLabel.Left -= scroll; }
+            // Goombas are positioned every tick from their world Position, so no PictureBox shift needed here
+            // (UpdateGoombas sets Visual.Location = world.Position - cameraX each frame)
         }
 
-        private void HandleFallDamage()
+        // ── HUD ───────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Shows remaining lives as ❤ symbols (one per life) and a SUPER badge
+        /// when Mario has the mushroom power-up — exactly like the original SMB HUD.
+        /// </summary>
+        private void DrawHUD()
         {
-            if (wasGroundedLastFrame && !player.IsGrounded)
-            {
-                maxFallStartY = player.Position.Y;
-                canTakeFallDamage = true;
-            }
+            // Remove old HUD labels
+            var oldLabels = Controls.OfType<Label>().Where(l => l.Name == "hudLabel").ToList();
+            foreach (var l in oldLabels) { Controls.Remove(l); l.Dispose(); }
 
-            if (!wasGroundedLastFrame && player.IsGrounded && !isDying)
+            // Draw one heart per remaining life
+            for (int i = 0; i < player.Lives; i++)
             {
-                float fallDist = maxFallStartY - player.Position.Y;
-                if (fallDist > FALL_DAMAGE_THRESHOLD && canTakeFallDamage)
+                Label heart = new Label
                 {
-                    player.TakeDamage(1);
-                    canTakeFallDamage = false;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
-                }
-                maxFallStartY = 0;
+                    Name = "hudLabel",
+                    Text = "❤",
+                    Font = new Font("Arial", 20, FontStyle.Bold),
+                    ForeColor = Color.Red,
+                    AutoSize = true,
+                    Location = new Point(10 + (i * 32), 10),
+                    BackColor = Color.Transparent
+                };
+                Controls.Add(heart);
+                heart.BringToFront();
             }
 
-            wasGroundedLastFrame = player.IsGrounded;
+            // "SUPER" badge when Mario has the mushroom
+            if (player.State == MarioState.Super)
+            {
+                Label superLabel = new Label
+                {
+                    Name = "hudLabel",
+                    Text = "★ SUPER",
+                    Font = new Font("Arial", 14, FontStyle.Bold),
+                    ForeColor = Color.Yellow,
+                    AutoSize = true,
+                    Location = new Point(10 + (player.Lives * 32) + 10, 12),
+                    BackColor = Color.Transparent
+                };
+                Controls.Add(superLabel);
+                superLabel.BringToFront();
+            }
         }
 
-        // ── FIX: receives the actual fixed step duration so timing is deterministic
+        // ── Death animation ───────────────────────────────────────────────────
         private void HandleDeathAnimation(long stepMs)
         {
-            deathTimer += stepMs;   // advance by exactly 16 ms per physics tick
+            deathTimer += stepMs;
 
             if (deathTimer < 500)
             {
-                picboxplayer.Location = new Point(picboxplayer.Location.X,
+                // Bounce up
+                picboxplayer.Location = new Point(
+                    picboxplayer.Location.X,
                     (int)(player.Position.Y - (deathTimer / 500f) * 100));
             }
             else if (deathTimer < DEATH_ANIMATION_DURATION)
             {
-                picboxplayer.Location = new Point(picboxplayer.Location.X,
+                // Fall down
+                picboxplayer.Location = new Point(
+                    picboxplayer.Location.X,
                     (int)(player.Position.Y + ((deathTimer - 500) / (DEATH_ANIMATION_DURATION - 500)) * 300));
             }
             else
             {
+                // Animation finished → respawn at current level (lives already decremented)
                 isDying = false;
-                player.Health = 3;
-                isPlayerSuper = false;
-                RestartLevel();
+                RespawnAfterDeath();
             }
         }
 
-        private void DrawHearts()
-        {
-            var hearts = Controls.OfType<Label>().Where(l => l.Name == "heartLabel").ToList();
-            foreach (var h in hearts) { Controls.Remove(h); h.Dispose(); }
+        // ── Respawn / restart / load ──────────────────────────────────────────
 
-            for (int i = 0; i < player.Health; i++)
-            {
-                Label heart = new Label { Name = "heartLabel", Text = "❤", Font = new Font("Arial", 20, FontStyle.Bold), ForeColor = Color.Red, AutoSize = true, Location = new Point(10 + (i * 30), 10), BackColor = Color.Transparent };
-                Controls.Add(heart);
-                heart.BringToFront();
-            }
-        }
-
-        private void RestartLevel()
+        /// <summary>Respawn after death animation ends. Lives are NOT reset here.</summary>
+        private void RespawnAfterDeath()
         {
-            gameManager.ResetGame();
-            cameraX = 0;
             isDying = false;
-            wasGroundedLastFrame = false;
-            canTakeFallDamage = true;
-            isPlayerSuper = false;
+            cameraX = 0;
 
+            // Reset player position and state (Small), keep current lives count
             player.Respawn(new Point(100, 405));
             player.IsGrounded = true;
-            player.Health = 3;
-            player.OnDamageTaken += () => { BecomeNormal(); };
 
             picboxplayer.Size = originalPlayerSize;
+            picboxplayer.Visible = true;
             picboxplayer.Location = player.Position;
 
             ClearPlatforms();
             CreateLongLevel();
 
-            // ── FIX: reset accumulator so no phantom ticks fire after restart
             _stopwatch.Restart();
             _lastTickMs = 0;
             _accumulatedMs = 0;
 
+            gameManager.StartGame();
+            gameTimer.Start();
+        }
+
+        /// <summary>Full reset: lives go back to 3, level back to 1 (Game Over / level clear).</summary>
+        private void FullReset()
+        {
+            isDying = false;
+            cameraX = 0;
+
+            player.Respawn(new Point(100, 405));
+            player.IsGrounded = true;
+            player.Lives = 3;              // only place lives are restored
+
+            picboxplayer.Size = originalPlayerSize;
+            picboxplayer.Visible = true;
+            picboxplayer.Location = player.Position;
+
+            ClearPlatforms();
+            CreateLongLevel();
+
+            _stopwatch.Restart();
+            _lastTickMs = 0;
+            _accumulatedMs = 0;
+
+            Text = $"Super Mario - Level {currentLevelNumber}";
             gameManager.StartGame();
             gameTimer.Start();
         }
@@ -471,25 +748,20 @@ namespace supermario
             currentLevelNumber++;
             currentLevel = allLevels[currentLevelNumber - 1];
 
-            gameManager.ResetGame();
-            cameraX = 0;
             isDying = false;
-            wasGroundedLastFrame = false;
-            canTakeFallDamage = true;
-            isPlayerSuper = false;
+            cameraX = 0;
 
+            // Keep lives as they are — just reset position and state
             player.Respawn(new Point(100, 405));
             player.IsGrounded = true;
-            player.Health = 3;
-            player.OnDamageTaken += () => { BecomeNormal(); };
 
             picboxplayer.Size = originalPlayerSize;
+            picboxplayer.Visible = true;
             picboxplayer.Location = player.Position;
 
             ClearPlatforms();
             CreateLongLevel();
 
-            // ── FIX: reset accumulator on level load too
             _stopwatch.Restart();
             _lastTickMs = 0;
             _accumulatedMs = 0;
@@ -504,8 +776,10 @@ namespace supermario
             foreach (var p in platforms) { Controls.Remove(p.PictureBox); p.PictureBox.Dispose(); }
             platforms.Clear();
             ClearPowerUps();
+            ClearGoombas();
         }
 
+        // ── Procedural level generation ───────────────────────────────────────
         private PlatformData[] GenerateRandomLevel(int numSections)
         {
             List<PlatformData> result = new List<PlatformData>();
@@ -535,16 +809,29 @@ namespace supermario
             return result.ToArray();
         }
 
+        // ── Form load ─────────────────────────────────────────────────────────
         private void mainWin_Load(object sender, EventArgs e)
         {
-            MessageBox.Show("Controls:\nW/Space - Jump\nA - Move Left\nD - Move Right\n\n⚠️ Press ENTER to START!\n\nLevel " + currentLevelNumber + ": Reach the GOLD block!\n\n💡 Hit yellow ? blocks with your head!\n🍄 1st mushroom: Grow bigger + gain ❤\n🍄 More mushrooms: Gain extra ❤", "Super Mario", MessageBoxButtons.OK);
-            Text = $"Super Mario - Level {currentLevelNumber}";
+            MessageBox.Show(
+                "Controls:\nW / Space  – Jump\nA  – Move Left\nD  – Move Right\n\n" +
+                "❤ You start with 3 LIVES.\n" +
+                "🍄 Hit ? blocks to grab a Mushroom → become Super Mario!\n\n" +
+                "👾 GOOMBAS:\n" +
+                "  Jump ON TOP of a Goomba to squish it!\n" +
+                "  Touch one from the side and you take damage.\n" +
+                "  As Small Mario: one hit = lose a life.\n" +
+                "  As Super Mario: one hit = shrink (no life lost).\n" +
+                "⚠  Falling into a pit always costs a life!\n\n" +
+                "Press ENTER to START!",
+                "Super Mario",
+                MessageBoxButtons.OK);
 
-            // ── FIX: start stopwatch here so it's running before the first game start
+            Text = $"Super Mario - Level {currentLevelNumber}";
             _stopwatch.Start();
         }
     }
 
+    // ── Supporting types (unchanged) ─────────────────────────────────────────
     public enum PowerUpType { Mushroom }
 
     public class Mushroom
@@ -562,9 +849,14 @@ namespace supermario
         public Label QuestionLabel { get; set; }
         public bool IsHit { get; set; }
         public PowerUpType PowerUpInside { get; set; }
+
         public QuestionBlock(Point pos, PictureBox visual, Label label, PowerUpType powerUp)
         {
-            Position = pos; Visual = visual; QuestionLabel = label; IsHit = false; PowerUpInside = powerUp;
+            Position = pos;
+            Visual = visual;
+            QuestionLabel = label;
+            IsHit = false;
+            PowerUpInside = powerUp;
         }
     }
 }
