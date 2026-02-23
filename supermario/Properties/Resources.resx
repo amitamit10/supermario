@@ -124,9 +124,6 @@
   <data name="הורדה" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\הורדה.jpg;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="2999679-download (2)" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\2999679-download (2).png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="oie_RF5qvlenQ7kF1" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\oie_RF5qvlenQ7kF1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
@@ -139,7 +136,13 @@
   <data name="oie_cnoULepStRjX" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\oie_cnoULepStRjX.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="2999679-download (2)" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\2999679-download (2).png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="dcaeqy1-614416a8-3ae1-4448-94b4-e3ecefa3e53a" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\dcaeqy1-614416a8-3ae1-4448-94b4-e3ecefa3e53a.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="questionBlock" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\questionBlock.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

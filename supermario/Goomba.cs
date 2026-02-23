@@ -16,17 +16,21 @@ namespace supermario
         public int Direction { get; set; }   // -1 = left, 1 = right
 
         private float squishTimer = 0f;
-        private const float SQUISH_DURATION = 500f;   // ms to show flat goomba before removing
+        private const float SQUISH_DURATION = 600f;
         private const float WALK_SPEED = 1.5f;
 
-        public static readonly Size NormalSize = new Size(48, 48);
-        public static readonly Size SquishedSize = new Size(58, 18);
+        // Walk animation
+        private int walkFrame = 0;
+        private int walkTick = 0;
+
+        public static readonly Size NormalSize = new Size(50, 52);
+        public static readonly Size SquishedSize = new Size(60, 18);
 
         // ─────────────────────────────────────────────────────────────────────
         public Goomba(Point startPosition)
         {
             Position = startPosition;
-            Direction = -1;   // walk left, classic SMB behaviour
+            Direction = -1;
             IsAlive = true;
             IsSquished = false;
             IsGrounded = false;
@@ -36,59 +40,45 @@ namespace supermario
             {
                 Size = NormalSize,
                 Location = startPosition,
-                BackColor = Color.Transparent
+                BackColor = Color.Transparent,
             };
             Visual.Paint += DrawSprite;
         }
 
-        // ── Per-tick horizontal movement ──────────────────────────────────────
         public void Update()
         {
             if (!IsAlive || IsSquished) return;
 
+            // Walk animation
+            walkTick++;
+            if (walkTick >= 10) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; }
+
             int newX = Position.X + (int)(Direction * WALK_SPEED);
-
-            // World boundary bounce
-            if (newX < 0 || newX > 2960)
-            {
-                Direction = -Direction;
-                newX = Position.X + (int)(Direction * WALK_SPEED);
-            }
-
+            if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)(Direction * WALK_SPEED); }
             Position = new Point(newX, Position.Y);
+            Visual.Invalidate();
         }
 
         public void ReverseDirection() => Direction = -Direction;
 
-        // ── Stomp ─────────────────────────────────────────────────────────────
-        /// <summary>Called by mainWin when Mario lands on top. Returns true immediately.</summary>
         public void Squish()
         {
             if (!IsAlive || IsSquished) return;
             IsSquished = true;
             Visual.Size = SquishedSize;
-            // shift down so feet stay on the ground line
             int dy = NormalSize.Height - SquishedSize.Height;
             Position = new Point(Position.X, Position.Y + dy);
             Visual.Invalidate();
         }
 
-        /// <summary>Advance squish timer. Returns true when the goomba should be removed.</summary>
-        public bool UpdateSquish(long stepMs)
-        {
-            squishTimer += stepMs;
-            return squishTimer >= SQUISH_DURATION;
-        }
-
+        public bool UpdateSquish(long stepMs) { squishTimer += stepMs; return squishTimer >= SQUISH_DURATION; }
         public void Kill() => IsAlive = false;
-
-        // ── Collision rectangle ───────────────────────────────────────────────
         public Rectangle Bounds => new Rectangle(Position.X, Position.Y, Visual.Width, Visual.Height);
 
-        // ── GDI+ sprite ───────────────────────────────────────────────────────
+        // ── GDI+ Sprite ───────────────────────────────────────────────────────
         private void DrawSprite(object sender, PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
+            var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             int w = Visual.Width;
@@ -96,53 +86,112 @@ namespace supermario
 
             if (IsSquished)
             {
-                // Flat body
-                g.FillEllipse(new SolidBrush(Color.SaddleBrown), 0, 0, w, h);
-                // X eyes – defeated
-                using (var pen = new Pen(Color.White, 2f))
-                {
-                    g.DrawLine(pen, 8, 2, 16, h - 2);
-                    g.DrawLine(pen, 16, 2, 8, h - 2);
-                    g.DrawLine(pen, w - 16, 2, w - 8, h - 2);
-                    g.DrawLine(pen, w - 8, 2, w - 16, h - 2);
-                }
+                DrawSquished(g, w, h);
+                return;
             }
-            else
+
+            // ── Foot/leg wobble ───────────────────────────────────────────────
+            int leftLegOff = walkFrame == 0 ? 3 : -3;
+            int rightLegOff = -leftLegOff;
+
+            // ── Feet ──────────────────────────────────────────────────────────
+            Color footDark = Color.FromArgb(90, 40, 5);
+            Color footMid = Color.FromArgb(130, 65, 15);
+
+            DrawRoundedRect(g, new SolidBrush(footDark), 4, h - 14 + leftLegOff, 18, 14, 4);
+            DrawRoundedRect(g, new SolidBrush(footDark), w - 22, h - 14 + rightLegOff, 18, 14, 4);
+            // Shoe highlight
+            g.FillEllipse(new SolidBrush(Color.FromArgb(60, footMid)), 6, h - 12 + leftLegOff, 10, 5);
+            g.FillEllipse(new SolidBrush(Color.FromArgb(60, footMid)), w - 20, h - 12 + rightLegOff, 10, 5);
+
+            // ── Body ──────────────────────────────────────────────────────────
+            int bodyTop = 6;
+            int bodyH = h - 18;
+            using (var bodyBrush = new LinearGradientBrush(
+                new Point(0, bodyTop), new Point(w, bodyTop + bodyH),
+                Color.FromArgb(175, 95, 35),
+                Color.FromArgb(120, 55, 10)))
+                g.FillEllipse(bodyBrush, 2, bodyTop, w - 4, bodyH);
+
+            // Body highlight (top-left sheen)
+            g.FillEllipse(new SolidBrush(Color.FromArgb(50, 255, 200, 140)),
+                w / 4, bodyTop + 4, w / 3, bodyH / 3);
+
+            // ── Dark mushroom-cap top ─────────────────────────────────────────
+            using (var capPath = new GraphicsPath())
             {
-                // ── Feet ──
-                g.FillRectangle(new SolidBrush(Color.FromArgb(120, 60, 0)), 4, h - 13, 15, 13);
-                g.FillRectangle(new SolidBrush(Color.FromArgb(120, 60, 0)), w - 19, h - 13, 15, 13);
-
-                // ── Body / head ──
-                g.FillEllipse(new SolidBrush(Color.SaddleBrown), 2, 4, w - 4, h - 10);
-
-                // darker cap / top
-                using (var path = new GraphicsPath())
-                {
-                    path.AddArc(2, 4, w - 4, (h - 10) / 2, 180, 180);
-                    path.CloseFigure();
-                    g.FillPath(new SolidBrush(Color.FromArgb(100, 45, 0)), path);
-                }
-
-                // ── Angry eyebrows ──
-                using (var pen = new Pen(Color.FromArgb(60, 20, 0), 3f))
-                {
-                    g.DrawLine(pen, 6, 20, 19, 24);   // left brow, tilts down toward centre
-                    g.DrawLine(pen, w - 19, 24, w - 6, 20); // right brow
-                }
-
-                // ── White eye backing ──
-                g.FillEllipse(Brushes.White, 6, 22, 13, 13);
-                g.FillEllipse(Brushes.White, w - 19, 22, 13, 13);
-
-                // ── Black pupils (shifted toward centre for angry look) ──
-                g.FillEllipse(Brushes.Black, 10, 26, 6, 6);
-                g.FillEllipse(Brushes.Black, w - 16, 26, 6, 6);
-
-                // ── Bottom teeth ──
-                g.FillRectangle(Brushes.White, 14, h - 18, 6, 5);
-                g.FillRectangle(Brushes.White, w - 20, h - 18, 6, 5);
+                capPath.AddArc(2, bodyTop, w - 4, bodyH, 180, 180);
+                capPath.CloseFigure();
+                g.FillPath(new SolidBrush(Color.FromArgb(85, 35, 5)), capPath);
             }
+            // Cap sheen
+            g.FillEllipse(new SolidBrush(Color.FromArgb(35, 255, 160, 100)),
+                w / 3, bodyTop + 4, w / 5, bodyH / 5);
+
+            // ── Angry eyebrows ────────────────────────────────────────────────
+            using (var brow = new Pen(Color.FromArgb(50, 15, 0), 3.5f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                int midY = bodyTop + bodyH / 2 - 5;
+                g.DrawLine(brow, 5, midY - 3, 19, midY + 3); // left brow angles down
+                g.DrawLine(brow, w - 19, midY + 3, w - 5, midY - 3); // right brow
+            }
+
+            // ── Eyes ──────────────────────────────────────────────────────────
+            int eyeY = bodyTop + bodyH / 2 - 2;
+            // Whites
+            g.FillEllipse(Brushes.White, 5, eyeY, 14, 14);
+            g.FillEllipse(Brushes.White, w - 19, eyeY, 14, 14);
+            // Pupils (shifted inward for angry look)
+            g.FillEllipse(new SolidBrush(Color.FromArgb(20, 10, 0)), 10, eyeY + 3, 7, 7);
+            g.FillEllipse(new SolidBrush(Color.FromArgb(20, 10, 0)), w - 17, eyeY + 3, 7, 7);
+            // Eye sheen
+            g.FillEllipse(new SolidBrush(Color.FromArgb(180, 255, 255, 255)), 11, eyeY + 4, 3, 3);
+            g.FillEllipse(new SolidBrush(Color.FromArgb(180, 255, 255, 255)), w - 16, eyeY + 4, 3, 3);
+
+            // ── Fangs ─────────────────────────────────────────────────────────
+            int fangY = eyeY + 14;
+            g.FillRectangle(Brushes.White, 11, fangY, 7, 5);
+            g.FillRectangle(Brushes.White, w - 18, fangY, 7, 5);
+            // Fang shadow
+            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 200, 160, 140)), 11, fangY + 3, 7, 2);
+            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 200, 160, 140)), w - 18, fangY + 3, 7, 2);
+        }
+
+        private void DrawSquished(Graphics g, int w, int h)
+        {
+            // Flat oval body
+            using (var b = new LinearGradientBrush(new Point(0, 0), new Point(0, h),
+                Color.FromArgb(160, 80, 20), Color.FromArgb(100, 45, 5)))
+                g.FillEllipse(b, 2, 0, w - 4, h);
+
+            // Stars (defeated effect)
+            g.FillEllipse(Brushes.White, 6, 1, 6, 6);
+            g.FillEllipse(Brushes.White, w - 12, 1, 6, 6);
+
+            // X eyes
+            using (var pen = new Pen(Color.FromArgb(230, 230, 240), 2.5f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+            {
+                g.DrawLine(pen, 8, 2, 15, h - 2);
+                g.DrawLine(pen, 15, 2, 8, h - 2);
+                g.DrawLine(pen, w - 15, 2, w - 8, h - 2);
+                g.DrawLine(pen, w - 8, 2, w - 15, h - 2);
+            }
+
+            // Highlight
+            g.FillEllipse(new SolidBrush(Color.FromArgb(40, 255, 200, 150)), w / 4, 1, w / 3, h / 3);
+        }
+
+        private static void DrawRoundedRect(Graphics g, Brush b, int x, int y, int w, int h, int r)
+        {
+            if (w <= 0 || h <= 0) return;
+            r = System.Math.Min(r, System.Math.Min(w / 2, h / 2));
+            var path = new GraphicsPath();
+            path.AddArc(x, y, r * 2, r * 2, 180, 90);
+            path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
+            path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
+            path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
+            path.CloseFigure();
+            g.FillPath(b, path);
         }
     }
 }
