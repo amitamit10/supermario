@@ -133,6 +133,16 @@ namespace supermario.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap questionBlock {
+            get {
+                object obj = ResourceManager.GetObject("questionBlock", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap הורדה {
             get {
                 object obj = ResourceManager.GetObject("הורדה", resourceCulture);
