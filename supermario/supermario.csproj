@@ -94,5 +94,8 @@
   <ItemGroup>
     <None Include="Resources\dcaeqy1-614416a8-3ae1-4448-94b4-e3ecefa3e53a.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\questionBlock.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
