@@ -791,6 +791,7 @@ namespace supermario
                     player.IsGrounded = true;
                     foundGround = true;
                     break;
+
                 }
             }
             if (!foundGround) player.IsGrounded = false;
