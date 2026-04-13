@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Windows.Forms;
 
 namespace supermario
 {
@@ -26,8 +25,8 @@ namespace supermario
         private const float JumpReleaseGravityMultiplier = 2f;
         private bool isJumpHeld = false;
 
-        // Event fired when damage is taken
-        public event System.Action OnDamageTaken;
+        // Plain Action (not event) so it can be assigned with = to prevent stacking
+        public System.Action OnDamageTaken;
 
         public Player(Point startPosition, System.Drawing.Image playerImage)
         {
