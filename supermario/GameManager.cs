@@ -16,8 +16,8 @@ namespace supermario
         public void StartGame()
         {
             IsGameRunning = true;
-            Score = 0;
-            CurrentLevel = 1;
+            // Score and CurrentLevel are set by the caller (DoLevelSetup / ResetGame)
+            // so we do not clobber them here
         }
 
         public void UpdateGame()

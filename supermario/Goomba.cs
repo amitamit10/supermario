@@ -98,11 +98,16 @@ namespace supermario
             Color footDark = Color.FromArgb(90, 40, 5);
             Color footMid = Color.FromArgb(130, 65, 15);
 
-            DrawRoundedRect(g, new SolidBrush(footDark), 4, h - 14 + leftLegOff, 18, 14, 4);
-            DrawRoundedRect(g, new SolidBrush(footDark), w - 22, h - 14 + rightLegOff, 18, 14, 4);
-            // Shoe highlight
-            g.FillEllipse(new SolidBrush(Color.FromArgb(60, footMid)), 6, h - 12 + leftLegOff, 10, 5);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(60, footMid)), w - 20, h - 12 + rightLegOff, 10, 5);
+            using (var footBrush = new SolidBrush(footDark))
+            {
+                DrawRoundedRect(g, footBrush, 4, h - 14 + leftLegOff, 18, 14, 4);
+                DrawRoundedRect(g, footBrush, w - 22, h - 14 + rightLegOff, 18, 14, 4);
+            }
+            using (var shoeBrush = new SolidBrush(Color.FromArgb(60, footMid)))
+            {
+                g.FillEllipse(shoeBrush, 6, h - 12 + leftLegOff, 10, 5);
+                g.FillEllipse(shoeBrush, w - 20, h - 12 + rightLegOff, 10, 5);
+            }
 
             // ── Body ──────────────────────────────────────────────────────────
             int bodyTop = 6;
@@ -113,62 +118,63 @@ namespace supermario
                 Color.FromArgb(120, 55, 10)))
                 g.FillEllipse(bodyBrush, 2, bodyTop, w - 4, bodyH);
 
-            // Body highlight (top-left sheen)
-            g.FillEllipse(new SolidBrush(Color.FromArgb(50, 255, 200, 140)),
-                w / 4, bodyTop + 4, w / 3, bodyH / 3);
+            using (var bodySheen = new SolidBrush(Color.FromArgb(50, 255, 200, 140)))
+                g.FillEllipse(bodySheen, w / 4, bodyTop + 4, w / 3, bodyH / 3);
 
             // ── Dark mushroom-cap top ─────────────────────────────────────────
             using (var capPath = new GraphicsPath())
+            using (var capBrush = new SolidBrush(Color.FromArgb(85, 35, 5)))
             {
                 capPath.AddArc(2, bodyTop, w - 4, bodyH, 180, 180);
                 capPath.CloseFigure();
-                g.FillPath(new SolidBrush(Color.FromArgb(85, 35, 5)), capPath);
+                g.FillPath(capBrush, capPath);
             }
-            // Cap sheen
-            g.FillEllipse(new SolidBrush(Color.FromArgb(35, 255, 160, 100)),
-                w / 3, bodyTop + 4, w / 5, bodyH / 5);
+            using (var capSheen = new SolidBrush(Color.FromArgb(35, 255, 160, 100)))
+                g.FillEllipse(capSheen, w / 3, bodyTop + 4, w / 5, bodyH / 5);
 
             // ── Angry eyebrows ────────────────────────────────────────────────
             using (var brow = new Pen(Color.FromArgb(50, 15, 0), 3.5f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             {
                 int midY = bodyTop + bodyH / 2 - 5;
-                g.DrawLine(brow, 5, midY - 3, 19, midY + 3); // left brow angles down
-                g.DrawLine(brow, w - 19, midY + 3, w - 5, midY - 3); // right brow
+                g.DrawLine(brow, 5, midY - 3, 19, midY + 3);
+                g.DrawLine(brow, w - 19, midY + 3, w - 5, midY - 3);
             }
 
             // ── Eyes ──────────────────────────────────────────────────────────
             int eyeY = bodyTop + bodyH / 2 - 2;
-            // Whites
             g.FillEllipse(Brushes.White, 5, eyeY, 14, 14);
             g.FillEllipse(Brushes.White, w - 19, eyeY, 14, 14);
-            // Pupils (shifted inward for angry look)
-            g.FillEllipse(new SolidBrush(Color.FromArgb(20, 10, 0)), 10, eyeY + 3, 7, 7);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(20, 10, 0)), w - 17, eyeY + 3, 7, 7);
-            // Eye sheen
-            g.FillEllipse(new SolidBrush(Color.FromArgb(180, 255, 255, 255)), 11, eyeY + 4, 3, 3);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(180, 255, 255, 255)), w - 16, eyeY + 4, 3, 3);
+            using (var pupil = new SolidBrush(Color.FromArgb(20, 10, 0)))
+            {
+                g.FillEllipse(pupil, 10, eyeY + 3, 7, 7);
+                g.FillEllipse(pupil, w - 17, eyeY + 3, 7, 7);
+            }
+            using (var eyeSheen = new SolidBrush(Color.FromArgb(180, 255, 255, 255)))
+            {
+                g.FillEllipse(eyeSheen, 11, eyeY + 4, 3, 3);
+                g.FillEllipse(eyeSheen, w - 16, eyeY + 4, 3, 3);
+            }
 
             // ── Fangs ─────────────────────────────────────────────────────────
             int fangY = eyeY + 14;
             g.FillRectangle(Brushes.White, 11, fangY, 7, 5);
             g.FillRectangle(Brushes.White, w - 18, fangY, 7, 5);
-            // Fang shadow
-            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 200, 160, 140)), 11, fangY + 3, 7, 2);
-            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 200, 160, 140)), w - 18, fangY + 3, 7, 2);
+            using (var fangShadow = new SolidBrush(Color.FromArgb(80, 200, 160, 140)))
+            {
+                g.FillRectangle(fangShadow, 11, fangY + 3, 7, 2);
+                g.FillRectangle(fangShadow, w - 18, fangY + 3, 7, 2);
+            }
         }
 
         private void DrawSquished(Graphics g, int w, int h)
         {
-            // Flat oval body
             using (var b = new LinearGradientBrush(new Point(0, 0), new Point(0, h),
                 Color.FromArgb(160, 80, 20), Color.FromArgb(100, 45, 5)))
                 g.FillEllipse(b, 2, 0, w - 4, h);
 
-            // Stars (defeated effect)
             g.FillEllipse(Brushes.White, 6, 1, 6, 6);
             g.FillEllipse(Brushes.White, w - 12, 1, 6, 6);
 
-            // X eyes
             using (var pen = new Pen(Color.FromArgb(230, 230, 240), 2.5f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             {
                 g.DrawLine(pen, 8, 2, 15, h - 2);
@@ -177,21 +183,23 @@ namespace supermario
                 g.DrawLine(pen, w - 8, 2, w - 15, h - 2);
             }
 
-            // Highlight
-            g.FillEllipse(new SolidBrush(Color.FromArgb(40, 255, 200, 150)), w / 4, 1, w / 3, h / 3);
+            using (var hi = new SolidBrush(Color.FromArgb(40, 255, 200, 150)))
+                g.FillEllipse(hi, w / 4, 1, w / 3, h / 3);
         }
 
         private static void DrawRoundedRect(Graphics g, Brush b, int x, int y, int w, int h, int r)
         {
             if (w <= 0 || h <= 0) return;
             r = System.Math.Min(r, System.Math.Min(w / 2, h / 2));
-            var path = new GraphicsPath();
-            path.AddArc(x, y, r * 2, r * 2, 180, 90);
-            path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
-            path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
-            path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
-            path.CloseFigure();
-            g.FillPath(b, path);
+            using (var path = new GraphicsPath())
+            {
+                path.AddArc(x, y, r * 2, r * 2, 180, 90);
+                path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
+                path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
+                path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
+                path.CloseFigure();
+                g.FillPath(b, path);
+            }
         }
     }
 }

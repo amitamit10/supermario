@@ -118,9 +118,14 @@ namespace supermario
             }
         }
 
-        public void Update(float deltaTime) { }
-
         public void CollectCoin() { Score += 10; }
+
+        // Called when the player stomps an enemy – gives a short upward bounce
+        public void Bounce()
+        {
+            VerticalVelocity = -7f;   // roughly half of JumpPower (-13f)
+            IsGrounded = false;
+        }
 
         public void TakeDamage(int amount)
         {

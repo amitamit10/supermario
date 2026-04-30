@@ -58,6 +58,9 @@ namespace supermario
         private bool moveRight = false, moveLeft = false, jump = false;
         private int cameraX = 0;
         private const int SCROLL_THRESHOLD = 400;
+        private const int LEVEL_PIXEL_WIDTH = 3000;  // matches CreateBrickGround brick span
+        private const int FLAGPOLE_X = 2750;          // X coordinate of the finish flagpole
+        private const int CAMERA_MAX = LEVEL_PIXEL_WIDTH - 982; // 982 = ClientSize.Width
         private bool isPlayerSuper = false;
         private Size originalPlayerSize = new Size(68, 68);
         private Size superPlayerSize = new Size(82, 82);
@@ -68,14 +71,19 @@ namespace supermario
         private bool wasGroundedLastFrame = true;
         private const float FALL_DAMAGE_THRESHOLD = 60f;
         private bool canTakeFallDamage = true;
+        private bool _levelComplete = false;
 
         // ── Invincibility frames after damage ────────────────────────────────
         private bool isInvincible = false;
         private float invincibleTimer = 0f;
         private const float INVINCIBLE_DURATION = 1500f; // ms
 
+        // ── Persistent HUD (created once in InitHud, updated each tick) ──────
+        private Label _hudLabel;
+        private readonly Label[] _heartLabels = new Label[3];
+
         // ── Level data ───────────────────────────────────────────────────────
-        // Y offsets are relative to yBase=483. Negative = higher. All must produce ny in [250,483].
+        // Y offsets relative to yBase=483. Negative = higher. All produce ny in [250,483].
         private static readonly PlatformData[] SECTION_STAIRS = {
             new PlatformData(0, -20, 120, 20), new PlatformData(150, -70, 120, 20), new PlatformData(300, -120, 120, 20)
         };
@@ -93,7 +101,6 @@ namespace supermario
             new PlatformData(0, -50, 80, 20), new PlatformData(120, -90, 80, 20),
             new PlatformData(240, -50, 80, 20), new PlatformData(360, -90, 80, 20)
         };
-        // --- 10 new section templates ---
         private static readonly PlatformData[] SECTION_DESCEND = {
             new PlatformData(0, -120, 100, 20), new PlatformData(150, -80, 100, 20),
             new PlatformData(300, -50, 100, 20), new PlatformData(450, -25, 100, 20)
@@ -304,6 +311,9 @@ namespace supermario
             picboxplayer.Location = player.Position;
             picboxplayer.BringToFront();
 
+            InitHud();
+            FormClosing += (s, e) => { gameTimer?.Stop(); questionAnimTimer?.Stop(); };
+
             // ── Question-block animation timer ───────────────────────────────
             questionAnimTimer = new Timer { Interval = 110 };
             questionAnimTimer.Tick += (s, e) =>
@@ -373,10 +383,9 @@ namespace supermario
             if (didStep)
             {
                 UpdateCamera();
-                DrawHearts();
+                UpdateHud();
                 CheckWinCondition();
                 Invalidate(new Rectangle(0, 0, ClientSize.Width, 520));
-                Text = $"Super Mario – Level {currentLevelNumber}  ♥ {player.Health}  {(isPlayerSuper ? "★ SUPER" : "")}";
             }
         }
 
@@ -429,6 +438,9 @@ namespace supermario
             AddFinishFlagpole();
             SpawnGoombas();          // ← spawn goombas after level geometry
             picboxplayer.BringToFront();
+            // HUD must stay above all game objects including the player sprite
+            _hudLabel?.BringToFront();
+            foreach (var lbl in _heartLabels) lbl?.BringToFront();
         }
 
         private void CreateBrickGround()
@@ -453,18 +465,21 @@ namespace supermario
             var pb = (PictureBox)sender;
             var g = e.Graphics;
             int w = pb.Width, h = pb.Height;
-            g.FillRectangle(new SolidBrush(Color.FromArgb(185, 100, 40)), 0, 0, w, h);
-            using (var m = new Pen(Color.FromArgb(120, 60, 15), 2f))
+            using (var fill = new SolidBrush(Color.FromArgb(185, 100, 40)))
+                g.FillRectangle(fill, 0, 0, w, h);
+            using (var mortar = new Pen(Color.FromArgb(120, 60, 15), 2f))
             {
-                g.DrawLine(m, 0, h / 2, w, h / 2);
-                g.DrawLine(m, w / 2, 0, w / 2, h / 2);
-                g.DrawLine(m, w / 4, h / 2, w / 4, h);
-                g.DrawLine(m, 3 * w / 4, h / 2, 3 * w / 4, h);
+                g.DrawLine(mortar, 0, h / 2, w, h / 2);
+                g.DrawLine(mortar, w / 2, 0, w / 2, h / 2);
+                g.DrawLine(mortar, w / 4, h / 2, w / 4, h);
+                g.DrawLine(mortar, 3 * w / 4, h / 2, 3 * w / 4, h);
             }
-            g.FillRectangle(new SolidBrush(Color.FromArgb(70, 255, 210, 150)), 0, 0, w, 3);
-            g.FillRectangle(new SolidBrush(Color.FromArgb(40, 255, 210, 150)), 0, 0, 2, h);
-            using (var b = new Pen(Color.FromArgb(90, 40, 5), 1f))
-                g.DrawRectangle(b, 0, 0, w - 1, h - 1);
+            using (var hi1 = new SolidBrush(Color.FromArgb(70, 255, 210, 150)))
+                g.FillRectangle(hi1, 0, 0, w, 3);
+            using (var hi2 = new SolidBrush(Color.FromArgb(40, 255, 210, 150)))
+                g.FillRectangle(hi2, 0, 0, 2, h);
+            using (var border = new Pen(Color.FromArgb(90, 40, 5), 1f))
+                g.DrawRectangle(border, 0, 0, w - 1, h - 1);
         }
 
         private void AddPlatform(int x, int y, int w, int h)
@@ -486,21 +501,23 @@ namespace supermario
             var pb = (PictureBox)sender;
             var g = e.Graphics;
             int w = pb.Width, h = pb.Height;
-            g.FillRectangle(new SolidBrush(Color.FromArgb(210, 140, 65)), 0, 0, w, h);
+            using (var fill = new SolidBrush(Color.FromArgb(210, 140, 65)))
+                g.FillRectangle(fill, 0, 0, w, h);
             int bw = 40, bh = 20;
-            using (var m = new Pen(Color.FromArgb(150, 85, 25), 1.5f))
+            using (var mortar = new Pen(Color.FromArgb(150, 85, 25), 1.5f))
             {
                 for (int by = 0; by < h; by += bh)
                 {
-                    g.DrawLine(m, 0, by, w, by);
+                    g.DrawLine(mortar, 0, by, w, by);
                     int offset = ((by / bh) % 2 == 0) ? 0 : bw / 2;
                     for (int bx = offset; bx < w + bw; bx += bw)
-                        g.DrawLine(m, bx, by, bx, Math.Min(by + bh, h));
+                        g.DrawLine(mortar, bx, by, bx, Math.Min(by + bh, h));
                 }
             }
-            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 255, 220, 160)), 0, 0, w, 4);
-            using (var b = new Pen(Color.FromArgb(110, 60, 10), 2f))
-                g.DrawRectangle(b, 1, 1, w - 2, h - 2);
+            using (var hi = new SolidBrush(Color.FromArgb(80, 255, 220, 160)))
+                g.FillRectangle(hi, 0, 0, w, 4);
+            using (var border = new Pen(Color.FromArgb(110, 60, 10), 2f))
+                g.DrawRectangle(border, 1, 1, w - 2, h - 2);
         }
 
         private void AddFinishFlagpole()
@@ -521,27 +538,31 @@ namespace supermario
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            int w = 80, h = 200;
+            int h = 200;  // flagpole PictureBox height; width (80) is embedded in draw coords below
             using (var lg = new LinearGradientBrush(new Point(30, 0), new Point(46, 0),
                 Color.FromArgb(200, 200, 210), Color.FromArgb(90, 90, 110)))
                 g.FillRectangle(lg, 34, 0, 12, h);
-            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 255, 255, 255)), 36, 0, 3, h);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(255, 210, 30)), 26, 0, 28, 28);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(180, 255, 255, 150)), 30, 3, 10, 10);
+            using (var poleSheen = new SolidBrush(Color.FromArgb(80, 255, 255, 255)))
+                g.FillRectangle(poleSheen, 36, 0, 3, h);
+            using (var ball = new SolidBrush(Color.FromArgb(255, 210, 30)))
+                g.FillEllipse(ball, 26, 0, 28, 28);
+            using (var ballSheen = new SolidBrush(Color.FromArgb(180, 255, 255, 150)))
+                g.FillEllipse(ballSheen, 30, 3, 10, 10);
             var flagPts = new PointF[] { new PointF(46, 18), new PointF(46, 70), new PointF(78, 44) };
-            g.FillPolygon(new SolidBrush(Color.FromArgb(60, 180, 60)), flagPts);
-            g.FillPolygon(new SolidBrush(Color.FromArgb(80, 255, 80, 80)), new PointF[]
-                { new PointF(48, 20), new PointF(58, 30), new PointF(50, 38) });
-            g.FillRectangle(new SolidBrush(Color.FromArgb(80, 80, 90)), 14, h - 30, 50, 30);
-            g.FillRectangle(new SolidBrush(Color.FromArgb(110, 110, 125)), 14, h - 30, 50, 8);
-            using (var p = new Pen(Color.FromArgb(50, 50, 60), 2f))
-                g.DrawRectangle(p, 14, h - 30, 50, 30);
+            using (var flagGreen = new SolidBrush(Color.FromArgb(60, 180, 60)))
+                g.FillPolygon(flagGreen, flagPts);
+            using (var flagSheen = new SolidBrush(Color.FromArgb(80, 255, 80, 80)))
+                g.FillPolygon(flagSheen, new PointF[] { new PointF(48, 20), new PointF(58, 30), new PointF(50, 38) });
+            using (var base1 = new SolidBrush(Color.FromArgb(80, 80, 90)))
+                g.FillRectangle(base1, 14, h - 30, 50, 30);
+            using (var base2 = new SolidBrush(Color.FromArgb(110, 110, 125)))
+                g.FillRectangle(base2, 14, h - 30, 50, 8);
+            using (var borderPen = new Pen(Color.FromArgb(50, 50, 60), 2f))
+                g.DrawRectangle(borderPen, 14, h - 30, 50, 30);
             using (var f = new Font("Courier New", 7f, FontStyle.Bold))
             using (var b = new SolidBrush(Color.White))
-            {
-                var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
                 g.DrawString("GOAL", f, b, new RectangleF(14, h - 22, 50, 14), sf);
-            }
         }
 
         private void AddQuestionBlocks()
@@ -568,7 +589,8 @@ namespace supermario
 
                     if (block.IsHit)
                     {
-                        g.FillRectangle(new SolidBrush(Color.FromArgb(181, 116, 56)), 0, 0, bw, bh);
+                        using (var fill = new SolidBrush(Color.FromArgb(181, 116, 56)))
+                            g.FillRectangle(fill, 0, 0, bw, bh);
                         using (var mortar = new Pen(Color.FromArgb(100, 60, 20), 2f))
                         {
                             g.DrawLine(mortar, 0, bh / 2, bw, bh / 2);
@@ -585,17 +607,17 @@ namespace supermario
                             Color.FromArgb(255, 255, 100), Color.FromArgb(255, 230,  60),
                             Color.FromArgb(255, 210,   0), Color.FromArgb(220, 160,   0),
                         };
-                        g.FillRectangle(new SolidBrush(palette[questionAnimFrame % 6]), 0, 0, bw, bh);
-                        g.FillRectangle(new SolidBrush(Color.FromArgb(100, 255, 255, 200)), 3, 3, bw - 6, 6);
+                        using (var fill = new SolidBrush(palette[questionAnimFrame % 6]))
+                            g.FillRectangle(fill, 0, 0, bw, bh);
+                        using (var shine = new SolidBrush(Color.FromArgb(100, 255, 255, 200)))
+                            g.FillRectangle(shine, 3, 3, bw - 6, 6);
                         using (var border = new Pen(Color.FromArgb(140, 80, 0), 3f))
                             g.DrawRectangle(border, 1, 1, bw - 3, bh - 3);
                         int qOff = (questionAnimFrame % 2 == 0) ? 0 : -2;
                         using (var qFont = new Font("Arial", 24, FontStyle.Bold))
                         using (var qBrush = new SolidBrush(Color.FromArgb(100, 50, 0)))
-                        {
-                            var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                        using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
                             g.DrawString("?", qFont, qBrush, new RectangleF(0, qOff, bw, bh), sf);
-                        }
                     }
                 };
 
@@ -648,6 +670,7 @@ namespace supermario
                 if (!goomba.IsAlive)
                 {
                     Controls.Remove(goomba.Visual);
+                    goomba.Visual.Dispose();   // release native control handle immediately
                     goombas.RemoveAt(i);
                     continue;
                 }
@@ -728,10 +751,9 @@ namespace supermario
 
                 if (fallingDown && playerAbove)
                 {
-                    // Stomp!
+                    // Stomp! Give the player a real upward bounce impulse
                     goomba.Squish();
-                    // Bounce player slightly upward
-                    player.IsGrounded = false;
+                    player.Bounce();
                 }
                 else if (!isInvincible)
                 {
@@ -745,15 +767,11 @@ namespace supermario
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  HUD
+        //  HUD  –  controls created once, text updated each tick
         // ════════════════════════════════════════════════════════════════════
-        private void DrawHearts()
+        private void InitHud()
         {
-            foreach (var l in Controls.OfType<Label>()
-                .Where(l => l.Name == "heartLabel" || l.Name == "hudLabel").ToList())
-            { Controls.Remove(l); l.Dispose(); }
-
-            var hud = new Label
+            _hudLabel = new Label
             {
                 Name = "hudLabel",
                 AutoSize = false,
@@ -763,40 +781,56 @@ namespace supermario
                 ForeColor = Color.White,
                 Font = new Font("Courier New", 9f, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleLeft,
-                Text = $"  LVL {currentLevelNumber}     {(isPlayerSuper ? "★ SUPER" : "")}",
             };
-            Controls.Add(hud);
-            hud.BringToFront();
+            Controls.Add(_hudLabel);
+            _hudLabel.BringToFront();
 
-            for (int i = 0; i < player.Health; i++)
+            for (int i = 0; i < 3; i++)
             {
-                var h = new Label
+                _heartLabels[i] = new Label
                 {
                     Name = "heartLabel",
-                    Text = "❤",
                     Font = new Font("Arial", 20, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(255, 60, 80),
                     AutoSize = true,
                     Location = new Point(160 + i * 36, 6),
                     BackColor = Color.Transparent,
                 };
-                Controls.Add(h);
-                h.BringToFront();
+                Controls.Add(_heartLabels[i]);
+                _heartLabels[i].BringToFront();
             }
-            for (int i = player.Health; i < 3; i++)
+
+            UpdateHud();
+        }
+
+        private int _lastHudHealth = -1;
+        private bool _lastHudSuper = false;
+        private int _lastHudLevel = -1;
+
+        private void UpdateHud()
+        {
+            if (_hudLabel == null) return;
+
+            // Only push string updates when something actually changed (avoids repaint churn)
+            if (currentLevelNumber != _lastHudLevel || isPlayerSuper != _lastHudSuper)
             {
-                var h = new Label
+                _lastHudLevel = currentLevelNumber;
+                _lastHudSuper = isPlayerSuper;
+                _hudLabel.Text = $"  LVL {currentLevelNumber}     {(isPlayerSuper ? "★ SUPER" : "")}";
+                Text = $"Super Mario – Level {currentLevelNumber}{(isPlayerSuper ? "  ★ SUPER" : "")}";
+            }
+
+            if (player.Health != _lastHudHealth)
+            {
+                _lastHudHealth = player.Health;
+                for (int i = 0; i < 3; i++)
                 {
-                    Name = "heartLabel",
-                    Text = "♡",
-                    Font = new Font("Arial", 20, FontStyle.Bold),
-                    ForeColor = Color.FromArgb(140, 100, 110),
-                    AutoSize = true,
-                    Location = new Point(160 + i * 36, 6),
-                    BackColor = Color.Transparent,
-                };
-                Controls.Add(h);
-                h.BringToFront();
+                    if (_heartLabels[i] == null) continue;
+                    bool filled = i < player.Health;
+                    _heartLabels[i].Text = filled ? "❤" : "♡";
+                    _heartLabels[i].ForeColor = filled
+                        ? Color.FromArgb(255, 60, 80)
+                        : Color.FromArgb(140, 100, 110);
+                }
             }
         }
 
@@ -883,7 +917,9 @@ namespace supermario
 
         private void CheckWinCondition()
         {
-            if (player.Position.X < 2750) return;
+            // _levelComplete prevents double-trigger (e.g. game loop fires again before MessageBox closes)
+            if (_levelComplete || isDying || player.Position.X < FLAGPOLE_X) return;
+            _levelComplete = true;
             gameTimer.Stop();
             if (currentLevelNumber < allLevels.Length)
             {
@@ -971,7 +1007,7 @@ namespace supermario
             int screenX = player.Position.X - cameraX;
             if (screenX > SCROLL_THRESHOLD && player.Position.X > SCROLL_THRESHOLD)
             {
-                int newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, 2000);
+                int newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
                 ScrollObjects(newCam - cameraX);
                 cameraX = newCam;
             }
@@ -982,7 +1018,6 @@ namespace supermario
                 cameraX = newCam;
             }
             picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
-            picboxplayer.BringToFront();
         }
 
         private void ScrollObjects(int scroll)
@@ -1000,36 +1035,30 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  LEVEL RESET / LOAD
         // ════════════════════════════════════════════════════════════════════
-        private void RestartLevel()
-        {
-            gameManager.ResetGame();
-            cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
-            wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
-            player.Respawn(new Point(100, 405));
-            player.IsGrounded = true; player.Health = 3;
-            player.OnDamageTaken = () => { BecomeNormal(); };
-            picboxplayer.Size = originalPlayerSize;
-            picboxplayer.Location = player.Position;
-            ClearPlatforms(); CreateLongLevel();
-            _stopwatch.Restart(); _lastTickMs = 0; _accumulatedMs = 0;
-            gameManager.StartGame(); gameTimer.Start();
-        }
+        private void RestartLevel() => DoLevelSetup(currentLevelNumber);
 
-        private void LoadNextLevel()
+        private void LoadNextLevel() => DoLevelSetup(currentLevelNumber + 1);
+
+        private void DoLevelSetup(int levelNum)
         {
-            currentLevelNumber++;
+            currentLevelNumber = levelNum;
             currentLevel = allLevels[currentLevelNumber - 1];
             gameManager.ResetGame();
             cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
             wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
+            _levelComplete = false;
+            // Reset HUD dirty flags so UpdateHud() re-draws everything after level change
+            _lastHudHealth = -1; _lastHudLevel = -1; _lastHudSuper = false;
             player.Respawn(new Point(100, 405));
             player.IsGrounded = true; player.Health = 3;
+            // Use = not += to prevent handler stacking across restarts
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
             picboxplayer.Location = player.Position;
             ClearPlatforms(); CreateLongLevel();
             _stopwatch.Restart(); _lastTickMs = 0; _accumulatedMs = 0;
             Text = $"Super Mario – Level {currentLevelNumber}";
+            UpdateHud();
             gameManager.StartGame(); gameTimer.Start();
         }
 
@@ -1048,30 +1077,33 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private PlatformData[] GenerateRandomLevel(int numSections)
         {
-            var result = new List<PlatformData>();
-            int xOff = 200, yBase = 483;
-
-            // First section is always gentle to give players a fair opening
+            // Opening is always a gentle section so players get a fair start
             var openingPool = new[] { SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE };
-            var sections = new List<PlatformData[]> { openingPool[levelRandom.Next(openingPool.Length)] };
-            for (int i = 1; i < numSections; i++)
-                sections.Add(ALL_SECTIONS[levelRandom.Next(ALL_SECTIONS.Length)]);
-
-            foreach (var sec in sections)
+            List<PlatformData> result;
+            int extra = 0;
+            do
             {
-                foreach (var p in sec)
+                result = new List<PlatformData>();
+                int xOff = 200, yBase = 483;
+                int total = numSections + extra;
+                for (int i = 0; i < total; i++)
                 {
-                    int ny = yBase + p.Y;
-                    if (ny >= 250 && ny <= 483)
-                        result.Add(new PlatformData(xOff + p.X, ny, p.Width, p.Height));
+                    var sec = i == 0
+                        ? openingPool[levelRandom.Next(openingPool.Length)]
+                        : ALL_SECTIONS[levelRandom.Next(ALL_SECTIONS.Length)];
+                    foreach (var p in sec)
+                    {
+                        int ny = yBase + p.Y;
+                        if (ny >= 250 && ny <= 483)
+                            result.Add(new PlatformData(xOff + p.X, ny, p.Width, p.Height));
+                    }
+                    if (sec.Length > 0)
+                        xOff += sec.Max(p => p.X + p.Width) + 120;
                 }
-                if (sec.Length > 0)
-                {
-                    int maxX = sec.Max(p => p.X + p.Width);
-                    xOff += maxX + 120;
-                }
-            }
-            return result.Count < 5 ? GenerateRandomLevel(numSections + 1) : result.ToArray();
+                extra++;
+            } while (result.Count < 5 && extra < 20);
+
+            return result.ToArray();
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -1100,17 +1132,20 @@ namespace supermario
     // ════════════════════════════════════════════════════════════════════════
     internal static class GraphicsExtensions
     {
+        // Helper kept for future use — not currently called by game code
         public static void FillRoundedRect(this Graphics g, Brush b, int x, int y, int w, int h, int r)
         {
             if (w <= 0 || h <= 0) return;
             r = Math.Min(r, Math.Min(w / 2, h / 2));
-            var path = new GraphicsPath();
-            path.AddArc(x, y, r * 2, r * 2, 180, 90);
-            path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
-            path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
-            path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
-            path.CloseFigure();
-            g.FillPath(b, path);
+            using (var path = new GraphicsPath())
+            {
+                path.AddArc(x, y, r * 2, r * 2, 180, 90);
+                path.AddArc(x + w - r * 2, y, r * 2, r * 2, 270, 90);
+                path.AddArc(x + w - r * 2, y + h - r * 2, r * 2, r * 2, 0, 90);
+                path.AddArc(x, y + h - r * 2, r * 2, r * 2, 90, 90);
+                path.CloseFigure();
+                g.FillPath(b, path);
+            }
         }
     }
 
