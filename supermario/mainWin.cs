@@ -65,7 +65,7 @@ namespace supermario
         private float deathTimer = 0f;
         private const float DEATH_ANIMATION_DURATION = 2000f;
         private float maxFallStartY = 0;
-        private bool wasGroundedLastFrame = false;
+        private bool wasGroundedLastFrame = true;
         private const float FALL_DAMAGE_THRESHOLD = 60f;
         private bool canTakeFallDamage = true;
 
@@ -75,29 +75,106 @@ namespace supermario
         private const float INVINCIBLE_DURATION = 1500f; // ms
 
         // ── Level data ───────────────────────────────────────────────────────
-        private static readonly PlatformData[] SECTION_STAIRS = { new PlatformData(0, 30, 120, 20), new PlatformData(150, -20, 120, 20), new PlatformData(300, -70, 120, 20) };
-        private static readonly PlatformData[] SECTION_GAP_JUMPS = { new PlatformData(0, -20, 100, 20), new PlatformData(170, -20, 100, 20), new PlatformData(340, -20, 100, 20) };
-        private static readonly PlatformData[] SECTION_WAVE = { new PlatformData(0, 0, 100, 20), new PlatformData(150, -40, 100, 20), new PlatformData(300, 0, 100, 20), new PlatformData(450, -40, 100, 20) };
-        private static readonly PlatformData[] SECTION_HIGH = { new PlatformData(0, -80, 100, 20), new PlatformData(150, -130, 100, 20), new PlatformData(300, -80, 100, 20) };
-        private static readonly PlatformData[] SECTION_CHALLENGE = { new PlatformData(0, -30, 80, 20), new PlatformData(130, -70, 80, 20), new PlatformData(260, -30, 80, 20), new PlatformData(390, -70, 80, 20) };
-        private static readonly PlatformData[][] ALL_SECTIONS = { SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_HIGH, SECTION_CHALLENGE };
+        // Y offsets are relative to yBase=483. Negative = higher. All must produce ny in [250,483].
+        private static readonly PlatformData[] SECTION_STAIRS = {
+            new PlatformData(0, -20, 120, 20), new PlatformData(150, -70, 120, 20), new PlatformData(300, -120, 120, 20)
+        };
+        private static readonly PlatformData[] SECTION_GAP_JUMPS = {
+            new PlatformData(0, -50, 100, 20), new PlatformData(170, -50, 100, 20), new PlatformData(340, -50, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_WAVE = {
+            new PlatformData(0, -30, 100, 20), new PlatformData(150, -70, 100, 20),
+            new PlatformData(300, -30, 100, 20), new PlatformData(450, -70, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_HIGH = {
+            new PlatformData(0, -100, 100, 20), new PlatformData(150, -150, 100, 20), new PlatformData(300, -100, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_CHALLENGE = {
+            new PlatformData(0, -50, 80, 20), new PlatformData(120, -90, 80, 20),
+            new PlatformData(240, -50, 80, 20), new PlatformData(360, -90, 80, 20)
+        };
+        // --- 10 new section templates ---
+        private static readonly PlatformData[] SECTION_DESCEND = {
+            new PlatformData(0, -120, 100, 20), new PlatformData(150, -80, 100, 20),
+            new PlatformData(300, -50, 100, 20), new PlatformData(450, -25, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_BRIDGE = {
+            new PlatformData(80, -60, 280, 20)
+        };
+        private static readonly PlatformData[] SECTION_ZIGZAG = {
+            new PlatformData(0, -50, 70, 20), new PlatformData(100, -90, 70, 20),
+            new PlatformData(200, -50, 70, 20), new PlatformData(300, -90, 70, 20),
+            new PlatformData(400, -50, 70, 20)
+        };
+        private static readonly PlatformData[] SECTION_ARCH = {
+            new PlatformData(0, -40, 100, 20), new PlatformData(150, -90, 100, 20),
+            new PlatformData(300, -140, 90, 20), new PlatformData(450, -90, 100, 20),
+            new PlatformData(600, -40, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_WIDE_GAPS = {
+            new PlatformData(0, -50, 130, 20), new PlatformData(240, -40, 130, 20), new PlatformData(480, -50, 130, 20)
+        };
+        private static readonly PlatformData[] SECTION_LEDGE_HOP = {
+            new PlatformData(0, -40, 65, 20), new PlatformData(95, -70, 65, 20),
+            new PlatformData(190, -40, 65, 20), new PlatformData(285, -70, 65, 20),
+            new PlatformData(380, -40, 65, 20)
+        };
+        private static readonly PlatformData[] SECTION_SUSPENDED = {
+            new PlatformData(0, -130, 100, 20), new PlatformData(160, -170, 90, 20), new PlatformData(310, -130, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_VALLEY = {
+            new PlatformData(0, -100, 100, 20), new PlatformData(150, -40, 100, 20), new PlatformData(300, -100, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_MULTI_LEVEL = {
+            new PlatformData(0, -30, 100, 20), new PlatformData(150, -80, 90, 20),
+            new PlatformData(290, -130, 80, 20), new PlatformData(420, -80, 90, 20),
+            new PlatformData(560, -30, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_CASTLE = {
+            new PlatformData(0, -60, 90, 20), new PlatformData(110, -100, 40, 20),
+            new PlatformData(170, -60, 90, 20), new PlatformData(280, -100, 40, 20),
+            new PlatformData(340, -60, 90, 20)
+        };
+        private static readonly PlatformData[][] ALL_SECTIONS = {
+            SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_HIGH, SECTION_CHALLENGE,
+            SECTION_DESCEND, SECTION_BRIDGE, SECTION_ZIGZAG, SECTION_ARCH, SECTION_WIDE_GAPS,
+            SECTION_LEDGE_HOP, SECTION_SUSPENDED, SECTION_VALLEY, SECTION_MULTI_LEVEL, SECTION_CASTLE
+        };
 
         private static readonly PlatformData[] LEVEL_1 = {
-            new PlatformData(200,483,120,20), new PlatformData(350,433,120,20), new PlatformData(500,383,120,20),
-            new PlatformData(700,433,100,20), new PlatformData(870,433,100,20), new PlatformData(1040,433,100,20),
-            new PlatformData(1200,413,100,20), new PlatformData(1350,353,100,20), new PlatformData(1500,413,100,20),
-            new PlatformData(1650,333,100,20), new PlatformData(1800,283,100,20), new PlatformData(1950,333,100,20),
-            new PlatformData(2100,433,120,20), new PlatformData(2270,433,120,20), new PlatformData(2440,433,120,20),
-            new PlatformData(2650,383,200,20)
+            // Starting zone – wide safe platforms close to ground (tutorial feel)
+            new PlatformData(180, 463, 200, 20), new PlatformData(420, 443, 150, 20), new PlatformData(610, 423, 120, 20),
+            // Classic ascending staircase
+            new PlatformData(790, 453, 80, 20), new PlatformData(890, 423, 80, 20),
+            new PlatformData(990, 393, 80, 20), new PlatformData(1090, 363, 80, 20),
+            // Gap jumps at equal height – rhythm building
+            new PlatformData(1240, 403, 110, 20), new PlatformData(1400, 403, 110, 20), new PlatformData(1560, 403, 90, 20),
+            // Rising challenge
+            new PlatformData(1710, 373, 100, 20), new PlatformData(1860, 333, 100, 20),
+            // Gradual step-down descent
+            new PlatformData(2010, 363, 100, 20), new PlatformData(2160, 393, 110, 20),
+            // Bridge breather – long safe platform
+            new PlatformData(2330, 423, 220, 20),
+            // Final wave approach to goal
+            new PlatformData(2600, 403, 100, 20), new PlatformData(2710, 413, 140, 20)
         };
         private static readonly PlatformData[] LEVEL_2 = {
-            new PlatformData(150,473,80,20), new PlatformData(300,433,80,20), new PlatformData(450,393,80,20),
-            new PlatformData(600,353,80,20), new PlatformData(750,403,70,20), new PlatformData(880,353,70,20),
-            new PlatformData(1010,403,70,20), new PlatformData(1140,353,70,20), new PlatformData(1270,303,100,20),
-            new PlatformData(1420,253,100,20), new PlatformData(1570,303,100,20), new PlatformData(1720,253,100,20),
-            new PlatformData(1870,353,100,20), new PlatformData(2020,403,100,20), new PlatformData(2170,433,100,20),
-            new PlatformData(2300,373,80,20), new PlatformData(2430,333,80,20), new PlatformData(2560,373,80,20),
-            new PlatformData(2700,383,200,20)
+            // Tighter ascending stair intro
+            new PlatformData(150, 453, 80, 20), new PlatformData(260, 413, 80, 20),
+            new PlatformData(370, 373, 80, 20), new PlatformData(480, 333, 80, 20),
+            // Smooth descent linking to mid-height section
+            new PlatformData(620, 373, 90, 20), new PlatformData(770, 403, 90, 20),
+            // Gap challenge at consistent mid height
+            new PlatformData(930, 383, 90, 20), new PlatformData(1090, 383, 90, 20),
+            // Zigzag alternating heights
+            new PlatformData(1250, 423, 75, 20), new PlatformData(1355, 383, 75, 20), new PlatformData(1460, 353, 75, 20),
+            new PlatformData(1565, 383, 75, 20), new PlatformData(1670, 423, 75, 20),
+            // High suspended section – peak challenge
+            new PlatformData(1830, 303, 100, 20), new PlatformData(1980, 263, 100, 20), new PlatformData(2130, 303, 100, 20),
+            // Descending steps back to ground level
+            new PlatformData(2290, 353, 90, 20), new PlatformData(2430, 403, 90, 20), new PlatformData(2570, 433, 100, 20),
+            // Final stretch to goal
+            new PlatformData(2720, 393, 170, 20)
         };
 
         // ─────────────────────────────────────────────────────────────────────
@@ -927,10 +1004,9 @@ namespace supermario
         {
             gameManager.ResetGame();
             cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
-            wasGroundedLastFrame = false; canTakeFallDamage = true; isPlayerSuper = false;
+            wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
             player.Respawn(new Point(100, 405));
             player.IsGrounded = true; player.Health = 3;
-            // FIX: = not += prevents duplicate subscriptions
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
             picboxplayer.Location = player.Position;
@@ -945,10 +1021,9 @@ namespace supermario
             currentLevel = allLevels[currentLevelNumber - 1];
             gameManager.ResetGame();
             cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
-            wasGroundedLastFrame = false; canTakeFallDamage = true; isPlayerSuper = false;
+            wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
             player.Respawn(new Point(100, 405));
             player.IsGrounded = true; player.Health = 3;
-            // FIX: = not += prevents duplicate subscriptions
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
             picboxplayer.Location = player.Position;
@@ -975,8 +1050,12 @@ namespace supermario
         {
             var result = new List<PlatformData>();
             int xOff = 200, yBase = 483;
-            var sections = Enumerable.Range(0, numSections)
-                .Select(_ => ALL_SECTIONS[levelRandom.Next(ALL_SECTIONS.Length)]).ToList();
+
+            // First section is always gentle to give players a fair opening
+            var openingPool = new[] { SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE };
+            var sections = new List<PlatformData[]> { openingPool[levelRandom.Next(openingPool.Length)] };
+            for (int i = 1; i < numSections; i++)
+                sections.Add(ALL_SECTIONS[levelRandom.Next(ALL_SECTIONS.Length)]);
 
             foreach (var sec in sections)
             {
@@ -989,7 +1068,7 @@ namespace supermario
                 if (sec.Length > 0)
                 {
                     int maxX = sec.Max(p => p.X + p.Width);
-                    xOff += maxX + 100;
+                    xOff += maxX + 120;
                 }
             }
             return result.Count < 5 ? GenerateRandomLevel(numSections + 1) : result.ToArray();
