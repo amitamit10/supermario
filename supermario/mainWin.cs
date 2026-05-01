@@ -962,7 +962,6 @@ namespace supermario
             {
                 var goomba = new Goomba(new Point(x, 461));
                 Controls.Add(goomba.Visual);
-                goomba.Visual.SendToBack();
                 goombas.Add(goomba);
             }
         }
@@ -1068,7 +1067,6 @@ namespace supermario
             {
                 var k = new Koopa(new Point(x, 457));
                 Controls.Add(k.Visual);
-                k.Visual.SendToBack();
                 koopas.Add(k);
             }
         }
@@ -1168,7 +1166,6 @@ namespace supermario
             {
                 var fe = new FastEnemy(new Point(x, 465));
                 Controls.Add(fe.Visual);
-                fe.Visual.SendToBack();
                 fastEnemies.Add(fe);
             }
         }
