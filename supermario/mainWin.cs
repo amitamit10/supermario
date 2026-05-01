@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -21,7 +21,13 @@ namespace supermario
         private Timer gameTimer;
         private List<GameObjectS> platforms = new List<GameObjectS>();
         private List<QuestionBlock> questionBlocks = new List<QuestionBlock>();
-        private List<Goomba> goombas = new List<Goomba>();   // ← Goombas list
+        private List<Goomba> goombas = new List<Goomba>();
+        private List<Koopa> koopas = new List<Koopa>();
+        private List<FastEnemy> fastEnemies = new List<FastEnemy>();
+        private List<Mushroom> spawnedMushrooms = new List<Mushroom>();
+        private List<Coin> coins = new List<Coin>();
+        private int coinCount = 0;
+
         private PlatformData[] currentLevel;
         private int currentLevelNumber = 1;
         private PlatformData[][] allLevels;
@@ -32,12 +38,15 @@ namespace supermario
         private long _accumulatedMs = 0;
         private const long FIXED_STEP_MS = 16;
 
-        // ── Question-block animation ────────────────────────────────────────
+        // ── Question-block animation ─────────────────────────────────────────
         private Timer questionAnimTimer;
         private int questionAnimFrame = 0;
         private List<PictureBox> animatedBlocks = new List<PictureBox>();
 
-        // ── Player direction / animation ────────────────────────────────────
+        // ── Coin spin animation ──────────────────────────────────────────────
+        private int coinAnimFrame = 0;
+
+        // ── Player direction / animation ─────────────────────────────────────
         private bool facingRight = true;
         private int walkFrame = 0;
         private int walkFrameTimer = 0;
@@ -58,9 +67,9 @@ namespace supermario
         private bool moveRight = false, moveLeft = false, jump = false;
         private int cameraX = 0;
         private const int SCROLL_THRESHOLD = 400;
-        private const int LEVEL_PIXEL_WIDTH = 3000;  // matches CreateBrickGround brick span
-        private const int FLAGPOLE_X = 2750;          // X coordinate of the finish flagpole
-        private const int CAMERA_MAX = LEVEL_PIXEL_WIDTH - 982; // 982 = ClientSize.Width
+        private const int LEVEL_PIXEL_WIDTH = 3000;
+        private const int FLAGPOLE_X = 2750;
+        private const int CAMERA_MAX = LEVEL_PIXEL_WIDTH - 982;
         private bool isPlayerSuper = false;
         private Size originalPlayerSize = new Size(68, 68);
         private Size superPlayerSize = new Size(82, 82);
@@ -73,17 +82,24 @@ namespace supermario
         private bool canTakeFallDamage = true;
         private bool _levelComplete = false;
 
-        // ── Invincibility frames after damage ────────────────────────────────
+        // ── Invincibility frames ─────────────────────────────────────────────
         private bool isInvincible = false;
         private float invincibleTimer = 0f;
-        private const float INVINCIBLE_DURATION = 1500f; // ms
+        private const float INVINCIBLE_DURATION = 1500f;
 
-        // ── Persistent HUD (created once in InitHud, updated each tick) ──────
+        // ── HUD ──────────────────────────────────────────────────────────────
         private Label _hudLabel;
+        private Label _scoreLabel;
         private readonly Label[] _heartLabels = new Label[3];
+        private int _lastHudHealth = -1;
+        private bool _lastHudSuper = false;
+        private int _lastHudLevel = -1;
+        private int _lastHudScore = -1;
+        private int _lastHudCoins = -1;
 
-        // ── Level data ───────────────────────────────────────────────────────
-        // Y offsets relative to yBase=483. Negative = higher. All produce ny in [250,483].
+        // ════════════════════════════════════════════════════════════════════
+        //  LEVEL SECTION TEMPLATES
+        // ════════════════════════════════════════════════════════════════════
         private static readonly PlatformData[] SECTION_STAIRS = {
             new PlatformData(0, -20, 120, 20), new PlatformData(150, -70, 120, 20), new PlatformData(300, -120, 120, 20)
         };
@@ -142,31 +158,66 @@ namespace supermario
             new PlatformData(170, -60, 90, 20), new PlatformData(280, -100, 40, 20),
             new PlatformData(340, -60, 90, 20)
         };
+        // ── New sections ─────────────────────────────────────────────────────
+        private static readonly PlatformData[] SECTION_TRIPLE_JUMP = {
+            new PlatformData(0, -40, 75, 20), new PlatformData(115, -80, 75, 20),
+            new PlatformData(230, -120, 75, 20), new PlatformData(345, -80, 75, 20)
+        };
+        private static readonly PlatformData[] SECTION_PYRAMID = {
+            new PlatformData(0, -30, 100, 20), new PlatformData(130, -65, 90, 20),
+            new PlatformData(250, -100, 80, 20), new PlatformData(360, -65, 90, 20),
+            new PlatformData(480, -30, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_LONG_RUN = {
+            new PlatformData(0, -55, 340, 20)
+        };
+        private static readonly PlatformData[] SECTION_STAGGER_NARROW = {
+            new PlatformData(0, -60, 58, 20), new PlatformData(80, -100, 58, 20),
+            new PlatformData(160, -60, 58, 20), new PlatformData(240, -100, 58, 20),
+            new PlatformData(320, -60, 58, 20), new PlatformData(400, -100, 58, 20)
+        };
+        private static readonly PlatformData[] SECTION_SKYSCRAPER = {
+            new PlatformData(0, -160, 90, 20), new PlatformData(150, -200, 70, 20),
+            new PlatformData(280, -160, 90, 20)
+        };
+        private static readonly PlatformData[] SECTION_BOUNCY = {
+            new PlatformData(0, -50, 80, 20), new PlatformData(130, -30, 70, 20),
+            new PlatformData(250, -80, 80, 20), new PlatformData(380, -40, 80, 20),
+            new PlatformData(510, -70, 80, 20)
+        };
+
         private static readonly PlatformData[][] ALL_SECTIONS = {
             SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_HIGH, SECTION_CHALLENGE,
             SECTION_DESCEND, SECTION_BRIDGE, SECTION_ZIGZAG, SECTION_ARCH, SECTION_WIDE_GAPS,
-            SECTION_LEDGE_HOP, SECTION_SUSPENDED, SECTION_VALLEY, SECTION_MULTI_LEVEL, SECTION_CASTLE
+            SECTION_LEDGE_HOP, SECTION_SUSPENDED, SECTION_VALLEY, SECTION_MULTI_LEVEL, SECTION_CASTLE,
+            SECTION_TRIPLE_JUMP, SECTION_PYRAMID, SECTION_LONG_RUN, SECTION_STAGGER_NARROW,
+            SECTION_SKYSCRAPER, SECTION_BOUNCY
         };
 
+        // ════════════════════════════════════════════════════════════════════
+        //  HAND-CRAFTED LEVELS
+        // ════════════════════════════════════════════════════════════════════
         private static readonly PlatformData[] LEVEL_1 = {
-            // Starting zone – wide safe platforms close to ground (tutorial feel)
-            new PlatformData(180, 463, 200, 20), new PlatformData(420, 443, 150, 20), new PlatformData(610, 423, 120, 20),
+            // Tutorial opening – wide, forgiving platforms close to ground
+            new PlatformData(200, 470, 180, 20), new PlatformData(430, 450, 160, 20),
+            new PlatformData(640, 430, 130, 20), new PlatformData(830, 450, 100, 20),
             // Classic ascending staircase
-            new PlatformData(790, 453, 80, 20), new PlatformData(890, 423, 80, 20),
-            new PlatformData(990, 393, 80, 20), new PlatformData(1090, 363, 80, 20),
+            new PlatformData(990, 453, 80, 20), new PlatformData(1090, 423, 80, 20),
+            new PlatformData(1190, 393, 80, 20), new PlatformData(1290, 363, 80, 20),
             // Gap jumps at equal height – rhythm building
-            new PlatformData(1240, 403, 110, 20), new PlatformData(1400, 403, 110, 20), new PlatformData(1560, 403, 90, 20),
+            new PlatformData(1440, 403, 110, 20), new PlatformData(1600, 403, 110, 20), new PlatformData(1760, 403, 90, 20),
             // Rising challenge
-            new PlatformData(1710, 373, 100, 20), new PlatformData(1860, 333, 100, 20),
+            new PlatformData(1910, 373, 100, 20), new PlatformData(2060, 333, 100, 20),
             // Gradual step-down descent
-            new PlatformData(2010, 363, 100, 20), new PlatformData(2160, 393, 110, 20),
-            // Bridge breather – long safe platform
-            new PlatformData(2330, 423, 220, 20),
+            new PlatformData(2210, 363, 100, 20), new PlatformData(2360, 393, 110, 20),
+            // Long safe bridge breather
+            new PlatformData(2530, 423, 220, 20),
             // Final wave approach to goal
-            new PlatformData(2600, 403, 100, 20), new PlatformData(2710, 413, 140, 20)
+            new PlatformData(2640, 403, 100, 20), new PlatformData(2720, 413, 140, 20)
         };
+
         private static readonly PlatformData[] LEVEL_2 = {
-            // Tighter ascending stair intro
+            // Ascending stair intro
             new PlatformData(150, 453, 80, 20), new PlatformData(260, 413, 80, 20),
             new PlatformData(370, 373, 80, 20), new PlatformData(480, 333, 80, 20),
             // Smooth descent linking to mid-height section
@@ -291,7 +342,6 @@ namespace supermario
             currentLevelNumber = 1;
             currentLevel = allLevels[0];
 
-            // ── Player picture box ────────────────────────────────────────────
             if (picboxplayer != null)
             {
                 picboxplayer.Image = null;
@@ -305,7 +355,6 @@ namespace supermario
             player = new Player(new Point(100, 405), null);
             player.IsGrounded = true;
             player.Health = 3;
-            // FIX: use = not += to prevent stacking on restarts
             player.OnDamageTaken = () => { BecomeNormal(); };
 
             picboxplayer.Location = player.Position;
@@ -314,11 +363,11 @@ namespace supermario
             InitHud();
             FormClosing += (s, e) => { gameTimer?.Stop(); questionAnimTimer?.Stop(); };
 
-            // ── Question-block animation timer ───────────────────────────────
             questionAnimTimer = new Timer { Interval = 110 };
             questionAnimTimer.Tick += (s, e) =>
             {
                 questionAnimFrame = (questionAnimFrame + 1) % 6;
+                coinAnimFrame = (coinAnimFrame + 1) % 8;
                 foreach (var b in animatedBlocks) b.Invalidate();
             };
             questionAnimTimer.Start();
@@ -334,7 +383,7 @@ namespace supermario
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  PLAYER SPRITE – uses resource image, flips when facing left
+        //  PLAYER SPRITE
         // ════════════════════════════════════════════════════════════════════
         private void DrawPlayerSprite(object sender, PaintEventArgs e)
         {
@@ -345,9 +394,8 @@ namespace supermario
             int w = picboxplayer.Width;
             int h = picboxplayer.Height;
 
-            // Flash when invincible
             if (isInvincible && ((int)(invincibleTimer / 100f) % 2 == 0))
-                return; // skip draw = flicker effect
+                return;
 
             var img = Properties.Resources.dcaeqy1_614416a8_3ae1_4448_94b4_e3ecefa3e53a;
 
@@ -391,7 +439,6 @@ namespace supermario
 
         private void PhysicsStep()
         {
-            // Tick invincibility
             if (isInvincible)
             {
                 invincibleTimer += FIXED_STEP_MS;
@@ -421,6 +468,10 @@ namespace supermario
             CheckQuestionBlockCollisions();
             HandleFallDamage();
             UpdateGoombas();
+            UpdateKoopas();
+            UpdateFastEnemies();
+            UpdateMushrooms();
+            UpdateCoins();
 
             picboxplayer.Invalidate();
         }
@@ -435,11 +486,14 @@ namespace supermario
             foreach (var p in currentLevel)
                 AddPlatform(p.X, p.Y, p.Width, p.Height);
             AddQuestionBlocks();
+            AddCoins();
             AddFinishFlagpole();
-            SpawnGoombas();          // ← spawn goombas after level geometry
+            SpawnGoombas();
+            SpawnKoopas();
+            SpawnFastEnemies();
             picboxplayer.BringToFront();
-            // HUD must stay above all game objects including the player sprite
             _hudLabel?.BringToFront();
+            _scoreLabel?.BringToFront();
             foreach (var lbl in _heartLabels) lbl?.BringToFront();
         }
 
@@ -538,7 +592,7 @@ namespace supermario
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            int h = 200;  // flagpole PictureBox height; width (80) is embedded in draw coords below
+            int h = 200;
             using (var lg = new LinearGradientBrush(new Point(30, 0), new Point(46, 0),
                 Color.FromArgb(200, 200, 210), Color.FromArgb(90, 90, 110)))
                 g.FillRectangle(lg, 34, 0, 12, h);
@@ -565,10 +619,18 @@ namespace supermario
                 g.DrawString("GOAL", f, b, new RectangleF(14, h - 22, 50, 14), sf);
         }
 
+        // ════════════════════════════════════════════════════════════════════
+        //  QUESTION BLOCKS
+        // ════════════════════════════════════════════════════════════════════
         private void AddQuestionBlocks()
         {
-            int[] xPos = { 400, 650, 950, 1300, 1700, 2150, 2500 };
-            int[] yPos = { 350, 380, 320, 360, 280, 350, 380 };
+            // World-space positions; alternating mushroom/coin blocks
+            int[] xPos = { 400, 700, 950, 1250, 1600, 1900, 2200, 2500 };
+            int[] yPos = { 350, 380, 320, 360,  290,  340,  370,  310  };
+            PowerUpType[] types = {
+                PowerUpType.Mushroom, PowerUpType.Coin, PowerUpType.Mushroom, PowerUpType.Coin,
+                PowerUpType.Mushroom, PowerUpType.Coin, PowerUpType.Mushroom, PowerUpType.Coin
+            };
 
             for (int i = 0; i < xPos.Length; i++)
             {
@@ -579,7 +641,7 @@ namespace supermario
                     BackColor = Color.Transparent,
                 };
 
-                var block = new QuestionBlock(box.Location, box, null, PowerUpType.Mushroom);
+                var block = new QuestionBlock(box.Location, box, null, types[i]);
 
                 box.Paint += (s, pe) =>
                 {
@@ -614,10 +676,13 @@ namespace supermario
                         using (var border = new Pen(Color.FromArgb(140, 80, 0), 3f))
                             g.DrawRectangle(border, 1, 1, bw - 3, bh - 3);
                         int qOff = (questionAnimFrame % 2 == 0) ? 0 : -2;
-                        using (var qFont = new Font("Arial", 24, FontStyle.Bold))
+
+                        // Coin blocks show "C", mushroom blocks show "?"
+                        string sym = block.PowerUpInside == PowerUpType.Coin ? "C" : "?";
+                        using (var qFont = new Font("Arial", 22, FontStyle.Bold))
                         using (var qBrush = new SolidBrush(Color.FromArgb(100, 50, 0)))
                         using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                            g.DrawString("?", qFont, qBrush, new RectangleF(0, qOff, bw, bh), sf);
+                            g.DrawString(sym, qFont, qBrush, new RectangleF(0, qOff, bw, bh), sf);
                     }
                 };
 
@@ -636,15 +701,252 @@ namespace supermario
                 if (b.QuestionLabel != null) { Controls.Remove(b.QuestionLabel); b.QuestionLabel.Dispose(); }
             }
             questionBlocks.Clear();
+
+            foreach (var m in spawnedMushrooms)
+            {
+                if (m.Visual != null) { Controls.Remove(m.Visual); m.Visual.Dispose(); }
+            }
+            spawnedMushrooms.Clear();
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  GOOMBA SPAWNING
+        //  COINS
+        // ════════════════════════════════════════════════════════════════════
+        private void AddCoins()
+        {
+            // Rows of coins above platforms and floating in open areas
+            var coinPositions = new List<Point>();
+
+            // Rows above each platform from the current level layout
+            foreach (var p in currentLevel)
+            {
+                int rowY = p.Y - 50;
+                int count = Math.Max(1, p.Width / 40);
+                for (int j = 0; j < count; j++)
+                    coinPositions.Add(new Point(p.X + 10 + j * 38, rowY));
+            }
+
+            // Extra floating coins in the open areas
+            int[] floatX = { 300, 500, 800, 1100, 1400, 1650, 1950, 2250, 2450, 2600 };
+            int[] floatY = { 390, 360, 370, 350,  380,  360,  370,  350,  390,  380  };
+            for (int i = 0; i < floatX.Length; i++)
+                coinPositions.Add(new Point(floatX[i], floatY[i]));
+
+            foreach (var pos in coinPositions)
+            {
+                var pb = new PictureBox
+                {
+                    Size = new Size(24, 24),
+                    Location = new Point(pos.X - cameraX, pos.Y),  // screen position
+                    BackColor = Color.Transparent,
+                };
+                pb.Paint += DrawCoinSprite;
+                Controls.Add(pb);
+                pb.SendToBack();
+                animatedBlocks.Add(pb);
+                coins.Add(new Coin(pos, pb));
+            }
+        }
+
+        private void DrawCoinSprite(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var pb = (PictureBox)sender;
+            int w = pb.Width, h = pb.Height;
+
+            // Animate coin by squishing horizontally
+            float squeeze = 1f - 0.6f * Math.Abs((float)Math.Sin(coinAnimFrame * Math.PI / 4.0));
+            int cw = Math.Max(4, (int)(w * squeeze));
+            int cx = (w - cw) / 2;
+
+            using (var lg = new LinearGradientBrush(
+                new Point(cx, 0), new Point(cx + cw, h),
+                Color.FromArgb(255, 230, 40), Color.FromArgb(200, 155, 0)))
+                g.FillEllipse(lg, cx, 1, cw, h - 2);
+
+            // Sheen
+            if (cw > 6)
+            {
+                using (var sh = new SolidBrush(Color.FromArgb(120, 255, 255, 180)))
+                    g.FillEllipse(sh, cx + 2, 3, cw / 3, h / 3);
+            }
+
+            using (var border = new Pen(Color.FromArgb(180, 130, 0), 1.5f))
+                g.DrawEllipse(border, cx, 1, cw, h - 2);
+        }
+
+        private void UpdateCoins()
+        {
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = coins.Count - 1; i >= 0; i--)
+            {
+                var coin = coins[i];
+                if (coin.IsCollected) continue;
+
+                var coinRect = new Rectangle(coin.Position.X, coin.Position.Y, 24, 24);
+                if (!playerRect.IntersectsWith(coinRect)) continue;
+
+                // Collected
+                coin.IsCollected = true;
+                Controls.Remove(coin.Visual);
+                coin.Visual.Dispose();
+                coinCount++;
+                player.Score += 10;
+                coins.RemoveAt(i);
+            }
+        }
+
+        private void ClearCoins()
+        {
+            foreach (var c in coins)
+            {
+                if (c.Visual != null)
+                {
+                    animatedBlocks.Remove(c.Visual);
+                    Controls.Remove(c.Visual);
+                    c.Visual.Dispose();
+                }
+            }
+            coins.Clear();
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  MUSHROOM COLLECTIBLE
+        // ════════════════════════════════════════════════════════════════════
+        private void SpawnMushroom(Point blockWorldPos)
+        {
+            // Mushroom appears just above the question block and moves right
+            var spawnPos = new Point(blockWorldPos.X + 8, blockWorldPos.Y - 36);
+            var pb = new PictureBox
+            {
+                Size = new Size(34, 34),
+                Location = new Point(spawnPos.X - cameraX, spawnPos.Y),
+                BackColor = Color.Transparent,
+            };
+            pb.Paint += DrawMushroomSprite;
+            Controls.Add(pb);
+            pb.BringToFront();
+
+            var mush = new Mushroom(spawnPos, pb);
+            mush.VelocityX = 1.8f;
+            spawnedMushrooms.Add(mush);
+        }
+
+        private void UpdateMushrooms()
+        {
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = spawnedMushrooms.Count - 1; i >= 0; i--)
+            {
+                var m = spawnedMushrooms[i];
+                if (m.IsCollected) { spawnedMushrooms.RemoveAt(i); continue; }
+
+                // Gravity
+                if (!m.IsGrounded)
+                {
+                    m.VerticalVelocity += 0.55f;
+                    if (m.VerticalVelocity > 15f) m.VerticalVelocity = 15f;
+                }
+                else
+                {
+                    m.VerticalVelocity = 0;
+                }
+
+                // Move
+                int newX = m.Position.X + (int)m.VelocityX;
+                if (newX < 0 || newX > 2960) m.VelocityX = -m.VelocityX;
+                int newY = m.Position.Y + (int)m.VerticalVelocity;
+                m.Position = new Point(newX, newY);
+
+                // Platform collisions
+                bool onGround = false;
+                var mRect = new Rectangle(m.Position.X, m.Position.Y, m.Visual.Width, m.Visual.Height);
+                foreach (var plat in platforms)
+                {
+                    var pr = new Rectangle(plat.Position.X, plat.Position.Y,
+                        plat.PictureBox.Width, plat.PictureBox.Height);
+                    if (!mRect.IntersectsWith(pr)) continue;
+
+                    int ot = mRect.Bottom - pr.Top;
+                    int ob = pr.Bottom - mRect.Top;
+                    int ol = mRect.Right - pr.Left;
+                    int orr = pr.Right - mRect.Left;
+                    int minO = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
+
+                    if (minO == ot && ot < 22)
+                    {
+                        m.Position = new Point(m.Position.X, pr.Top - m.Visual.Height);
+                        m.VerticalVelocity = 0;
+                        onGround = true;
+                    }
+                    else if (minO == ol || minO == orr)
+                    {
+                        m.VelocityX = -m.VelocityX;
+                    }
+                }
+                m.IsGrounded = onGround;
+
+                // Sync screen position
+                m.Visual.Location = new Point(m.Position.X - cameraX, m.Position.Y);
+
+                // Player collection
+                var mushRect = new Rectangle(m.Position.X, m.Position.Y, m.Visual.Width, m.Visual.Height);
+                if (playerRect.IntersectsWith(mushRect) && !isDying)
+                {
+                    m.IsCollected = true;
+                    Controls.Remove(m.Visual);
+                    m.Visual.Dispose();
+                    spawnedMushrooms.RemoveAt(i);
+                    if (!isPlayerSuper) BecomeSuper();
+                    else player.Health = Math.Min(player.Health + 1, 3);
+                }
+            }
+        }
+
+        private void DrawMushroomSprite(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var pb = (PictureBox)sender;
+            int w = pb.Width, h = pb.Height;
+
+            // Stem / base (cream)
+            using (var stem = new SolidBrush(Color.FromArgb(245, 230, 190)))
+                g.FillEllipse(stem, 4, h / 2, w - 8, h / 2);
+
+            // Cap (red with white spots)
+            using (var cap = new LinearGradientBrush(
+                new Point(0, 0), new Point(0, h / 2 + 4),
+                Color.FromArgb(230, 50, 30), Color.FromArgb(170, 25, 10)))
+                g.FillEllipse(cap, 0, 0, w, h / 2 + 8);
+
+            // White spots
+            using (var spot = new SolidBrush(Color.White))
+            {
+                g.FillEllipse(spot, 4,  5,  8, 8);
+                g.FillEllipse(spot, w - 12, 5, 8, 8);
+                g.FillEllipse(spot, w / 2 - 4, 2, 8, 8);
+            }
+            // Cap sheen
+            using (var sh = new SolidBrush(Color.FromArgb(60, 255, 200, 200)))
+                g.FillEllipse(sh, 3, 3, w / 3, h / 4);
+
+            // Face – two small eyes
+            int eyeY = h / 2 + 3;
+            g.FillEllipse(Brushes.Black, w / 2 - 7, eyeY, 5, 5);
+            g.FillEllipse(Brushes.Black, w / 2 + 2, eyeY, 5, 5);
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  GOOMBA SPAWNING & UPDATE
         // ════════════════════════════════════════════════════════════════════
         private void SpawnGoombas()
         {
-            // Place goombas at varied positions across the level
-            int[] goombaX = { 480, 850, 1150, 1450, 1750, 2050, 2350 };
+            int[] goombaX = { 600, 950, 1250, 1550, 1850, 2100 };
             foreach (int x in goombaX)
             {
                 var goomba = new Goomba(new Point(x, 461));
@@ -654,9 +956,6 @@ namespace supermario
             }
         }
 
-        // ════════════════════════════════════════════════════════════════════
-        //  GOOMBA UPDATE + COLLISION
-        // ════════════════════════════════════════════════════════════════════
         private void UpdateGoombas()
         {
             var playerRect = new Rectangle(
@@ -670,94 +969,275 @@ namespace supermario
                 if (!goomba.IsAlive)
                 {
                     Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();   // release native control handle immediately
+                    goomba.Visual.Dispose();
                     goombas.RemoveAt(i);
                     continue;
                 }
 
-                // ── Apply gravity to goomba ──────────────────────────────────
                 if (!goomba.IsGrounded)
                 {
                     goomba.VerticalVelocity += 0.6f;
                     if (goomba.VerticalVelocity > 15f) goomba.VerticalVelocity = 15f;
-                    goomba.Position = new Point(
-                        goomba.Position.X,
-                        goomba.Position.Y + (int)goomba.VerticalVelocity);
+                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)goomba.VerticalVelocity);
                 }
 
-                // ── Goomba platform collision ────────────────────────────────
                 bool gGrounded = false;
                 var gRect = goomba.Bounds;
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX,   // world coords
+                        plat.PictureBox.Left + cameraX,
                         plat.Position.Y,
                         plat.PictureBox.Width,
                         plat.PictureBox.Height);
 
                     if (!gRect.IntersectsWith(pr)) continue;
 
-                    int overlapTop = gRect.Bottom - pr.Top;
+                    int overlapTop    = gRect.Bottom - pr.Top;
                     int overlapBottom = pr.Bottom - gRect.Top;
-                    int overlapLeft = gRect.Right - pr.Left;
-                    int overlapRight = pr.Right - gRect.Left;
-                    int minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom),
-                                                 Math.Min(overlapLeft, overlapRight));
+                    int overlapLeft   = gRect.Right - pr.Left;
+                    int overlapRight  = pr.Right - gRect.Left;
+                    int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
                     if (minOverlap == overlapTop && overlapTop < 25)
                     {
-                        // Land on top
                         goomba.Position = new Point(goomba.Position.X, pr.Top - Goomba.NormalSize.Height);
                         goomba.VerticalVelocity = 0;
                         gGrounded = true;
                     }
                     else if (minOverlap == overlapLeft || minOverlap == overlapRight)
                     {
-                        // Hit a wall – reverse
                         goomba.ReverseDirection();
                     }
                 }
                 goomba.IsGrounded = gGrounded;
 
-                // ── Squish countdown ─────────────────────────────────────────
                 if (goomba.IsSquished)
                 {
                     if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
-                    // Still sync screen position while squished
                     goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
                     continue;
                 }
 
-                // ── Normal walk update ───────────────────────────────────────
                 goomba.Update();
-
-                // ── Sync visual to screen ────────────────────────────────────
                 goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
 
-                // ── Player vs Goomba collision ───────────────────────────────
                 if (isDying) continue;
-                var gWorldRect = new Rectangle(
-                    goomba.Position.X, goomba.Position.Y,
-                    goomba.Visual.Width, goomba.Visual.Height);
-
+                var gWorldRect = new Rectangle(goomba.Position.X, goomba.Position.Y, goomba.Visual.Width, goomba.Visual.Height);
                 if (!playerRect.IntersectsWith(gWorldRect)) continue;
 
-                // Stomped? Player must be falling and feet overlap goomba top
                 int playerBottom = player.Position.Y + picboxplayer.Height;
-                int goombaTop = goomba.Position.Y;
+                int goombaTop    = goomba.Position.Y;
                 bool fallingDown = playerBottom - goombaTop < 24;
                 bool playerAbove = player.Position.Y < goomba.Position.Y + goomba.Visual.Height / 2;
 
                 if (fallingDown && playerAbove)
                 {
-                    // Stomp! Give the player a real upward bounce impulse
                     goomba.Squish();
                     player.Bounce();
+                    player.Score += 100;
                 }
                 else if (!isInvincible)
                 {
-                    // Side hit – damage with invincibility frames
+                    player.TakeDamage(1);
+                    isInvincible = true;
+                    invincibleTimer = 0f;
+                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  KOOPA SPAWNING & UPDATE
+        // ════════════════════════════════════════════════════════════════════
+        private void SpawnKoopas()
+        {
+            int[] koopaX = { 750, 1350, 1700, 2300 };
+            foreach (int x in koopaX)
+            {
+                var k = new Koopa(new Point(x, 457));
+                Controls.Add(k.Visual);
+                k.Visual.SendToBack();
+                koopas.Add(k);
+            }
+        }
+
+        private void UpdateKoopas()
+        {
+            var playerRect = new Rectangle(
+                player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = koopas.Count - 1; i >= 0; i--)
+            {
+                var k = koopas[i];
+
+                if (!k.IsAlive)
+                {
+                    Controls.Remove(k.Visual);
+                    k.Visual.Dispose();
+                    koopas.RemoveAt(i);
+                    continue;
+                }
+
+                // Gravity
+                if (!k.IsGrounded)
+                {
+                    k.VerticalVelocity += 0.6f;
+                    if (k.VerticalVelocity > 15f) k.VerticalVelocity = 15f;
+                    k.Position = new Point(k.Position.X, k.Position.Y + (int)k.VerticalVelocity);
+                }
+
+                // Platform collision
+                bool kGrounded = false;
+                var kRect = k.Bounds;
+                foreach (var plat in platforms)
+                {
+                    var pr = new Rectangle(
+                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.PictureBox.Width, plat.PictureBox.Height);
+                    if (!kRect.IntersectsWith(pr)) continue;
+
+                    int ot = kRect.Bottom - pr.Top, ob = pr.Bottom - kRect.Top;
+                    int ol = kRect.Right - pr.Left, orr = pr.Right - kRect.Left;
+                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
+
+                    if (min == ot && ot < 25)
+                    {
+                        k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
+                        k.VerticalVelocity = 0;
+                        kGrounded = true;
+                    }
+                    else if (min == ol || min == orr) k.ReverseDirection();
+                }
+                k.IsGrounded = kGrounded;
+
+                // Shell timer – remove after duration
+                if (k.IsShell)
+                {
+                    if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
+                    k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
+                    continue;
+                }
+
+                k.Update();
+                k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
+
+                if (isDying) continue;
+                var kWorld = new Rectangle(k.Position.X, k.Position.Y, k.Visual.Width, k.Visual.Height);
+                if (!playerRect.IntersectsWith(kWorld)) continue;
+
+                int pBottom = player.Position.Y + picboxplayer.Height;
+                bool falling = pBottom - k.Position.Y < 24;
+                bool above   = player.Position.Y < k.Position.Y + k.Visual.Height / 2;
+
+                if (falling && above)
+                {
+                    k.Stomp();
+                    player.Bounce();
+                    player.Score += 150;
+                }
+                else if (!isInvincible)
+                {
+                    player.TakeDamage(1);
+                    isInvincible = true;
+                    invincibleTimer = 0f;
+                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  FAST ENEMY SPAWNING & UPDATE
+        // ════════════════════════════════════════════════════════════════════
+        private void SpawnFastEnemies()
+        {
+            int[] feX = { 1100, 1800, 2400 };
+            foreach (int x in feX)
+            {
+                var fe = new FastEnemy(new Point(x, 465));
+                Controls.Add(fe.Visual);
+                fe.Visual.SendToBack();
+                fastEnemies.Add(fe);
+            }
+        }
+
+        private void UpdateFastEnemies()
+        {
+            var playerRect = new Rectangle(
+                player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = fastEnemies.Count - 1; i >= 0; i--)
+            {
+                var fe = fastEnemies[i];
+
+                if (!fe.IsAlive)
+                {
+                    Controls.Remove(fe.Visual);
+                    fe.Visual.Dispose();
+                    fastEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                // Gravity
+                if (!fe.IsGrounded)
+                {
+                    fe.VerticalVelocity += 0.6f;
+                    if (fe.VerticalVelocity > 15f) fe.VerticalVelocity = 15f;
+                    fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)fe.VerticalVelocity);
+                }
+
+                // Platform collision
+                bool feGrounded = false;
+                var feRect = fe.Bounds;
+                foreach (var plat in platforms)
+                {
+                    var pr = new Rectangle(
+                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.PictureBox.Width, plat.PictureBox.Height);
+                    if (!feRect.IntersectsWith(pr)) continue;
+
+                    int ot = feRect.Bottom - pr.Top, ob = pr.Bottom - feRect.Top;
+                    int ol = feRect.Right - pr.Left, orr = pr.Right - feRect.Left;
+                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
+
+                    if (min == ot && ot < 25)
+                    {
+                        fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
+                        fe.VerticalVelocity = 0;
+                        feGrounded = true;
+                    }
+                    else if (min == ol || min == orr) fe.ReverseDirection();
+                }
+                fe.IsGrounded = feGrounded;
+
+                if (fe.IsSquished)
+                {
+                    if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
+                    fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
+                    continue;
+                }
+
+                fe.Update();
+                fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
+
+                if (isDying) continue;
+                var feWorld = new Rectangle(fe.Position.X, fe.Position.Y, fe.Visual.Width, fe.Visual.Height);
+                if (!playerRect.IntersectsWith(feWorld)) continue;
+
+                int pBot = player.Position.Y + picboxplayer.Height;
+                bool fall = pBot - fe.Position.Y < 24;
+                bool abv  = player.Position.Y < fe.Position.Y + fe.Visual.Height / 2;
+
+                if (fall && abv)
+                {
+                    fe.Squish();
+                    player.Bounce();
+                    player.Score += 200;
+                }
+                else if (!isInvincible)
+                {
                     player.TakeDamage(1);
                     isInvincible = true;
                     invincibleTimer = 0f;
@@ -775,7 +1255,7 @@ namespace supermario
             {
                 Name = "hudLabel",
                 AutoSize = false,
-                Size = new Size(300, 40),
+                Size = new Size(320, 38),
                 Location = new Point(8, 8),
                 BackColor = Color.FromArgb(160, 20, 20, 40),
                 ForeColor = Color.White,
@@ -785,6 +1265,20 @@ namespace supermario
             Controls.Add(_hudLabel);
             _hudLabel.BringToFront();
 
+            _scoreLabel = new Label
+            {
+                Name = "scoreLabel",
+                AutoSize = false,
+                Size = new Size(320, 30),
+                Location = new Point(8, 48),
+                BackColor = Color.FromArgb(160, 20, 20, 40),
+                ForeColor = Color.FromArgb(255, 230, 80),
+                Font = new Font("Courier New", 9f, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+            };
+            Controls.Add(_scoreLabel);
+            _scoreLabel.BringToFront();
+
             for (int i = 0; i < 3; i++)
             {
                 _heartLabels[i] = new Label
@@ -792,7 +1286,7 @@ namespace supermario
                     Name = "heartLabel",
                     Font = new Font("Arial", 20, FontStyle.Bold),
                     AutoSize = true,
-                    Location = new Point(160 + i * 36, 6),
+                    Location = new Point(180 + i * 36, 6),
                     BackColor = Color.Transparent,
                 };
                 Controls.Add(_heartLabels[i]);
@@ -802,21 +1296,23 @@ namespace supermario
             UpdateHud();
         }
 
-        private int _lastHudHealth = -1;
-        private bool _lastHudSuper = false;
-        private int _lastHudLevel = -1;
-
         private void UpdateHud()
         {
             if (_hudLabel == null) return;
 
-            // Only push string updates when something actually changed (avoids repaint churn)
             if (currentLevelNumber != _lastHudLevel || isPlayerSuper != _lastHudSuper)
             {
                 _lastHudLevel = currentLevelNumber;
                 _lastHudSuper = isPlayerSuper;
                 _hudLabel.Text = $"  LVL {currentLevelNumber}     {(isPlayerSuper ? "★ SUPER" : "")}";
                 Text = $"Super Mario – Level {currentLevelNumber}{(isPlayerSuper ? "  ★ SUPER" : "")}";
+            }
+
+            if (player.Score != _lastHudScore || coinCount != _lastHudCoins)
+            {
+                _lastHudScore = player.Score;
+                _lastHudCoins = coinCount;
+                _scoreLabel.Text = $"  SCORE {player.Score:D6}   COINS {coinCount:D3}";
             }
 
             if (player.Health != _lastHudHealth)
@@ -879,12 +1375,11 @@ namespace supermario
                     plat.PictureBox.Width, plat.PictureBox.Height);
                 if (!playerRect.IntersectsWith(platRect)) continue;
 
-                int overlapTop = playerRect.Bottom - platRect.Top;
+                int overlapTop    = playerRect.Bottom - platRect.Top;
                 int overlapBottom = platRect.Bottom - playerRect.Top;
-                int overlapLeft = playerRect.Right - platRect.Left;
-                int overlapRight = platRect.Right - playerRect.Left;
-                int minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom),
-                                             Math.Min(overlapLeft, overlapRight));
+                int overlapLeft   = playerRect.Right - platRect.Left;
+                int overlapRight  = platRect.Right - playerRect.Left;
+                int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
                 if (minOverlap == overlapTop && overlapTop < 20)
                 {
@@ -910,25 +1405,33 @@ namespace supermario
                 block.IsHit = true;
                 block.Visual.Invalidate();
 
-                if (!isPlayerSuper) BecomeSuper();
-                else player.Health = Math.Min(player.Health + 1, 3);
+                if (block.PowerUpInside == PowerUpType.Coin)
+                {
+                    // Instant coin reward
+                    coinCount++;
+                    player.Score += 50;
+                }
+                else
+                {
+                    // Spawn a moving mushroom collectible
+                    SpawnMushroom(block.Position);
+                }
             }
         }
 
         private void CheckWinCondition()
         {
-            // _levelComplete prevents double-trigger (e.g. game loop fires again before MessageBox closes)
             if (_levelComplete || isDying || player.Position.X < FLAGPOLE_X) return;
             _levelComplete = true;
             gameTimer.Stop();
             if (currentLevelNumber < allLevels.Length)
             {
-                MessageBox.Show($"Level {currentLevelNumber} Complete! 🎉", "Level Complete!", MessageBoxButtons.OK);
+                MessageBox.Show($"Level {currentLevelNumber} Complete! 🎉\nScore: {player.Score}  Coins: {coinCount}", "Level Complete!", MessageBoxButtons.OK);
                 LoadNextLevel();
             }
             else
             {
-                MessageBox.Show("You completed ALL levels! 🏆", "YOU WIN!", MessageBoxButtons.OK);
+                MessageBox.Show($"You completed ALL levels! 🏆\nFinal Score: {player.Score}  Coins: {coinCount}", "YOU WIN!", MessageBoxButtons.OK);
                 RestartLevel();
             }
         }
@@ -950,21 +1453,19 @@ namespace supermario
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  FALL DAMAGE  ← FIXED: was subtracting backwards
+        //  FALL DAMAGE
         // ════════════════════════════════════════════════════════════════════
         private void HandleFallDamage()
         {
-            // Record Y the moment the player leaves the ground
             if (wasGroundedLastFrame && !player.IsGrounded)
             {
                 maxFallStartY = player.Position.Y;
                 canTakeFallDamage = true;
             }
 
-            // On landing, measure how far we fell (Y increases downward)
             if (!wasGroundedLastFrame && player.IsGrounded && !isDying)
             {
-                float fallDist = player.Position.Y - maxFallStartY;   // ← FIXED sign
+                float fallDist = player.Position.Y - maxFallStartY;
                 if (fallDist > FALL_DAMAGE_THRESHOLD && canTakeFallDamage && !isInvincible)
                 {
                     player.TakeDamage(1);
@@ -1029,7 +1530,9 @@ namespace supermario
                 b.Visual.Left -= scroll;
                 if (b.QuestionLabel != null) b.QuestionLabel.Left -= scroll;
             }
-            // Goombas are positioned in world space each frame – no scroll needed here
+            foreach (var c in coins)
+                if (!c.IsCollected) c.Visual.Left -= scroll;
+            // Mushrooms, goombas, koopas, fast enemies use world-space positioning per frame
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -1046,12 +1549,11 @@ namespace supermario
             gameManager.ResetGame();
             cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
             wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
-            _levelComplete = false;
-            // Reset HUD dirty flags so UpdateHud() re-draws everything after level change
+            _levelComplete = false; coinCount = 0;
             _lastHudHealth = -1; _lastHudLevel = -1; _lastHudSuper = false;
+            _lastHudScore = -1; _lastHudCoins = -1;
             player.Respawn(new Point(100, 405));
             player.IsGrounded = true; player.Health = 3;
-            // Use = not += to prevent handler stacking across restarts
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
             picboxplayer.Location = player.Position;
@@ -1066,9 +1568,13 @@ namespace supermario
         {
             foreach (var p in platforms) { Controls.Remove(p.PictureBox); p.PictureBox.Dispose(); }
             platforms.Clear();
-            // Clear goombas
             foreach (var g in goombas) { Controls.Remove(g.Visual); g.Visual.Dispose(); }
             goombas.Clear();
+            foreach (var k in koopas) { Controls.Remove(k.Visual); k.Visual.Dispose(); }
+            koopas.Clear();
+            foreach (var fe in fastEnemies) { Controls.Remove(fe.Visual); fe.Visual.Dispose(); }
+            fastEnemies.Clear();
+            ClearCoins();
             ClearPowerUps();
         }
 
@@ -1077,8 +1583,7 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private PlatformData[] GenerateRandomLevel(int numSections)
         {
-            // Opening is always a gentle section so players get a fair start
-            var openingPool = new[] { SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE };
+            var openingPool = new[] { SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_LONG_RUN };
             List<PlatformData> result;
             int extra = 0;
             do
@@ -1118,8 +1623,10 @@ namespace supermario
                 "  D / →           – Move Right\n\n" +
                 "⚠️  Press ENTER to START!\n\n" +
                 $"Level {currentLevelNumber}: Reach the GOAL flagpole!\n\n" +
-                "💡 Hit ? blocks with your head for power-ups!\n" +
-                "👟 Jump ON goombas to stomp them!\n" +
+                "💡 Hit ? blocks for mushrooms!\n" +
+                "💰 Hit C blocks for coins!\n" +
+                "🍄 Collect mushrooms to grow SUPER!\n" +
+                "👟 Jump ON goombas, koopas & red enemies!\n" +
                 "❤ Fall damage applies for big drops!",
                 "Super Mario", MessageBoxButtons.OK);
             Text = $"Super Mario – Level {currentLevelNumber}";
@@ -1128,11 +1635,10 @@ namespace supermario
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  HELPER: FillRoundedRect extension
+    //  HELPER
     // ════════════════════════════════════════════════════════════════════════
     internal static class GraphicsExtensions
     {
-        // Helper kept for future use — not currently called by game code
         public static void FillRoundedRect(this Graphics g, Brush b, int x, int y, int w, int h, int r)
         {
             if (w <= 0 || h <= 0) return;
@@ -1152,14 +1658,34 @@ namespace supermario
     // ════════════════════════════════════════════════════════════════════════
     //  DATA CLASSES
     // ════════════════════════════════════════════════════════════════════════
-    public enum PowerUpType { Mushroom }
+    public enum PowerUpType { Mushroom, Coin }
 
     public class Mushroom
     {
         public Point Position { get; set; }
         public PictureBox Visual { get; set; }
         public bool IsCollected { get; set; }
-        public Mushroom(Point pos, PictureBox visual) { Position = pos; Visual = visual; IsCollected = false; }
+        public float VelocityX { get; set; }
+        public float VerticalVelocity { get; set; }
+        public bool IsGrounded { get; set; }
+
+        public Mushroom(Point pos, PictureBox visual)
+        {
+            Position = pos;
+            Visual = visual;
+            IsCollected = false;
+            VelocityX = 1.8f;
+            VerticalVelocity = 0f;
+            IsGrounded = false;
+        }
+    }
+
+    public class Coin
+    {
+        public Point Position { get; set; }
+        public PictureBox Visual { get; set; }
+        public bool IsCollected { get; set; }
+        public Coin(Point pos, PictureBox visual) { Position = pos; Visual = visual; IsCollected = false; }
     }
 
     public class QuestionBlock
