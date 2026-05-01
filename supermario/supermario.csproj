@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Enemies.cs" />
     <Compile Include="Goomba.cs" />
     <Compile Include="mainWin.cs">
       <SubType>Form</SubType>
