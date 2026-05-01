@@ -451,6 +451,14 @@ namespace supermario
 
             if (isDying) { HandleDeathAnimation(FIXED_STEP_MS); return; }
 
+            // Pit detection – player fell off the bottom of the world
+            if (player.Position.Y > 580)
+            {
+                isDying = true;
+                deathTimer = 0f;
+                return;
+            }
+
             int dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
 
             if (dir != 0) facingRight = (dir > 0);
@@ -791,6 +799,7 @@ namespace supermario
 
                 // Collected
                 coin.IsCollected = true;
+                animatedBlocks.Remove(coin.Visual);
                 Controls.Remove(coin.Visual);
                 coin.Visual.Dispose();
                 coinCount++;
@@ -831,7 +840,7 @@ namespace supermario
             pb.BringToFront();
 
             var mush = new Mushroom(spawnPos, pb);
-            mush.VelocityX = 1.8f;
+            mush.VelocityX = 2f;
             spawnedMushrooms.Add(mush);
         }
 
@@ -882,10 +891,12 @@ namespace supermario
                         m.Position = new Point(m.Position.X, pr.Top - m.Visual.Height);
                         m.VerticalVelocity = 0;
                         onGround = true;
+                        break; // resolved – stop checking other platforms this frame
                     }
                     else if (minO == ol || minO == orr)
                     {
                         m.VelocityX = -m.VelocityX;
+                        break; // direction reversed – stop to avoid double-flip on corners
                     }
                 }
                 m.IsGrounded = onGround;
@@ -1001,7 +1012,7 @@ namespace supermario
 
                     if (minOverlap == overlapTop && overlapTop < 25)
                     {
-                        goomba.Position = new Point(goomba.Position.X, pr.Top - Goomba.NormalSize.Height);
+                        goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
                         goomba.VerticalVelocity = 0;
                         gGrounded = true;
                     }
@@ -1298,7 +1309,7 @@ namespace supermario
 
         private void UpdateHud()
         {
-            if (_hudLabel == null) return;
+            if (_hudLabel == null || _scoreLabel == null) return;
 
             if (currentLevelNumber != _lastHudLevel || isPlayerSuper != _lastHudSuper)
             {
@@ -1518,7 +1529,9 @@ namespace supermario
                 ScrollObjects(newCam - cameraX);
                 cameraX = newCam;
             }
-            picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
+            // Don't override the death-animation position that HandleDeathAnimation just set
+            if (!isDying)
+                picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
         }
 
         private void ScrollObjects(int scroll)
@@ -1538,7 +1551,13 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  LEVEL RESET / LOAD
         // ════════════════════════════════════════════════════════════════════
-        private void RestartLevel() => DoLevelSetup(currentLevelNumber);
+        private void RestartLevel()
+        {
+            // Death restart – wipe score and coins as a penalty (level advance keeps them)
+            player.Score = 0;
+            coinCount = 0;
+            DoLevelSetup(currentLevelNumber);
+        }
 
         private void LoadNextLevel() => DoLevelSetup(currentLevelNumber + 1);
 
@@ -1549,7 +1568,7 @@ namespace supermario
             gameManager.ResetGame();
             cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
             wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
-            _levelComplete = false; coinCount = 0;
+            _levelComplete = false;
             _lastHudHealth = -1; _lastHudLevel = -1; _lastHudSuper = false;
             _lastHudScore = -1; _lastHudCoins = -1;
             player.Respawn(new Point(100, 405));
