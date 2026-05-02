@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Enemies.cs" />
+    <Compile Include="MainMenuForm.cs" />
     <Compile Include="Goomba.cs" />
     <Compile Include="mainWin.cs">
       <SubType>Form</SubType>

@@ -17,7 +17,7 @@ namespace supermario
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new mainWin());
+            Application.Run(new MainMenuForm());
         }
     }
 }

@@ -1632,21 +1632,12 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void mainWin_Load(object sender, EventArgs e)
         {
-            MessageBox.Show(
-                "Controls:\n" +
-                "  W / ↑ / SPACE  – Jump\n" +
-                "  A / ←           – Move Left\n" +
-                "  D / →           – Move Right\n\n" +
-                "⚠️  Press ENTER to START!\n\n" +
-                $"Level {currentLevelNumber}: Reach the GOAL flagpole!\n\n" +
-                "💡 Hit ? blocks for mushrooms!\n" +
-                "💰 Hit C blocks for coins!\n" +
-                "🍄 Collect mushrooms to grow SUPER!\n" +
-                "👟 Jump ON goombas, koopas & red enemies!\n" +
-                "❤ Fall damage applies for big drops!",
-                "Super Mario", MessageBoxButtons.OK);
             Text = $"Super Mario – Level {currentLevelNumber}";
-            _stopwatch.Start();
+            _stopwatch.Restart();
+            _lastTickMs = 0;
+            _accumulatedMs = 0;
+            gameManager.StartGame();
+            gameTimer.Start();
         }
     }
 
