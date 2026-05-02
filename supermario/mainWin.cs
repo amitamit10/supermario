@@ -98,142 +98,337 @@ namespace supermario
         private int _lastHudCoins = -1;
 
         // ════════════════════════════════════════════════════════════════════
-        //  LEVEL SECTION TEMPLATES
+        //  LEVEL SECTION TEMPLATES  –  Y offsets applied onto yBase at runtime
         // ════════════════════════════════════════════════════════════════════
-        private static readonly PlatformData[] SECTION_STAIRS = {
-            new PlatformData(0, -20, 120, 20), new PlatformData(150, -70, 120, 20), new PlatformData(300, -120, 120, 20)
-        };
-        private static readonly PlatformData[] SECTION_GAP_JUMPS = {
-            new PlatformData(0, -50, 100, 20), new PlatformData(170, -50, 100, 20), new PlatformData(340, -50, 100, 20)
-        };
-        private static readonly PlatformData[] SECTION_WAVE = {
-            new PlatformData(0, -30, 100, 20), new PlatformData(150, -70, 100, 20),
-            new PlatformData(300, -30, 100, 20), new PlatformData(450, -70, 100, 20)
-        };
-        private static readonly PlatformData[] SECTION_HIGH = {
-            new PlatformData(0, -100, 100, 20), new PlatformData(150, -150, 100, 20), new PlatformData(300, -100, 100, 20)
-        };
-        private static readonly PlatformData[] SECTION_CHALLENGE = {
-            new PlatformData(0, -50, 80, 20), new PlatformData(120, -90, 80, 20),
-            new PlatformData(240, -50, 80, 20), new PlatformData(360, -90, 80, 20)
-        };
-        private static readonly PlatformData[] SECTION_DESCEND = {
-            new PlatformData(0, -120, 100, 20), new PlatformData(150, -80, 100, 20),
-            new PlatformData(300, -50, 100, 20), new PlatformData(450, -25, 100, 20)
+
+        // ── Opening / recovery sections ───────────────────────────────────────
+        private static readonly PlatformData[] SECTION_LONG_RUN = {
+            new PlatformData(0, -55, 340, 20)
         };
         private static readonly PlatformData[] SECTION_BRIDGE = {
             new PlatformData(80, -60, 280, 20)
         };
-        private static readonly PlatformData[] SECTION_ZIGZAG = {
-            new PlatformData(0, -50, 70, 20), new PlatformData(100, -90, 70, 20),
-            new PlatformData(200, -50, 70, 20), new PlatformData(300, -90, 70, 20),
-            new PlatformData(400, -50, 70, 20)
+        private static readonly PlatformData[] SECTION_GENTLE_HOP = {
+            new PlatformData(0, -40, 120, 20), new PlatformData(190, -60, 110, 20),
+            new PlatformData(370, -40, 120, 20), new PlatformData(560, -60, 110, 20)
         };
-        private static readonly PlatformData[] SECTION_ARCH = {
-            new PlatformData(0, -40, 100, 20), new PlatformData(150, -90, 100, 20),
-            new PlatformData(300, -140, 90, 20), new PlatformData(450, -90, 100, 20),
-            new PlatformData(600, -40, 100, 20)
+
+        // ── Ascending / stair sections ────────────────────────────────────────
+        private static readonly PlatformData[] SECTION_STAIRS = {
+            new PlatformData(0, -20, 100, 20), new PlatformData(140, -60, 100, 20),
+            new PlatformData(280, -100, 100, 20), new PlatformData(420, -60, 100, 20)
         };
-        private static readonly PlatformData[] SECTION_WIDE_GAPS = {
-            new PlatformData(0, -50, 130, 20), new PlatformData(240, -40, 130, 20), new PlatformData(480, -50, 130, 20)
+        private static readonly PlatformData[] SECTION_STAIR_UP = {
+            new PlatformData(0, -30, 80, 20), new PlatformData(110, -70, 80, 20),
+            new PlatformData(220, -110, 80, 20), new PlatformData(330, -70, 80, 20)
         };
-        private static readonly PlatformData[] SECTION_LEDGE_HOP = {
-            new PlatformData(0, -40, 65, 20), new PlatformData(95, -70, 65, 20),
-            new PlatformData(190, -40, 65, 20), new PlatformData(285, -70, 65, 20),
-            new PlatformData(380, -40, 65, 20)
-        };
-        private static readonly PlatformData[] SECTION_SUSPENDED = {
-            new PlatformData(0, -130, 100, 20), new PlatformData(160, -170, 90, 20), new PlatformData(310, -130, 100, 20)
-        };
-        private static readonly PlatformData[] SECTION_VALLEY = {
-            new PlatformData(0, -100, 100, 20), new PlatformData(150, -40, 100, 20), new PlatformData(300, -100, 100, 20)
-        };
-        private static readonly PlatformData[] SECTION_MULTI_LEVEL = {
-            new PlatformData(0, -30, 100, 20), new PlatformData(150, -80, 90, 20),
-            new PlatformData(290, -130, 80, 20), new PlatformData(420, -80, 90, 20),
-            new PlatformData(560, -30, 100, 20)
-        };
-        private static readonly PlatformData[] SECTION_CASTLE = {
-            new PlatformData(0, -60, 90, 20), new PlatformData(110, -100, 40, 20),
-            new PlatformData(170, -60, 90, 20), new PlatformData(280, -100, 40, 20),
-            new PlatformData(340, -60, 90, 20)
-        };
-        // ── New sections ─────────────────────────────────────────────────────
         private static readonly PlatformData[] SECTION_TRIPLE_JUMP = {
-            new PlatformData(0, -40, 75, 20), new PlatformData(115, -80, 75, 20),
-            new PlatformData(230, -120, 75, 20), new PlatformData(345, -80, 75, 20)
+            new PlatformData(0, -40, 80, 20), new PlatformData(120, -80, 80, 20),
+            new PlatformData(240, -120, 80, 20), new PlatformData(360, -80, 80, 20)
         };
         private static readonly PlatformData[] SECTION_PYRAMID = {
-            new PlatformData(0, -30, 100, 20), new PlatformData(130, -65, 90, 20),
-            new PlatformData(250, -100, 80, 20), new PlatformData(360, -65, 90, 20),
-            new PlatformData(480, -30, 100, 20)
+            new PlatformData(0, -30, 100, 20), new PlatformData(140, -70, 90, 20),
+            new PlatformData(270, -110, 80, 20), new PlatformData(390, -70, 90, 20),
+            new PlatformData(520, -30, 100, 20)
         };
-        private static readonly PlatformData[] SECTION_LONG_RUN = {
-            new PlatformData(0, -55, 340, 20)
+        private static readonly PlatformData[] SECTION_DESCEND = {
+            new PlatformData(0, -120, 100, 20), new PlatformData(160, -80, 100, 20),
+            new PlatformData(320, -50, 110, 20), new PlatformData(490, -25, 120, 20)
         };
-        private static readonly PlatformData[] SECTION_STAGGER_NARROW = {
-            new PlatformData(0, -60, 58, 20), new PlatformData(80, -100, 58, 20),
-            new PlatformData(160, -60, 58, 20), new PlatformData(240, -100, 58, 20),
-            new PlatformData(320, -60, 58, 20), new PlatformData(400, -100, 58, 20)
+
+        // ── Gap jump sections ─────────────────────────────────────────────────
+        private static readonly PlatformData[] SECTION_GAP_JUMPS = {
+            new PlatformData(0, -50, 110, 20), new PlatformData(190, -50, 110, 20),
+            new PlatformData(380, -50, 110, 20)
         };
-        private static readonly PlatformData[] SECTION_SKYSCRAPER = {
-            new PlatformData(0, -160, 90, 20), new PlatformData(150, -200, 70, 20),
-            new PlatformData(280, -160, 90, 20)
+        private static readonly PlatformData[] SECTION_WIDE_GAPS = {
+            new PlatformData(0, -50, 130, 20), new PlatformData(250, -40, 130, 20),
+            new PlatformData(500, -50, 130, 20)
         };
-        private static readonly PlatformData[] SECTION_BOUNCY = {
-            new PlatformData(0, -50, 80, 20), new PlatformData(130, -30, 70, 20),
-            new PlatformData(250, -80, 80, 20), new PlatformData(380, -40, 80, 20),
-            new PlatformData(510, -70, 80, 20)
+        private static readonly PlatformData[] SECTION_DOUBLE_GAP = {
+            new PlatformData(0, -55, 100, 20), new PlatformData(180, -75, 90, 20),
+            new PlatformData(360, -55, 100, 20), new PlatformData(540, -75, 90, 20)
+        };
+
+        // ── Wave / rhythm sections ─────────────────────────────────────────────
+        private static readonly PlatformData[] SECTION_WAVE = {
+            new PlatformData(0, -40, 110, 20), new PlatformData(180, -80, 100, 20),
+            new PlatformData(350, -40, 110, 20), new PlatformData(530, -80, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_ZIGZAG = {
+            new PlatformData(0, -50, 80, 20), new PlatformData(120, -90, 75, 20),
+            new PlatformData(240, -50, 80, 20), new PlatformData(360, -90, 75, 20),
+            new PlatformData(480, -50, 80, 20)
+        };
+        private static readonly PlatformData[] SECTION_VALLEY = {
+            new PlatformData(0, -100, 110, 20), new PlatformData(180, -40, 110, 20),
+            new PlatformData(360, -100, 110, 20)
+        };
+
+        // ── High / challenge sections ──────────────────────────────────────────
+        private static readonly PlatformData[] SECTION_HIGH = {
+            new PlatformData(0, -100, 110, 20), new PlatformData(180, -150, 100, 20),
+            new PlatformData(360, -100, 110, 20)
+        };
+        private static readonly PlatformData[] SECTION_CHALLENGE = {
+            new PlatformData(0, -50, 80, 20), new PlatformData(130, -90, 80, 20),
+            new PlatformData(260, -50, 80, 20), new PlatformData(390, -90, 80, 20)
+        };
+        private static readonly PlatformData[] SECTION_ARCH = {
+            new PlatformData(0, -40, 100, 20), new PlatformData(160, -90, 100, 20),
+            new PlatformData(320, -140, 90, 20), new PlatformData(480, -90, 100, 20),
+            new PlatformData(640, -40, 100, 20)
+        };
+        private static readonly PlatformData[] SECTION_MULTI_LEVEL = {
+            new PlatformData(0, -30, 100, 20), new PlatformData(160, -80, 90, 20),
+            new PlatformData(300, -130, 80, 20), new PlatformData(430, -80, 90, 20),
+            new PlatformData(570, -30, 100, 20)
+        };
+
+        // ── Precision / narrow sections ────────────────────────────────────────
+        private static readonly PlatformData[] SECTION_LEDGE_HOP = {
+            new PlatformData(0, -40, 70, 20), new PlatformData(110, -70, 65, 20),
+            new PlatformData(220, -40, 70, 20), new PlatformData(330, -70, 65, 20),
+            new PlatformData(440, -40, 70, 20)
+        };
+        private static readonly PlatformData[] SECTION_CASTLE = {
+            new PlatformData(0, -60, 90, 20), new PlatformData(120, -100, 50, 20),
+            new PlatformData(190, -60, 90, 20), new PlatformData(310, -100, 50, 20),
+            new PlatformData(380, -60, 90, 20)
+        };
+        private static readonly PlatformData[] SECTION_SUSPENDED = {
+            new PlatformData(0, -130, 100, 20), new PlatformData(170, -170, 90, 20),
+            new PlatformData(330, -130, 100, 20)
         };
 
         private static readonly PlatformData[][] ALL_SECTIONS = {
-            SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_HIGH, SECTION_CHALLENGE,
-            SECTION_DESCEND, SECTION_BRIDGE, SECTION_ZIGZAG, SECTION_ARCH, SECTION_WIDE_GAPS,
-            SECTION_LEDGE_HOP, SECTION_SUSPENDED, SECTION_VALLEY, SECTION_MULTI_LEVEL, SECTION_CASTLE,
-            SECTION_TRIPLE_JUMP, SECTION_PYRAMID, SECTION_LONG_RUN, SECTION_STAGGER_NARROW,
-            SECTION_SKYSCRAPER, SECTION_BOUNCY
+            SECTION_LONG_RUN, SECTION_BRIDGE, SECTION_GENTLE_HOP,
+            SECTION_STAIRS, SECTION_STAIR_UP, SECTION_TRIPLE_JUMP, SECTION_PYRAMID, SECTION_DESCEND,
+            SECTION_GAP_JUMPS, SECTION_WIDE_GAPS, SECTION_DOUBLE_GAP,
+            SECTION_WAVE, SECTION_ZIGZAG, SECTION_VALLEY,
+            SECTION_HIGH, SECTION_CHALLENGE, SECTION_ARCH, SECTION_MULTI_LEVEL,
+            SECTION_LEDGE_HOP, SECTION_CASTLE, SECTION_SUSPENDED
         };
 
         // ════════════════════════════════════════════════════════════════════
-        //  HAND-CRAFTED LEVELS
+        //  HAND-CRAFTED LEVELS  –  authentic Mario-style architecture
         // ════════════════════════════════════════════════════════════════════
+
+        // ── LEVEL 1: Overworld Plains (SMB 1-1 inspired) ─────────────────────
         private static readonly PlatformData[] LEVEL_1 = {
-            // Tutorial opening – wide, forgiving platforms close to ground
-            new PlatformData(200, 470, 180, 20), new PlatformData(430, 450, 160, 20),
-            new PlatformData(640, 430, 130, 20), new PlatformData(830, 450, 100, 20),
-            // Classic ascending staircase
-            new PlatformData(990, 453, 80, 20), new PlatformData(1090, 423, 80, 20),
-            new PlatformData(1190, 393, 80, 20), new PlatformData(1290, 363, 80, 20),
-            // Gap jumps at equal height – rhythm building
-            new PlatformData(1440, 403, 110, 20), new PlatformData(1600, 403, 110, 20), new PlatformData(1760, 403, 90, 20),
-            // Rising challenge
-            new PlatformData(1910, 373, 100, 20), new PlatformData(2060, 333, 100, 20),
-            // Gradual step-down descent
-            new PlatformData(2210, 363, 100, 20), new PlatformData(2360, 393, 110, 20),
-            // Long safe bridge breather
-            new PlatformData(2530, 423, 220, 20),
-            // Final wave approach to goal
-            new PlatformData(2640, 403, 100, 20), new PlatformData(2720, 413, 140, 20)
+            // Intro zone: wide forgiving platforms close to ground
+            new PlatformData(180, 453, 200, 20),
+            new PlatformData(440, 433, 140, 20),
+            // Small step before first pipe
+            new PlatformData(640, 413, 80, 20),
+            // Raised combat platform after pipe 1 (enemies patrol here)
+            new PlatformData(850, 393, 200, 20),
+            // Step-down bridge linking to pipe zone
+            new PlatformData(1090, 433, 90, 20),
+            // Long elevated run after pipes 2 + 3
+            new PlatformData(1440, 393, 260, 20),
+            // Descent section
+            new PlatformData(1740, 413, 120, 20),
+            new PlatformData(1910, 433, 120, 20),
+            // Challenge zone
+            new PlatformData(2070, 373, 130, 20),
+            new PlatformData(2250, 393, 100, 20),
+            // Rest platform before staircase
+            new PlatformData(2390, 453, 80, 20),
+            // ── Iconic 8-step ascending staircase (block heights fill to ground) ──
+            new PlatformData(2490, 473, 40, 40),
+            new PlatformData(2530, 433, 40, 80),
+            new PlatformData(2570, 393, 40, 120),
+            new PlatformData(2610, 353, 40, 160),
+            new PlatformData(2640, 313, 40, 200),
+            new PlatformData(2660, 273, 40, 240),
+            new PlatformData(2690, 233, 40, 280),
+            new PlatformData(2710, 193, 40, 320),
         };
+        private static readonly PlatformData[] LEVEL_1_PIPES = {
+            new PlatformData(750,  433, 80,  80),  // Pipe 1: 2 blocks tall
+            new PlatformData(1200, 393, 80, 120),  // Pipe 2: 3 blocks tall
+            new PlatformData(1340, 353, 80, 160),  // Pipe 3: 4 blocks tall
+        };
+        private static readonly QBlockDef[] LEVEL_1_QBLOCKS = {
+            new QBlockDef(460, 353, PowerUpType.Coin),     // Row of 3 question blocks
+            new QBlockDef(510, 353, PowerUpType.Coin),
+            new QBlockDef(560, 353, PowerUpType.Mushroom), // Third block = mushroom!
+            new QBlockDef(970, 313, PowerUpType.Mushroom), // Above raised platform
+            new QBlockDef(1500, 273, PowerUpType.Coin),    // Elevated run triple row
+            new QBlockDef(1550, 273, PowerUpType.Coin),
+            new QBlockDef(1600, 273, PowerUpType.Coin),
+            new QBlockDef(2120, 333, PowerUpType.Mushroom),// Challenge reward
+        };
+        // Goomba h=52: ground Y=461; platform@Y=393 → Y=341
+        private static readonly EnemyDef[] LEVEL_1_GOOMBAS = {
+            new EnemyDef(520,  461), // Ground near QBs
+            new EnemyDef(670,  461), // Ground before pipe 1
+            new EnemyDef(910,  341), // On raised platform at Y=393
+            new EnemyDef(980,  341), // Paired goomba on raised platform
+            new EnemyDef(1550, 341), // On elevated run at Y=393
+            new EnemyDef(2140, 461), // Ground, pre-staircase
+        };
+        // Koopa h=56: ground Y=457; platform@Y=393 → Y=337
+        private static readonly EnemyDef[] LEVEL_1_KOOPAS = {
+            new EnemyDef(875,  457), // Ground right of pipe 1
+            new EnemyDef(1460, 337), // On elevated run at Y=393
+            new EnemyDef(2000, 457), // Ground in challenge zone
+        };
+        // FastEnemy h=48: ground Y=465; platform@Y=393 → Y=345
+        private static readonly EnemyDef[] LEVEL_1_FAST_ENEMIES = {
+            new EnemyDef(1620, 345), // On elevated run at Y=393
+            new EnemyDef(2290, 465), // Ground before staircase
+        };
+        private static readonly int[] LEVEL_1_FLOAT_COIN_X = { 350, 580, 730, 790, 900, 1270, 1480, 1545, 2085, 2280 };
+        private static readonly int[] LEVEL_1_FLOAT_COIN_Y = { 400, 370, 378, 362, 358, 382,  358,  358,  348,  382  };
 
+        // ── LEVEL 2: Underground Cavern (SMB 1-2 inspired) ───────────────────
         private static readonly PlatformData[] LEVEL_2 = {
-            // Ascending stair intro
-            new PlatformData(150, 453, 80, 20), new PlatformData(260, 413, 80, 20),
-            new PlatformData(370, 373, 80, 20), new PlatformData(480, 333, 80, 20),
-            // Smooth descent linking to mid-height section
-            new PlatformData(620, 373, 90, 20), new PlatformData(770, 403, 90, 20),
-            // Gap challenge at consistent mid height
-            new PlatformData(930, 383, 90, 20), new PlatformData(1090, 383, 90, 20),
-            // Zigzag alternating heights
-            new PlatformData(1250, 423, 75, 20), new PlatformData(1355, 383, 75, 20), new PlatformData(1460, 353, 75, 20),
-            new PlatformData(1565, 383, 75, 20), new PlatformData(1670, 423, 75, 20),
-            // High suspended section – peak challenge
-            new PlatformData(1830, 303, 100, 20), new PlatformData(1980, 263, 100, 20), new PlatformData(2130, 303, 100, 20),
-            // Descending steps back to ground level
-            new PlatformData(2290, 353, 90, 20), new PlatformData(2430, 403, 90, 20), new PlatformData(2570, 433, 100, 20),
-            // Final stretch to goal
-            new PlatformData(2720, 393, 170, 20)
+            // Cavern entry – descending feeling
+            new PlatformData(200, 433, 140, 20),
+            new PlatformData(400, 393, 100, 20),
+            new PlatformData(560, 353, 80,  20),
+            // Cavern floor traversal
+            new PlatformData(700, 373, 160, 20),
+            new PlatformData(930, 353, 80,  20),
+            new PlatformData(1070, 393, 140, 20),
+            // Post-pipe 1 platform
+            new PlatformData(1370, 413, 120, 20),
+            // Deep cavern long traverse
+            new PlatformData(1560, 353, 200, 20),
+            // Cavern descent
+            new PlatformData(1820, 373, 90,  20),
+            new PlatformData(1970, 393, 100, 20),
+            // Post-pipe 3 underground challenge
+            new PlatformData(2240, 333, 130, 20),
+            new PlatformData(2420, 373, 100, 20),
+            // Pre-staircase rest
+            new PlatformData(2540, 433, 80,  20),
+            // ── Underground exit: 6-step ascending staircase ─────────────────
+            new PlatformData(2570, 473, 40,  40),
+            new PlatformData(2610, 433, 40,  80),
+            new PlatformData(2640, 393, 40, 120),
+            new PlatformData(2670, 353, 40, 160),
+            new PlatformData(2700, 313, 40, 200),
+            new PlatformData(2720, 273, 40, 240),
         };
+        private static readonly PlatformData[] LEVEL_2_PIPES = {
+            new PlatformData(1230, 433, 80,  80), // Pipe 1: 2 blocks
+            new PlatformData(1730, 393, 80, 120), // Pipe 2: 3 blocks
+            new PlatformData(2100, 353, 80, 160), // Pipe 3: 4 blocks
+        };
+        private static readonly QBlockDef[] LEVEL_2_QBLOCKS = {
+            new QBlockDef(290,  313, PowerUpType.Mushroom), // Hard early reward
+            new QBlockDef(760,  293, PowerUpType.Coin),
+            new QBlockDef(1110, 313, PowerUpType.Coin),
+            new QBlockDef(1420, 313, PowerUpType.Mushroom),
+            new QBlockDef(1610, 293, PowerUpType.Coin),
+            new QBlockDef(1660, 293, PowerUpType.Coin),
+            new QBlockDef(2165, 273, PowerUpType.Mushroom),
+            new QBlockDef(2530, 373, PowerUpType.Coin),
+        };
+        // Goomba: ground Y=461; Y=373→321, Y=353→301, Y=433→401
+        private static readonly EnemyDef[] LEVEL_2_GOOMBAS = {
+            new EnemyDef(480,  461),
+            new EnemyDef(760,  321), // On Y=373 platform
+            new EnemyDef(1610, 301), // On Y=353 deep traverse
+            new EnemyDef(2330, 461),
+        };
+        // Koopa: ground Y=457; Y=393→337, Y=353→297, Y=333→277, Y=433→377
+        private static readonly EnemyDef[] LEVEL_2_KOOPAS = {
+            new EnemyDef(440,  337), // On Y=393 platform
+            new EnemyDef(1000, 457),
+            new EnemyDef(1590, 297), // On Y=353 deep traverse
+            new EnemyDef(2265, 277), // On Y=333 challenge platform
+            new EnemyDef(2555, 377), // On Y=433 pre-staircase
+        };
+        // FastEnemy: ground Y=465; Y=353→305
+        private static readonly EnemyDef[] LEVEL_2_FAST_ENEMIES = {
+            new EnemyDef(1650, 305), // On Y=353 deep traverse
+            new EnemyDef(1980, 465),
+        };
+        private static readonly int[] LEVEL_2_FLOAT_COIN_X = { 330, 510, 800, 1000, 1430, 1645, 1700, 2190, 2365, 2510 };
+        private static readonly int[] LEVEL_2_FLOAT_COIN_Y = { 390, 358, 338,  358,  378,  318,  318,  308,  352,  398  };
+
+        // ── LEVEL 3: Sky Fortress (higher, faster, tougher) ──────────────────
+        private static readonly PlatformData[] LEVEL_3 = {
+            // Sky opening – elevated from the start
+            new PlatformData(160, 373, 120, 20),
+            new PlatformData(360, 353, 100, 20),
+            new PlatformData(530, 313, 80,  20),
+            // Post pipe-gauntlet landing
+            new PlatformData(990, 353, 140, 20),
+            // Sky high traverse
+            new PlatformData(1200, 313, 120, 20),
+            new PlatformData(1390, 273, 100, 20),
+            new PlatformData(1560, 313, 120, 20),
+            // Precision narrow ledge sequence
+            new PlatformData(1740, 353, 75, 20),
+            new PlatformData(1880, 393, 75, 20),
+            new PlatformData(2020, 353, 75, 20),
+            new PlatformData(2160, 313, 75, 20),
+            // High reward platform
+            new PlatformData(2270, 273, 140, 20),
+            // ── Iconic 8-step ascending staircase ────────────────────────────
+            new PlatformData(2450, 473, 40,  40),
+            new PlatformData(2490, 433, 40,  80),
+            new PlatformData(2530, 393, 40, 120),
+            new PlatformData(2570, 353, 40, 160),
+            new PlatformData(2610, 313, 40, 200),
+            new PlatformData(2650, 273, 40, 240),
+            new PlatformData(2680, 233, 40, 280),
+            new PlatformData(2720, 193, 40, 320),
+        };
+        private static readonly PlatformData[] LEVEL_3_PIPES = {
+            new PlatformData(660, 433, 80,  80), // Pipe 1: 2 blocks (stepping stone)
+            new PlatformData(800, 393, 80, 120), // Pipe 2: 3 blocks (step up)
+        };
+        private static readonly QBlockDef[] LEVEL_3_QBLOCKS = {
+            new QBlockDef(240,  313, PowerUpType.Coin),
+            new QBlockDef(1080, 273, PowerUpType.Mushroom),
+            new QBlockDef(1440, 233, PowerUpType.Coin),
+            new QBlockDef(1490, 233, PowerUpType.Coin),
+            new QBlockDef(1640, 273, PowerUpType.Mushroom),
+            new QBlockDef(2000, 293, PowerUpType.Coin),
+            new QBlockDef(2310, 233, PowerUpType.Coin),
+            new QBlockDef(2360, 233, PowerUpType.Mushroom),
+        };
+        // Goomba: Y=373→321, Y=353→301, Y=313→261
+        private static readonly EnemyDef[] LEVEL_3_GOOMBAS = {
+            new EnemyDef(220,  321), // On Y=373 platform
+            new EnemyDef(1050, 301), // On Y=353 landing
+            new EnemyDef(1260, 261), // On Y=313
+            new EnemyDef(1760, 301), // On Y=353 narrow
+            new EnemyDef(2400, 461),
+        };
+        // Koopa: Y=313→257, Y=273→217
+        private static readonly EnemyDef[] LEVEL_3_KOOPAS = {
+            new EnemyDef(575,  257), // On Y=313 intro
+            new EnemyDef(1600, 257), // On Y=313 sky run
+            new EnemyDef(2320, 217), // On Y=273 reward platform
+        };
+        // FastEnemy: Y=273→225, Y=353→305, Y=313→265
+        private static readonly EnemyDef[] LEVEL_3_FAST_ENEMIES = {
+            new EnemyDef(1440, 225), // On Y=273 high platform
+            new EnemyDef(2060, 305), // On Y=353 narrow
+            new EnemyDef(2340, 225), // On Y=273 reward platform
+        };
+        private static readonly int[] LEVEL_3_FLOAT_COIN_X = { 255, 445, 695, 840, 1290, 1470, 1825, 1995, 2315, 2445 };
+        private static readonly int[] LEVEL_3_FLOAT_COIN_Y = { 338, 318, 400, 358, 278,  248,  328,  318,  248,  413  };
+
+        // ── Per-level data helpers ────────────────────────────────────────────
+        private struct QBlockDef
+        {
+            public readonly int X, Y;
+            public readonly PowerUpType Type;
+            public QBlockDef(int x, int y, PowerUpType t) { X = x; Y = y; Type = t; }
+        }
+        private struct EnemyDef
+        {
+            public readonly int X, Y;
+            public EnemyDef(int x, int y) { X = x; Y = y; }
+        }
 
         // ─────────────────────────────────────────────────────────────────────
         public mainWin()
@@ -336,8 +531,8 @@ namespace supermario
             gameManager = new GameManager();
             allLevels = new PlatformData[][]
             {
-                LEVEL_1, LEVEL_2,
-                GenerateRandomLevel(6), GenerateRandomLevel(7), GenerateRandomLevel(8)
+                LEVEL_1, LEVEL_2, LEVEL_3,
+                GenerateRandomLevel(7), GenerateRandomLevel(9)
             };
             currentLevelNumber = 1;
             currentLevel = allLevels[0];
@@ -493,6 +688,7 @@ namespace supermario
             ClearPowerUps();
             foreach (var p in currentLevel)
                 AddPlatform(p.X, p.Y, p.Width, p.Height);
+            AddPipes();
             AddQuestionBlocks();
             AddCoins();
             AddFinishFlagpole();
@@ -582,6 +778,73 @@ namespace supermario
                 g.DrawRectangle(border, 1, 1, w - 2, h - 2);
         }
 
+        // ════════════════════════════════════════════════════════════════════
+        //  PIPES
+        // ════════════════════════════════════════════════════════════════════
+        private PlatformData[] GetCurrentLevelPipes()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_PIPES;
+                case 2: return LEVEL_2_PIPES;
+                case 3: return LEVEL_3_PIPES;
+                default: return new PlatformData[0];
+            }
+        }
+
+        private void AddPipes()
+        {
+            foreach (var p in GetCurrentLevelPipes())
+                AddPipe(p.X, p.Y, p.Width, p.Height);
+        }
+
+        private void AddPipe(int x, int y, int w, int h)
+        {
+            var p = new PictureBox
+            {
+                Size = new Size(w, h),
+                Location = new Point(x, y),
+                BackColor = Color.Transparent,
+            };
+            p.Paint += DrawPipeTile;
+            Controls.Add(p);
+            p.SendToBack();
+            platforms.Add(new GameObjectS(p, p.Location, "pipe"));
+        }
+
+        private static void DrawPipeTile(object sender, PaintEventArgs e)
+        {
+            var pb = (PictureBox)sender;
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            int w = pb.Width, h = pb.Height;
+
+            // ── Pipe body (slightly inset from rim) ──────────────────────────
+            int bx = 8, bw2 = w - 16;
+            using (var body = new LinearGradientBrush(
+                new Point(bx, 0), new Point(bx + bw2, 0),
+                Color.FromArgb(40, 160, 40), Color.FromArgb(15, 85, 15)))
+                g.FillRectangle(body, bx, 22, bw2, h - 22);
+            // Body highlight stripe
+            using (var hi = new SolidBrush(Color.FromArgb(70, 140, 220, 140)))
+                g.FillRectangle(hi, bx + 2, 24, 10, h - 26);
+            // Body border
+            using (var bd = new Pen(Color.FromArgb(10, 60, 10), 2f))
+                g.DrawRectangle(bd, bx, 22, bw2 - 1, h - 23);
+
+            // ── Pipe rim / head (full width, first 22 px) ────────────────────
+            using (var rim = new LinearGradientBrush(
+                new Point(0, 0), new Point(w, 0),
+                Color.FromArgb(70, 185, 55), Color.FromArgb(20, 100, 15)))
+                g.FillRectangle(rim, 0, 0, w, 22);
+            // Rim top highlight
+            using (var rh = new SolidBrush(Color.FromArgb(90, 160, 230, 160)))
+                g.FillRectangle(rh, 3, 3, 18, 8);
+            // Rim border
+            using (var rb = new Pen(Color.FromArgb(10, 60, 10), 2f))
+                g.DrawRectangle(rb, 0, 0, w - 1, 21);
+        }
+
         private void AddFinishFlagpole()
         {
             var flag = new PictureBox
@@ -630,26 +893,35 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  QUESTION BLOCKS
         // ════════════════════════════════════════════════════════════════════
+        private QBlockDef[] GetCurrentLevelQBlocks()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_QBLOCKS;
+                case 2: return LEVEL_2_QBLOCKS;
+                case 3: return LEVEL_3_QBLOCKS;
+                default:
+                    return new QBlockDef[] {
+                        new QBlockDef(400, 350, PowerUpType.Mushroom), new QBlockDef(700, 380, PowerUpType.Coin),
+                        new QBlockDef(950, 320, PowerUpType.Mushroom), new QBlockDef(1250, 360, PowerUpType.Coin),
+                        new QBlockDef(1600, 290, PowerUpType.Mushroom), new QBlockDef(1900, 340, PowerUpType.Coin),
+                        new QBlockDef(2200, 370, PowerUpType.Mushroom), new QBlockDef(2500, 310, PowerUpType.Coin),
+                    };
+            }
+        }
+
         private void AddQuestionBlocks()
         {
-            // World-space positions; alternating mushroom/coin blocks
-            int[] xPos = { 400, 700, 950, 1250, 1600, 1900, 2200, 2500 };
-            int[] yPos = { 350, 380, 320, 360,  290,  340,  370,  310  };
-            PowerUpType[] types = {
-                PowerUpType.Mushroom, PowerUpType.Coin, PowerUpType.Mushroom, PowerUpType.Coin,
-                PowerUpType.Mushroom, PowerUpType.Coin, PowerUpType.Mushroom, PowerUpType.Coin
-            };
-
-            for (int i = 0; i < xPos.Length; i++)
+            foreach (var def in GetCurrentLevelQBlocks())
             {
                 var box = new PictureBox
                 {
                     Size = new Size(50, 50),
-                    Location = new Point(xPos[i], yPos[i]),
+                    Location = new Point(def.X, def.Y),
                     BackColor = Color.Transparent,
                 };
 
-                var block = new QuestionBlock(box.Location, box, null, types[i]);
+                var block = new QuestionBlock(box.Location, box, null, def.Type);
 
                 box.Paint += (s, pe) =>
                 {
@@ -684,8 +956,6 @@ namespace supermario
                         using (var border = new Pen(Color.FromArgb(140, 80, 0), 3f))
                             g.DrawRectangle(border, 1, 1, bw - 3, bh - 3);
                         int qOff = (questionAnimFrame % 2 == 0) ? 0 : -2;
-
-                        // Coin blocks show "C", mushroom blocks show "?"
                         string sym = block.PowerUpInside == PowerUpType.Coin ? "C" : "?";
                         using (var qFont = new Font("Arial", 22, FontStyle.Bold))
                         using (var qBrush = new SolidBrush(Color.FromArgb(100, 50, 0)))
@@ -722,21 +992,31 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void AddCoins()
         {
-            // Rows of coins above platforms and floating in open areas
             var coinPositions = new List<Point>();
 
-            // Rows above each platform from the current level layout
+            // Rows of coins above each platform in the level
             foreach (var p in currentLevel)
             {
+                // Skip staircase steps (very narrow blocks at specific Y values)
+                if (p.Width == 40 && p.Height >= 40) continue;
                 int rowY = p.Y - 50;
                 int count = Math.Max(1, p.Width / 40);
                 for (int j = 0; j < count; j++)
                     coinPositions.Add(new Point(p.X + 10 + j * 38, rowY));
             }
 
-            // Extra floating coins in the open areas
-            int[] floatX = { 300, 500, 800, 1100, 1400, 1650, 1950, 2250, 2450, 2600 };
-            int[] floatY = { 390, 360, 370, 350,  380,  360,  370,  350,  390,  380  };
+            // Per-level floating coins guiding the player through key sections
+            int[] floatX, floatY;
+            switch (currentLevelNumber)
+            {
+                case 1: floatX = LEVEL_1_FLOAT_COIN_X; floatY = LEVEL_1_FLOAT_COIN_Y; break;
+                case 2: floatX = LEVEL_2_FLOAT_COIN_X; floatY = LEVEL_2_FLOAT_COIN_Y; break;
+                case 3: floatX = LEVEL_3_FLOAT_COIN_X; floatY = LEVEL_3_FLOAT_COIN_Y; break;
+                default:
+                    floatX = new[] { 300, 500, 800, 1100, 1400, 1650, 1950, 2250, 2450, 2600 };
+                    floatY = new[] { 390, 360, 370,  350,  380,  360,  370,  350,  390,  380 };
+                    break;
+            }
             for (int i = 0; i < floatX.Length; i++)
                 coinPositions.Add(new Point(floatX[i], floatY[i]));
 
@@ -955,12 +1235,27 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  GOOMBA SPAWNING & UPDATE
         // ════════════════════════════════════════════════════════════════════
+        private EnemyDef[] GetCurrentLevelGoombas()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_GOOMBAS;
+                case 2: return LEVEL_2_GOOMBAS;
+                case 3: return LEVEL_3_GOOMBAS;
+                default:
+                    return new EnemyDef[] {
+                        new EnemyDef(600, 461), new EnemyDef(950, 461),
+                        new EnemyDef(1250, 461), new EnemyDef(1550, 461),
+                        new EnemyDef(1850, 461), new EnemyDef(2100, 461),
+                    };
+            }
+        }
+
         private void SpawnGoombas()
         {
-            int[] goombaX = { 600, 950, 1250, 1550, 1850, 2100 };
-            foreach (int x in goombaX)
+            foreach (var def in GetCurrentLevelGoombas())
             {
-                var goomba = new Goomba(new Point(x, 461));
+                var goomba = new Goomba(new Point(def.X, def.Y));
                 Controls.Add(goomba.Visual);
                 goombas.Add(goomba);
             }
@@ -1060,12 +1355,26 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  KOOPA SPAWNING & UPDATE
         // ════════════════════════════════════════════════════════════════════
+        private EnemyDef[] GetCurrentLevelKoopas()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_KOOPAS;
+                case 2: return LEVEL_2_KOOPAS;
+                case 3: return LEVEL_3_KOOPAS;
+                default:
+                    return new EnemyDef[] {
+                        new EnemyDef(750, 457), new EnemyDef(1350, 457),
+                        new EnemyDef(1700, 457), new EnemyDef(2300, 457),
+                    };
+            }
+        }
+
         private void SpawnKoopas()
         {
-            int[] koopaX = { 750, 1350, 1700, 2300 };
-            foreach (int x in koopaX)
+            foreach (var def in GetCurrentLevelKoopas())
             {
-                var k = new Koopa(new Point(x, 457));
+                var k = new Koopa(new Point(def.X, def.Y));
                 Controls.Add(k.Visual);
                 koopas.Add(k);
             }
@@ -1159,12 +1468,25 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  FAST ENEMY SPAWNING & UPDATE
         // ════════════════════════════════════════════════════════════════════
+        private EnemyDef[] GetCurrentLevelFastEnemies()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_FAST_ENEMIES;
+                case 2: return LEVEL_2_FAST_ENEMIES;
+                case 3: return LEVEL_3_FAST_ENEMIES;
+                default:
+                    return new EnemyDef[] {
+                        new EnemyDef(1100, 465), new EnemyDef(1800, 465), new EnemyDef(2400, 465),
+                    };
+            }
+        }
+
         private void SpawnFastEnemies()
         {
-            int[] feX = { 1100, 1800, 2400 };
-            foreach (int x in feX)
+            foreach (var def in GetCurrentLevelFastEnemies())
             {
-                var fe = new FastEnemy(new Point(x, 465));
+                var fe = new FastEnemy(new Point(def.X, def.Y));
                 Controls.Add(fe.Visual);
                 fastEnemies.Add(fe);
             }
@@ -1394,7 +1716,20 @@ namespace supermario
                     player.Position = new Point(player.Position.X, platRect.Top - picboxplayer.Height);
                     player.IsGrounded = true;
                     foundGround = true;
-                    break;
+                    // Continue checking pipes – don't break early
+                }
+                else if (plat.Type == "pipe")
+                {
+                    // Pipes block horizontal movement when the player approaches from the side
+                    bool feetBelowRim = player.Position.Y + picboxplayer.Height > platRect.Top + 10;
+                    if (feetBelowRim && overlapLeft > 0 && overlapLeft <= 22 && overlapLeft < overlapTop)
+                    {
+                        player.Position = new Point(platRect.Left - picboxplayer.Width, player.Position.Y);
+                    }
+                    else if (feetBelowRim && overlapRight > 0 && overlapRight <= 22 && overlapRight < overlapTop)
+                    {
+                        player.Position = new Point(platRect.Right, player.Position.Y);
+                    }
                 }
             }
             if (!foundGround) player.IsGrounded = false;
@@ -1599,7 +1934,17 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private PlatformData[] GenerateRandomLevel(int numSections)
         {
-            var openingPool = new[] { SECTION_STAIRS, SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_LONG_RUN };
+            // Opening sections feel grounded; mid sections add challenge; closing ends near flag
+            var openingPool = new[] { SECTION_LONG_RUN, SECTION_BRIDGE, SECTION_GENTLE_HOP, SECTION_STAIRS };
+            var midPool = new[] {
+                SECTION_GAP_JUMPS, SECTION_WAVE, SECTION_ZIGZAG, SECTION_STAIR_UP,
+                SECTION_WIDE_GAPS, SECTION_VALLEY, SECTION_PYRAMID, SECTION_DOUBLE_GAP,
+                SECTION_CHALLENGE, SECTION_MULTI_LEVEL, SECTION_CASTLE, SECTION_TRIPLE_JUMP,
+            };
+            var hardPool = new[] {
+                SECTION_HIGH, SECTION_ARCH, SECTION_SUSPENDED, SECTION_LEDGE_HOP, SECTION_DESCEND,
+            };
+
             List<PlatformData> result;
             int extra = 0;
             do
@@ -1607,11 +1952,26 @@ namespace supermario
                 result = new List<PlatformData>();
                 int xOff = 200, yBase = 483;
                 int total = numSections + extra;
+                int prevSectionIdx = -1;
+
                 for (int i = 0; i < total; i++)
                 {
-                    var sec = i == 0
-                        ? openingPool[levelRandom.Next(openingPool.Length)]
-                        : ALL_SECTIONS[levelRandom.Next(ALL_SECTIONS.Length)];
+                    PlatformData[][] pool;
+                    if (i == 0)                              pool = new[] { openingPool[levelRandom.Next(openingPool.Length)] };
+                    else if (i < total * 2 / 3)             pool = new[] { midPool[levelRandom.Next(midPool.Length)] };
+                    else                                     pool = new[] { hardPool[levelRandom.Next(hardPool.Length)] };
+
+                    // Avoid repeating same section type two consecutive times
+                    int tries = 0;
+                    var sec = pool[0];
+                    while (tries < 3 && Array.IndexOf(ALL_SECTIONS, sec) == prevSectionIdx)
+                    {
+                        pool = new[] { midPool[levelRandom.Next(midPool.Length)] };
+                        sec = pool[0];
+                        tries++;
+                    }
+                    prevSectionIdx = Array.IndexOf(ALL_SECTIONS, sec);
+
                     foreach (var p in sec)
                     {
                         int ny = yBase + p.Y;
@@ -1619,10 +1979,11 @@ namespace supermario
                             result.Add(new PlatformData(xOff + p.X, ny, p.Width, p.Height));
                     }
                     if (sec.Length > 0)
-                        xOff += sec.Max(p => p.X + p.Width) + 120;
+                        xOff += sec.Max(p => p.X + p.Width) + 130;
                 }
+
                 extra++;
-            } while (result.Count < 5 && extra < 20);
+            } while (result.Count < 8 && extra < 20);
 
             return result.ToArray();
         }
