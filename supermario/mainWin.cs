@@ -24,6 +24,9 @@ namespace supermario
         private List<Goomba> goombas = new List<Goomba>();
         private List<Koopa> koopas = new List<Koopa>();
         private List<FastEnemy> fastEnemies = new List<FastEnemy>();
+        private List<JumpingEnemy> jumpingEnemies = new List<JumpingEnemy>();
+        private List<PlatformPatrolEnemy> patrolEnemies = new List<PlatformPatrolEnemy>();
+        private List<FlyingEnemy> flyingEnemies = new List<FlyingEnemy>();
         private List<Mushroom> spawnedMushrooms = new List<Mushroom>();
         private List<Coin> coins = new List<Coin>();
         private int coinCount = 0;
@@ -417,6 +420,53 @@ namespace supermario
         private static readonly int[] LEVEL_3_FLOAT_COIN_X = { 255, 445, 695, 840, 1290, 1470, 1825, 1995, 2315, 2445 };
         private static readonly int[] LEVEL_3_FLOAT_COIN_Y = { 338, 318, 400, 358, 278,  248,  328,  318,  248,  413  };
 
+        // ── JumpingEnemy  h=50: ground Y=463; platform@Y=393→343, @Y=373→323, @Y=313→263, @Y=273→223
+        private static readonly EnemyDef[] LEVEL_1_JUMPING = {
+            new EnemyDef(600,  463), // Ground, early level
+            new EnemyDef(1150, 343), // On elevated run Y=393
+            new EnemyDef(1860, 463), // Ground, descent section
+        };
+        private static readonly EnemyDef[] LEVEL_2_JUMPING = {
+            new EnemyDef(550,  463), // Ground entry zone
+            new EnemyDef(1120, 343), // On Y=393 platform
+            new EnemyDef(2280, 463), // Ground challenge zone
+        };
+        private static readonly EnemyDef[] LEVEL_3_JUMPING = {
+            new EnemyDef(300,  323), // On Y=373 intro platform
+            new EnemyDef(1450, 223), // On Y=273 high platform
+            new EnemyDef(2100, 303), // On Y=353 narrow ledge
+        };
+
+        // ── PlatformPatrolEnemy  h=50: same offsets as JumpingEnemy
+        private static readonly EnemyDef[] LEVEL_1_PATROL = {
+            new EnemyDef(890,  343), // On raised combat platform Y=393
+            new EnemyDef(2220, 463), // Ground, challenge zone
+        };
+        private static readonly EnemyDef[] LEVEL_2_PATROL = {
+            new EnemyDef(1080, 343), // On Y=393 platform
+            new EnemyDef(1980, 463), // Ground mid-late
+        };
+        private static readonly EnemyDef[] LEVEL_3_PATROL = {
+            new EnemyDef(1210, 263), // On Y=313 sky traverse
+            new EnemyDef(1850, 303), // On Y=353 narrow ledge (single patrol)
+        };
+
+        // ── FlyingEnemy  h=48: flies in sine wave around spawn Y (no platform snap needed)
+        private static readonly EnemyDef[] LEVEL_1_FLYING = {
+            new EnemyDef(1060, 400), // Over pipe zone
+            new EnemyDef(1870, 385), // Mid-level
+            new EnemyDef(2340, 395), // Challenge zone
+        };
+        private static readonly EnemyDef[] LEVEL_2_FLYING = {
+            new EnemyDef(860,  410), // Over cavern floor
+            new EnemyDef(1480, 390), // Deep traverse
+        };
+        private static readonly EnemyDef[] LEVEL_3_FLYING = {
+            new EnemyDef(700,  385), // Pipe gauntlet area
+            new EnemyDef(1710, 350), // Sky traverse
+            new EnemyDef(2190, 320), // High reward section
+        };
+
         // ── Per-level data helpers ────────────────────────────────────────────
         private struct QBlockDef
         {
@@ -673,6 +723,9 @@ namespace supermario
             UpdateGoombas();
             UpdateKoopas();
             UpdateFastEnemies();
+            UpdateJumpingEnemies();
+            UpdatePatrolEnemies();
+            UpdateFlyingEnemies();
             UpdateMushrooms();
             UpdateCoins();
 
@@ -695,6 +748,9 @@ namespace supermario
             SpawnGoombas();
             SpawnKoopas();
             SpawnFastEnemies();
+            SpawnJumpingEnemies();
+            SpawnPatrolEnemies();
+            SpawnFlyingEnemies();
             picboxplayer.BringToFront();
             _hudLabel?.BringToFront();
             _scoreLabel?.BringToFront();
@@ -1577,6 +1633,363 @@ namespace supermario
         }
 
         // ════════════════════════════════════════════════════════════════════
+        //  JUMPING ENEMY SPAWNING & UPDATE
+        // ════════════════════════════════════════════════════════════════════
+        private EnemyDef[] GetCurrentLevelJumping()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_JUMPING;
+                case 2: return LEVEL_2_JUMPING;
+                case 3: return LEVEL_3_JUMPING;
+                default:
+                    return new EnemyDef[] {
+                        new EnemyDef(700, 463), new EnemyDef(1300, 463), new EnemyDef(2000, 463),
+                    };
+            }
+        }
+
+        private void SpawnJumpingEnemies()
+        {
+            foreach (var def in GetCurrentLevelJumping())
+            {
+                var je = new JumpingEnemy(new Point(def.X, def.Y));
+                Controls.Add(je.Visual);
+                jumpingEnemies.Add(je);
+            }
+        }
+
+        private void UpdateJumpingEnemies()
+        {
+            var playerRect = new Rectangle(
+                player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = jumpingEnemies.Count - 1; i >= 0; i--)
+            {
+                var je = jumpingEnemies[i];
+
+                if (!je.IsAlive)
+                {
+                    Controls.Remove(je.Visual);
+                    je.Visual.Dispose();
+                    jumpingEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                // Gravity
+                if (!je.IsGrounded)
+                {
+                    je.VerticalVelocity += 0.6f;
+                    if (je.VerticalVelocity > 15f) je.VerticalVelocity = 15f;
+                    je.Position = new Point(je.Position.X, je.Position.Y + (int)je.VerticalVelocity);
+                }
+
+                bool jeGrounded = false;
+                var jeRect = je.Bounds;
+                foreach (var plat in platforms)
+                {
+                    var pr = new Rectangle(
+                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.PictureBox.Width, plat.PictureBox.Height);
+                    if (!jeRect.IntersectsWith(pr)) continue;
+
+                    int ot = jeRect.Bottom - pr.Top, ob = pr.Bottom - jeRect.Top;
+                    int ol = jeRect.Right - pr.Left, orr = pr.Right - jeRect.Left;
+                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
+
+                    if (min == ot && ot < 25)
+                    {
+                        je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
+                        je.VerticalVelocity = 0;
+                        jeGrounded = true;
+                    }
+                    else if (min == ol || min == orr) je.ReverseDirection();
+                }
+                je.IsGrounded = jeGrounded;
+
+                if (je.IsSquished)
+                {
+                    if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
+                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+                    continue;
+                }
+
+                je.Update();
+                je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+
+                if (isDying) continue;
+                var jeWorld = new Rectangle(je.Position.X, je.Position.Y, je.Visual.Width, je.Visual.Height);
+                if (!playerRect.IntersectsWith(jeWorld)) continue;
+
+                int pBottom = player.Position.Y + picboxplayer.Height;
+                bool falling = pBottom - je.Position.Y < 24;
+                bool above   = player.Position.Y < je.Position.Y + je.Visual.Height / 2;
+
+                if (falling && above)
+                {
+                    je.Squish();
+                    player.Bounce();
+                    player.Score += 150;
+                }
+                else if (!isInvincible)
+                {
+                    player.TakeDamage(1);
+                    isInvincible = true;
+                    invincibleTimer = 0f;
+                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  PLATFORM PATROL ENEMY SPAWNING & UPDATE
+        // ════════════════════════════════════════════════════════════════════
+        private EnemyDef[] GetCurrentLevelPatrol()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_PATROL;
+                case 2: return LEVEL_2_PATROL;
+                case 3: return LEVEL_3_PATROL;
+                default:
+                    return new EnemyDef[] {
+                        new EnemyDef(900, 463), new EnemyDef(1600, 463),
+                    };
+            }
+        }
+
+        private void SpawnPatrolEnemies()
+        {
+            foreach (var def in GetCurrentLevelPatrol())
+            {
+                var pe = new PlatformPatrolEnemy(new Point(def.X, def.Y));
+                Controls.Add(pe.Visual);
+                patrolEnemies.Add(pe);
+            }
+        }
+
+        private void UpdatePatrolEnemies()
+        {
+            var playerRect = new Rectangle(
+                player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = patrolEnemies.Count - 1; i >= 0; i--)
+            {
+                var pe = patrolEnemies[i];
+
+                if (!pe.IsAlive)
+                {
+                    Controls.Remove(pe.Visual);
+                    pe.Visual.Dispose();
+                    patrolEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                // Gravity
+                if (!pe.IsGrounded)
+                {
+                    pe.VerticalVelocity += 0.6f;
+                    if (pe.VerticalVelocity > 15f) pe.VerticalVelocity = 15f;
+                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)pe.VerticalVelocity);
+                }
+
+                bool peGrounded = false;
+                var peRect = pe.Bounds;
+                foreach (var plat in platforms)
+                {
+                    var pr = new Rectangle(
+                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.PictureBox.Width, plat.PictureBox.Height);
+                    if (!peRect.IntersectsWith(pr)) continue;
+
+                    int ot = peRect.Bottom - pr.Top, ob = pr.Bottom - peRect.Top;
+                    int ol = peRect.Right - pr.Left, orr = pr.Right - peRect.Left;
+                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
+
+                    if (min == ot && ot < 25)
+                    {
+                        pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
+                        pe.VerticalVelocity = 0;
+                        peGrounded = true;
+                    }
+                    else if (min == ol || min == orr) pe.ReverseDirection();
+                }
+                pe.IsGrounded = peGrounded;
+
+                // Edge detection – turn around before walking off a platform
+                if (peGrounded && !pe.IsSquished)
+                {
+                    int frontX = pe.Direction > 0 ? pe.Position.X + pe.Visual.Width : pe.Position.X;
+                    int probeY  = pe.Position.Y + pe.Visual.Height + 4;
+                    var probe   = new Rectangle(frontX - 2, probeY, 8, 6);
+                    bool groundAhead = false;
+                    foreach (var plat in platforms)
+                    {
+                        var pr = new Rectangle(
+                            plat.PictureBox.Left + cameraX, plat.Position.Y,
+                            plat.PictureBox.Width, plat.PictureBox.Height);
+                        if (probe.IntersectsWith(pr)) { groundAhead = true; break; }
+                    }
+                    if (!groundAhead) pe.ReverseDirection();
+                }
+
+                if (pe.IsSquished)
+                {
+                    if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
+                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+                    continue;
+                }
+
+                pe.Update();
+                pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+
+                if (isDying) continue;
+                var peWorld = new Rectangle(pe.Position.X, pe.Position.Y, pe.Visual.Width, pe.Visual.Height);
+                if (!playerRect.IntersectsWith(peWorld)) continue;
+
+                int pBot2 = player.Position.Y + picboxplayer.Height;
+                bool fall2 = pBot2 - pe.Position.Y < 24;
+                bool abv2  = player.Position.Y < pe.Position.Y + pe.Visual.Height / 2;
+
+                if (fall2 && abv2)
+                {
+                    pe.Squish();
+                    player.Bounce();
+                    player.Score += 175;
+                }
+                else if (!isInvincible)
+                {
+                    player.TakeDamage(1);
+                    isInvincible = true;
+                    invincibleTimer = 0f;
+                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        //  FLYING ENEMY SPAWNING & UPDATE
+        // ════════════════════════════════════════════════════════════════════
+        private EnemyDef[] GetCurrentLevelFlying()
+        {
+            switch (currentLevelNumber)
+            {
+                case 1: return LEVEL_1_FLYING;
+                case 2: return LEVEL_2_FLYING;
+                case 3: return LEVEL_3_FLYING;
+                default:
+                    return new EnemyDef[] {
+                        new EnemyDef(1000, 400), new EnemyDef(1800, 395), new EnemyDef(2500, 390),
+                    };
+            }
+        }
+
+        private void SpawnFlyingEnemies()
+        {
+            foreach (var def in GetCurrentLevelFlying())
+            {
+                var fl = new FlyingEnemy(new Point(def.X, def.Y));
+                Controls.Add(fl.Visual);
+                flyingEnemies.Add(fl);
+            }
+        }
+
+        private void UpdateFlyingEnemies()
+        {
+            var playerRect = new Rectangle(
+                player.Position.X, player.Position.Y,
+                picboxplayer.Width, picboxplayer.Height);
+
+            for (int i = flyingEnemies.Count - 1; i >= 0; i--)
+            {
+                var fl = flyingEnemies[i];
+
+                if (!fl.IsAlive)
+                {
+                    Controls.Remove(fl.Visual);
+                    fl.Visual.Dispose();
+                    flyingEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (fl.HasWings)
+                {
+                    // Sine-wave flight – Update() manages both axes
+                    fl.Update();
+                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                }
+                else
+                {
+                    // Wings stripped – apply gravity and platform collision
+                    if (!fl.IsGrounded)
+                    {
+                        fl.VerticalVelocity += 0.6f;
+                        if (fl.VerticalVelocity > 15f) fl.VerticalVelocity = 15f;
+                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)fl.VerticalVelocity);
+                    }
+
+                    bool flGrounded = false;
+                    var flRect = fl.Bounds;
+                    foreach (var plat in platforms)
+                    {
+                        var pr = new Rectangle(
+                            plat.PictureBox.Left + cameraX, plat.Position.Y,
+                            plat.PictureBox.Width, plat.PictureBox.Height);
+                        if (!flRect.IntersectsWith(pr)) continue;
+
+                        int ot = flRect.Bottom - pr.Top, ob = pr.Bottom - flRect.Top;
+                        int ol = flRect.Right - pr.Left, orr = pr.Right - flRect.Left;
+                        int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
+
+                        if (min == ot && ot < 25)
+                        {
+                            fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
+                            fl.VerticalVelocity = 0;
+                            flGrounded = true;
+                        }
+                        else if (min == ol || min == orr) fl.ReverseDirection();
+                    }
+                    fl.IsGrounded = flGrounded;
+
+                    if (fl.IsSquished)
+                    {
+                        if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
+                        fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                        continue;
+                    }
+
+                    fl.Update();
+                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                }
+
+                if (isDying) continue;
+                var flWorld = new Rectangle(fl.Position.X, fl.Position.Y, fl.Visual.Width, fl.Visual.Height);
+                if (!playerRect.IntersectsWith(flWorld)) continue;
+
+                int pBot3 = player.Position.Y + picboxplayer.Height;
+                bool fall3 = pBot3 - fl.Position.Y < 24;
+                bool abv3  = player.Position.Y < fl.Position.Y + fl.Visual.Height / 2;
+
+                if (fall3 && abv3)
+                {
+                    bool hadWings = fl.HasWings;
+                    fl.Stomp();
+                    player.Bounce();
+                    player.Score += hadWings ? 200 : 300;
+                }
+                else if (!isInvincible)
+                {
+                    player.TakeDamage(1);
+                    isInvincible = true;
+                    invincibleTimer = 0f;
+                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                }
+            }
+        }
+
+        // ════════════════════════════════════════════════════════════════════
         //  HUD  –  controls created once, text updated each tick
         // ════════════════════════════════════════════════════════════════════
         private void InitHud()
@@ -1925,6 +2338,12 @@ namespace supermario
             koopas.Clear();
             foreach (var fe in fastEnemies) { Controls.Remove(fe.Visual); fe.Visual.Dispose(); }
             fastEnemies.Clear();
+            foreach (var je in jumpingEnemies) { Controls.Remove(je.Visual); je.Visual.Dispose(); }
+            jumpingEnemies.Clear();
+            foreach (var pe in patrolEnemies) { Controls.Remove(pe.Visual); pe.Visual.Dispose(); }
+            patrolEnemies.Clear();
+            foreach (var fl in flyingEnemies) { Controls.Remove(fl.Visual); fl.Visual.Dispose(); }
+            flyingEnemies.Clear();
             ClearCoins();
             ClearPowerUps();
         }
