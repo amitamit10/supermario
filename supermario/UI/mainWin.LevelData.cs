@@ -106,14 +106,37 @@ namespace supermario
             new PlatformData(0, -130, 100, 20), new PlatformData(170, -170, 90, 20),
             new PlatformData(330, -130, 100, 20)
         };
+        // 5-step descending staircase – mirrors STAIR_UP coming back down
+        private static readonly PlatformData[] SECTION_DESCENT_STAIRS = {
+            new PlatformData(0, -140, 80, 20), new PlatformData(90, -110, 80, 20),
+            new PlatformData(180, -80, 80, 20), new PlatformData(270, -50, 80, 20),
+            new PlatformData(360, -20, 80, 20)
+        };
+        // Two wide platforms flanking a 155 px pit – commitment running jump
+        private static readonly PlatformData[] SECTION_BIG_GAP = {
+            new PlatformData(0, -50, 110, 20), new PlatformData(265, -50, 110, 20)
+        };
+        // Five narrow cloud platforms at altitude – precise footing required
+        private static readonly PlatformData[] SECTION_CLOUD_WALK = {
+            new PlatformData(0, -150, 60, 20), new PlatformData(110, -175, 60, 20),
+            new PlatformData(220, -150, 60, 20), new PlatformData(330, -175, 60, 20),
+            new PlatformData(440, -150, 60, 20)
+        };
+        // Castle battlements – four equal platforms at uniform height with 30 px gaps
+        private static readonly PlatformData[] SECTION_BATTLEMENTS = {
+            new PlatformData(0, -65, 70, 20), new PlatformData(100, -65, 70, 20),
+            new PlatformData(200, -65, 70, 20), new PlatformData(300, -65, 70, 20)
+        };
 
         private static readonly PlatformData[][] ALL_SECTIONS = {
             SECTION_LONG_RUN, SECTION_BRIDGE, SECTION_GENTLE_HOP,
-            SECTION_STAIRS, SECTION_STAIR_UP, SECTION_TRIPLE_JUMP, SECTION_PYRAMID, SECTION_DESCEND,
-            SECTION_GAP_JUMPS, SECTION_WIDE_GAPS, SECTION_DOUBLE_GAP,
+            SECTION_STAIRS, SECTION_STAIR_UP, SECTION_TRIPLE_JUMP, SECTION_PYRAMID,
+            SECTION_DESCEND, SECTION_DESCENT_STAIRS,
+            SECTION_GAP_JUMPS, SECTION_WIDE_GAPS, SECTION_DOUBLE_GAP, SECTION_BIG_GAP,
             SECTION_WAVE, SECTION_ZIGZAG, SECTION_VALLEY,
             SECTION_HIGH, SECTION_CHALLENGE, SECTION_ARCH, SECTION_MULTI_LEVEL,
-            SECTION_LEDGE_HOP, SECTION_CASTLE, SECTION_SUSPENDED
+            SECTION_LEDGE_HOP, SECTION_CASTLE, SECTION_BATTLEMENTS,
+            SECTION_SUSPENDED, SECTION_CLOUD_WALK
         };
 
         // ════════════════════════════════════════════════════════════════════
