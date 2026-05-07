@@ -558,7 +558,8 @@ namespace supermario
             // Antenna
             using (var ant = new Pen(Color.FromArgb(160, 75, 5), 2f) { EndCap = LineCap.Round })
                 g.DrawLine(ant, w / 2, bTop, w / 2, bTop - 8);
-            g.FillEllipse(new SolidBrush(Color.FromArgb(220, 120, 20)), w / 2 - 4, bTop - 12, 8, 8);
+            using (var antTip = new SolidBrush(Color.FromArgb(220, 120, 20)))
+                g.FillEllipse(antTip, w / 2 - 4, bTop - 12, 8, 8);
 
             // Determined narrow eyes
             int eY = bTop + bH / 2 - 2;
@@ -625,7 +626,7 @@ namespace supermario
         private int walkTick = 0;
         private const float SQUISH_DURATION = 600f;
         private const float FLY_SPEED = 1.8f;
-        private const float FLY_AMPLITUDE = 28f;
+        private const float FLY_AMPLITUDE = 22f;
         private const float FLY_FREQUENCY = 0.055f;
 
         public static readonly Size NormalSize   = new Size(52, 48);
