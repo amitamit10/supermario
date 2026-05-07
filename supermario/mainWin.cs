@@ -1376,6 +1376,7 @@ namespace supermario
                     else if (minOverlap == overlapLeft || minOverlap == overlapRight)
                     {
                         goomba.ReverseDirection();
+                        break;
                     }
                 }
                 goomba.IsGrounded = gGrounded;
@@ -1489,7 +1490,7 @@ namespace supermario
                         k.VerticalVelocity = 0;
                         kGrounded = true;
                     }
-                    else if (min == ol || min == orr) k.ReverseDirection();
+                    else if (min == ol || min == orr) { k.ReverseDirection(); break; }
                 }
                 k.IsGrounded = kGrounded;
 
@@ -1601,7 +1602,7 @@ namespace supermario
                         fe.VerticalVelocity = 0;
                         feGrounded = true;
                     }
-                    else if (min == ol || min == orr) fe.ReverseDirection();
+                    else if (min == ol || min == orr) { fe.ReverseDirection(); break; }
                 }
                 fe.IsGrounded = feGrounded;
 
@@ -1711,7 +1712,7 @@ namespace supermario
                         je.VerticalVelocity = 0;
                         jeGrounded = true;
                     }
-                    else if (min == ol || min == orr) je.ReverseDirection();
+                    else if (min == ol || min == orr) { je.ReverseDirection(); break; }
                 }
                 je.IsGrounded = jeGrounded;
 
@@ -1803,6 +1804,7 @@ namespace supermario
                 }
 
                 bool peGrounded = false;
+                bool peWallHit = false;
                 var peRect = pe.Bounds;
                 foreach (var plat in platforms)
                 {
@@ -1821,12 +1823,12 @@ namespace supermario
                         pe.VerticalVelocity = 0;
                         peGrounded = true;
                     }
-                    else if (min == ol || min == orr) pe.ReverseDirection();
+                    else if (min == ol || min == orr) { pe.ReverseDirection(); peWallHit = true; break; }
                 }
                 pe.IsGrounded = peGrounded;
 
-                // Edge detection – turn around before walking off a platform
-                if (peGrounded && !pe.IsSquished)
+                // Edge detection – skip if wall collision already reversed direction this frame
+                if (peGrounded && !pe.IsSquished && !peWallHit)
                 {
                     int frontX = pe.Direction > 0 ? pe.Position.X + pe.Visual.Width : pe.Position.X;
                     int probeY  = pe.Position.Y + pe.Visual.Height + 4;
@@ -1956,7 +1958,7 @@ namespace supermario
                             fl.VerticalVelocity = 0;
                             flGrounded = true;
                         }
-                        else if (min == ol || min == orr) fl.ReverseDirection();
+                        else if (min == ol || min == orr) { fl.ReverseDirection(); break; }
                     }
                     fl.IsGrounded = flGrounded;
 
