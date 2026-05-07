@@ -46,38 +46,49 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Enemies.cs" />
-    <Compile Include="MainMenuForm.cs" />
-    <Compile Include="Goomba.cs" />
-    <Compile Include="mainWin.cs">
+    <!-- Entry point -->
+    <Compile Include="Program.cs" />
+
+    <!-- Core -->
+    <Compile Include="Core\GameManager.cs" />
+    <Compile Include="Core\Player.cs" />
+    <Compile Include="Core\GameData.cs" />
+
+    <!-- Enemies -->
+    <Compile Include="Enemies\Goomba.cs" />
+    <Compile Include="Enemies\Koopa.cs" />
+    <Compile Include="Enemies\FastEnemy.cs" />
+    <Compile Include="Enemies\JumpingEnemy.cs" />
+    <Compile Include="Enemies\PlatformPatrolEnemy.cs" />
+    <Compile Include="Enemies\FlyingEnemy.cs" />
+
+    <!-- World -->
+    <Compile Include="World\GameObjectS.cs" />
+
+    <!-- UI – game window (partial class) -->
+    <Compile Include="UI\mainWin.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="mainWin.Designer.cs">
+    <Compile Include="UI\mainWin.Designer.cs">
       <DependentUpon>mainWin.cs</DependentUpon>
     </Compile>
-    <Compile Include="GameManager.cs" />
-    <Compile Include="gameObjectS.cs" />
-    <Compile Include="Player.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="UI\mainWin.LevelData.cs" />
+    <Compile Include="UI\mainWin.LevelBuilder.cs" />
+    <Compile Include="UI\mainWin.Collectibles.cs" />
+    <Compile Include="UI\mainWin.EnemyUpdates.cs" />
+    <Compile Include="UI\mainWin.HUD.cs" />
+    <Compile Include="UI\mainWin.Physics.cs" />
+
+    <!-- UI – menu -->
+    <Compile Include="UI\MainMenuForm.cs" />
+
+    <!-- Properties -->
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils.cs" />
-    <EmbeddedResource Include="mainWin.resx">
-      <DependentUpon>mainWin.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
@@ -85,15 +96,23 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="UI\mainWin.resx">
+      <DependentUpon>mainWin.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
     <None Include="Resources\oie_cnoULepStRjX1.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\oie_RF5qvlenQ7kF1.png" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\dcaeqy1-614416a8-3ae1-4448-94b4-e3ecefa3e53a.png" />
   </ItemGroup>
   <ItemGroup>
