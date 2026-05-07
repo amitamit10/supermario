@@ -5,101 +5,100 @@ All graphics are drawn procedurally with GDI+ (no external sprite sheets).
 
 ---
 
-## Project Structure
+## File Organization
 
-```
-supermario/
-│
-├── Program.cs                        Entry point (Application.Run)
-├── App.config
-├── supermario.csproj
-│
-├── Core/                             Fundamental game classes
-│   ├── GameManager.cs                Game state (IsGameRunning, Start/End/Reset)
-│   ├── Player.cs                     Player physics, health, jump, bounce
-│   └── GameData.cs                   Shared data types:
-│                                       Mushroom, Coin, QuestionBlock,
-│                                       PowerUpType, GraphicsExtensions
-│
-├── Enemies/                          One file per enemy type
-│   ├── Goomba.cs                     Basic walker — squish on stomp
-│   ├── Koopa.cs                      Turtle — first stomp gives shell
-│   ├── FastEnemy.cs                  Red fast walker (2× speed)
-│   ├── JumpingEnemy.cs               Blue bouncer — jumps periodically
-│   ├── PlatformPatrolEnemy.cs        Orange patroller — turns at ledge edges
-│   └── FlyingEnemy.cs                Winged Parakoopa — sine-wave flight,
-│                                       stomp removes wings then squishes
-│
-├── World/                            Level geometry helpers
-│   └── GameObjectS.cs                Platform/pipe wrapper (PictureBox + world pos)
-│
-├── UI/                               Everything the player sees
-│   ├── MainMenuForm.cs               Animated GDI+ main menu
-│   │
-│   ├── mainWin.cs                    Game window — fields, constructor,
-│   │                                   game loop, input, background painting
-│   ├── mainWin.Designer.cs           Auto-generated WinForms designer code
-│   ├── mainWin.resx                  Auto-generated resource bindings
-│   │
-│   ├── mainWin.LevelData.cs          All static level data:
-│   │                                   platform coords, pipe coords,
-│   │                                   Q-block positions, enemy spawn points,
-│   │                                   coin routes, section templates
-│   ├── mainWin.LevelBuilder.cs       CreateLongLevel, AddPlatform/Pipe/Coins/
-│   │                                   Flagpole, ClearPlatforms, Draw* tile
-│   │                                   handlers, GenerateRandomLevel
-│   ├── mainWin.Physics.cs            CheckPlatformCollisions, HandleFallDamage,
-│   │                                   CheckWinCondition, UpdateCamera,
-│   │                                   BecomeSuper/Normal, RestartLevel,
-│   │                                   DoLevelSetup, ClearPlatforms
-│   ├── mainWin.EnemyUpdates.cs       Spawn* and Update* for all 6 enemy types
-│   ├── mainWin.Collectibles.cs       Coins and mushrooms (spawn, update, draw)
-│   └── mainWin.HUD.cs                DrawPlayerSprite, InitHud, UpdateHud
-│
-└── Properties/
-    ├── AssemblyInfo.cs
-    ├── Resources.Designer.cs
-    ├── Resources.resx
-    ├── Settings.Designer.cs
-    └── Settings.settings
+```mermaid
+flowchart TD
+    classDef entry   fill:#4a4a8a,stroke:#9090ff,color:#fff
+    classDef core    fill:#2d6a2d,stroke:#60c060,color:#fff
+    classDef enemies fill:#7a2d2d,stroke:#d06060,color:#fff
+    classDef world   fill:#5a4a1a,stroke:#c09030,color:#fff
+    classDef ui      fill:#1a4a6a,stroke:#4090c0,color:#fff
+
+    PC["Program.cs\n▸ entry point"]:::entry
+
+    subgraph CORE["📂 Core/"]
+        GM["GameManager.cs\n▸ game state"]:::core
+        PL["Player.cs\n▸ physics · health · jump"]:::core
+        GD["GameData.cs\n▸ Mushroom · Coin · QuestionBlock"]:::core
+    end
+
+    subgraph ENEMIES["📂 Enemies/"]
+        GOO["Goomba.cs\n▸ basic walker"]:::enemies
+        KOP["Koopa.cs\n▸ shell turtle"]:::enemies
+        FAS["FastEnemy.cs\n▸ 2× speed walker"]:::enemies
+        JMP["JumpingEnemy.cs\n▸ periodic jumper"]:::enemies
+        PAT["PlatformPatrolEnemy.cs\n▸ ledge-aware patroller"]:::enemies
+        FLY["FlyingEnemy.cs\n▸ sine-wave flyer"]:::enemies
+    end
+
+    subgraph WORLD["📂 World/"]
+        GOS["GameObjectS.cs\n▸ platform / pipe wrapper"]:::world
+    end
+
+    subgraph UI["📂 UI/"]
+        MMF["MainMenuForm.cs\n▸ animated main menu"]:::ui
+        MW["mainWin.cs\n▸ fields · game loop · input"]:::ui
+        MWD["mainWin.Designer.cs\n▸ auto-generated"]:::ui
+        LD["mainWin.LevelData.cs\n▸ level arrays & spawn data"]:::ui
+        LB["mainWin.LevelBuilder.cs\n▸ build / clear world"]:::ui
+        PH["mainWin.Physics.cs\n▸ collision · camera · death"]:::ui
+        EU["mainWin.EnemyUpdates.cs\n▸ spawn · update all enemies"]:::ui
+        CO["mainWin.Collectibles.cs\n▸ coins · mushrooms"]:::ui
+        HUD["mainWin.HUD.cs\n▸ sprites · HUD overlay"]:::ui
+    end
+
+    PC --> CORE
+    PC --> UI
+    UI --> ENEMIES
+    UI --> WORLD
 ```
 
 ---
 
-## Architecture
+## Architecture — How the Layers Connect
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                        UI Layer                         │
-│  MainMenuForm  ──►  mainWin (8 partial-class files)     │
-│                         │                               │
-│           ┌─────────────┼──────────────┐                │
-│           ▼             ▼              ▼                │
-│      LevelData     LevelBuilder    Physics              │
-│      (static       (build /        (collision,          │
-│       arrays)       clear world)    camera, death)      │
-│                         │                               │
-│           ┌─────────────┼──────────────┐                │
-│           ▼             ▼              ▼                │
-│     EnemyUpdates   Collectibles      HUD                │
-└─────────────────────────────────────────────────────────┘
-           │                  │
-           ▼                  ▼
-┌──────────────────┐  ┌───────────────────────────────┐
-│   Enemies/       │  │   Core/                       │
-│  Goomba          │  │  Player   (physics, health)   │
-│  Koopa           │  │  GameManager (run/stop state) │
-│  FastEnemy       │  │  GameData  (Mushroom, Coin,   │
-│  JumpingEnemy    │  │             QuestionBlock)    │
-│  PlatformPatrol  │  └───────────────────────────────┘
-│  FlyingEnemy     │
-└──────────────────┘
-           │
-           ▼
-┌──────────────────┐
-│   World/         │
-│  GameObjectS     │  (wraps PictureBox + world-space position)
-└──────────────────┘
+```mermaid
+flowchart LR
+    classDef core    fill:#2d6a2d,stroke:#60c060,color:#fff
+    classDef enemies fill:#7a2d2d,stroke:#d06060,color:#fff
+    classDef world   fill:#5a4a1a,stroke:#c09030,color:#fff
+    classDef ui      fill:#1a4a6a,stroke:#4090c0,color:#fff
+
+    MMF["MainMenuForm\n(animated menu)"]:::ui
+
+    subgraph PARTIAL["mainWin — partial class × 7 files"]
+        direction TB
+        MW["mainWin.cs\ngame loop · fields · input"]:::ui
+        LD["LevelData\nstatic arrays"]:::ui
+        LB["LevelBuilder\nbuild / clear level"]:::ui
+        PH["Physics\ncollision · camera · death"]:::ui
+        EU["EnemyUpdates\nspawn · update"]:::ui
+        CO["Collectibles\ncoins · mushrooms"]:::ui
+        HUD["HUD\nsprites · overlay"]:::ui
+    end
+
+    subgraph CORE["Core/"]
+        GM["GameManager\ngame state"]:::core
+        PL["Player\nphysics · health"]:::core
+        GD["GameData\nMushroom · Coin\nQuestionBlock"]:::core
+    end
+
+    subgraph ENEMIES["Enemies/"]
+        GOO["Goomba"]:::enemies
+        KOP["Koopa"]:::enemies
+        FAS["FastEnemy"]:::enemies
+        JMP["JumpingEnemy"]:::enemies
+        PAT["PlatformPatrolEnemy"]:::enemies
+        FLY["FlyingEnemy"]:::enemies
+    end
+
+    GOS["GameObjectS\nplatform wrapper"]:::world
+
+    MMF -->|"launches"| PARTIAL
+    PARTIAL -->|"runs"| CORE
+    PARTIAL -->|"spawns & updates"| ENEMIES
+    PARTIAL -->|"builds levels with"| GOS
 ```
 
 ---
@@ -116,7 +115,7 @@ supermario/
 
 ---
 
-## Enemy Behaviour Summary
+## Enemy Behaviour
 
 | Enemy | Movement | Stomp result | Damage |
 |-------|----------|--------------|--------|
@@ -133,6 +132,6 @@ supermario/
 
 - **Rendering**: All sprites drawn with GDI+ (`LinearGradientBrush`, `GraphicsPath`, `SmoothingMode.AntiAlias`) — no image files for enemies or tiles.
 - **Physics**: Fixed 16 ms timestep; timer fires every 8 ms and accumulates steps.
-- **Collision**: AABB overlap method — resolves smallest overlap axis first.
+- **Collision**: AABB overlap — resolves smallest overlap axis first.
 - **Camera**: Horizontal scroll only; parallax background at 8 %, 12 %, 25 % speeds.
 - **Levels**: 3 hand-crafted levels + 2 procedurally generated levels using section templates.
