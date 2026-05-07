@@ -421,50 +421,57 @@ namespace supermario
         private static readonly int[] LEVEL_3_FLOAT_COIN_Y = { 338, 318, 400, 358, 278,  248,  328,  318,  248,  413  };
 
         // ── JumpingEnemy  h=50: ground Y=463; platform@Y=393→343, @Y=373→323, @Y=313→263, @Y=273→223
+        // Level 1: two ground positions that don't conflict with elevated enemies
         private static readonly EnemyDef[] LEVEL_1_JUMPING = {
-            new EnemyDef(600,  463), // Ground, early level
-            new EnemyDef(1150, 343), // On elevated run Y=393
-            new EnemyDef(1860, 463), // Ground, descent section
+            new EnemyDef(600,  463), // Ground, just after intro platforms (clear ground)
+            new EnemyDef(2050, 463), // Ground, challenge zone approach (clear of overhead platform)
         };
+        // Level 2: ground + one on the long traverse (1560-1760, Y=353→303)
         private static readonly EnemyDef[] LEVEL_2_JUMPING = {
             new EnemyDef(550,  463), // Ground entry zone
-            new EnemyDef(1120, 343), // On Y=393 platform
-            new EnemyDef(2280, 463), // Ground challenge zone
+            new EnemyDef(1140, 343), // On Y=393 platform (1070-1210) – away from other enemies
+            new EnemyDef(2260, 463), // Ground challenge zone
         };
+        // Level 3: verified positions inside actual platform bounds
         private static readonly EnemyDef[] LEVEL_3_JUMPING = {
-            new EnemyDef(300,  323), // On Y=373 intro platform
-            new EnemyDef(1450, 223), // On Y=273 high platform
-            new EnemyDef(2100, 303), // On Y=353 narrow ledge
+            new EnemyDef(210,  323), // On Y=373 intro platform (160-280) – centred ✓
+            new EnemyDef(1430, 223), // On Y=273 high platform (1390-1490) ✓
+            new EnemyDef(2050, 303), // On Y=353 narrow (2020-2095) – centred ✓
         };
 
-        // ── PlatformPatrolEnemy  h=50: same offsets as JumpingEnemy
+        // ── PlatformPatrolEnemy  h=50: placed on platforms wide enough to show edge-turn behaviour
+        // Level 1: step-down bridge (1090-1180, Y=433→383) and pre-staircase rest (2390-2470, Y=453→403)
         private static readonly EnemyDef[] LEVEL_1_PATROL = {
-            new EnemyDef(890,  343), // On raised combat platform Y=393
-            new EnemyDef(2220, 463), // Ground, challenge zone
+            new EnemyDef(1120, 383), // On step-down bridge (1090-1180, Y=433) ✓
+            new EnemyDef(2420, 403), // On rest platform (2390-2470, Y=453) ✓
         };
+        // Level 2: deep traverse (1560-1760, Y=353→303) far from others; ground past elevated section
         private static readonly EnemyDef[] LEVEL_2_PATROL = {
-            new EnemyDef(1080, 343), // On Y=393 platform
-            new EnemyDef(1980, 463), // Ground mid-late
+            new EnemyDef(1720, 303), // On traverse (1560-1760, Y=353) – rightmost, spacing ✓
+            new EnemyDef(2080, 463), // Ground, just past elevated platform at 1970-2070 ✓
         };
+        // Level 3: sky traverse (1200-1320, Y=313→263) and narrow ledge (1740-1815, Y=353→303)
         private static readonly EnemyDef[] LEVEL_3_PATROL = {
-            new EnemyDef(1210, 263), // On Y=313 sky traverse
-            new EnemyDef(1850, 303), // On Y=353 narrow ledge (single patrol)
+            new EnemyDef(1260, 263), // On Y=313 sky traverse (1200-1320) ✓
+            new EnemyDef(1760, 303), // On Y=353 narrow ledge (1740-1815) ✓
         };
 
-        // ── FlyingEnemy  h=48: flies in sine wave around spawn Y (no platform snap needed)
+        // ── FlyingEnemy  h=48: baseY chosen so amplitude±22 stays clear of all platform tops/bottoms
+        // Level 1: over pipe gap (clear air between pipes 1 and 2) + challenge zone
         private static readonly EnemyDef[] LEVEL_1_FLYING = {
-            new EnemyDef(1060, 400), // Over pipe zone
-            new EnemyDef(1870, 385), // Mid-level
-            new EnemyDef(2340, 395), // Challenge zone
+            new EnemyDef(1060, 405), // Over pipe zone – oscillates 383-427, clear of all platforms
+            new EnemyDef(2340, 400), // Challenge zone – oscillates 378-422, clear of ground (513)
         };
+        // Level 2: shifted past platform edge + deep section
         private static readonly EnemyDef[] LEVEL_2_FLYING = {
-            new EnemyDef(860,  410), // Over cavern floor
-            new EnemyDef(1480, 390), // Deep traverse
+            new EnemyDef(880,  420), // Just past platform (700-860, Y=373) – oscillates 398-442 ✓
+            new EnemyDef(1490, 395), // Deep traverse – oscillates 373-417, below platforms ✓
         };
+        // Level 3: Y raised so oscillation stays below all platform bottoms (lowest platform bottom = 333)
         private static readonly EnemyDef[] LEVEL_3_FLYING = {
-            new EnemyDef(700,  385), // Pipe gauntlet area
-            new EnemyDef(1710, 350), // Sky traverse
-            new EnemyDef(2190, 320), // High reward section
+            new EnemyDef(700,  420), // Pipe gauntlet – oscillates 398-442, below platform Y=313 ✓
+            new EnemyDef(1700, 425), // Sky traverse – oscillates 403-447, below Y=313 platforms ✓
+            new EnemyDef(2190, 410), // High reward section – oscillates 388-432, below Y=273 plat ✓
         };
 
         // ── Per-level data helpers ────────────────────────────────────────────
