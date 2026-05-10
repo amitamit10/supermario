@@ -1,105 +1,124 @@
-# Super Mario WinForms - Claude Project Guide
+# Super Mario - Pixel Art Integration Guide
 
-This guide provides a comprehensive overview of the `supermario` C# Windows Forms codebase, detailing the architecture, systems, and guidelines for integrating new textures and assets in future Claude Code sessions.
+This guide details the complete 2D Pixel Art Texture Pack generated for the Super Mario WinForms project, and provides explicit instructions for **Claude Code** on how to integrate these graphics efficiently into the existing C# codebase.
 
-## 1. Full Project Architecture
+## 1. The New Pixel Art Texture Pack
 
-The project is built as a **C# Windows Forms Application** targeting .NET Framework (v4.7.2). It simulates a 2D side-scrolling platformer without using a heavy game engine (like Unity or MonoGame). All rendering, physics, and game loop logic are implemented using WinForms UI components, timers, and GDI+ (`System.Drawing`).
+The `feature/texture-expansion` branch contains authentic, procedurally generated 16x16 pixel-art assets scaled up 4x for modern displays.
 
-### File and Folder Structure
+### Asset Map
+All assets are located relative to the `assets/textures/` root directory:
 
+**Player Sprites (`player/`)**
+- `player_idle.png` - Default standing pose.
+- `player_walk_1.png` - Walk animation frame.
+
+**Enemy Sprites (`enemies/`)**
+- `goomba_walk_1.png` - Goomba basic sprite.
+- `koopa_walk_1.png` - Koopa basic sprite.
+
+**Terrain & Blocks (`terrain_blocks/`)**
+- `ground.png` - Standard grass/dirt ground tile.
+- `brick.png` - Breakable brick block.
+- `question_1.png` - Question mark block frame.
+
+**Pipes (`pipes/`)**
+- `pipe_top.png` - Top entrance of the green pipe.
+- `pipe_body.png` - Vertical body of the green pipe.
+
+**Collectibles & Items (`collectibles/`)**
+- `coin_1.png` - Coin frame.
+- `mushroom.png` - Power-up mushroom.
+
+**Backgrounds & UI (`backgrounds/`, `ui_menu/`)**
+- `sky_bg.png` - Repeating sky background.
+
+---
+
+## 2. Integration Instructions for Claude Code
+
+### Step 1: Create a TextureLoader
+**Do NOT** call `Image.FromFile()` inside the `OnPaint` or `Paint` event loops. This will cause catastrophic memory leaks and severe lag.
+
+Instead, create a static `TextureLoader` class in the `Core/` directory to load and cache the `Image` objects at startup:
+
+```csharp
+using System.Drawing;
+using System.Collections.Generic;
+using System.IO;
+
+public static class TextureLoader
+{
+    public static Dictionary<string, Image> Sprites = new Dictionary<string, Image>();
+
+    public static void LoadAll()
+    {
+        string basePath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "assets", "textures");
+        
+        // Example loading:
+        Sprites["player_idle"] = Image.FromFile(Path.Combine(basePath, "player", "player_idle.png"));
+        Sprites["goomba"] = Image.FromFile(Path.Combine(basePath, "enemies", "goomba_walk_1.png"));
+        Sprites["ground"] = Image.FromFile(Path.Combine(basePath, "terrain_blocks", "ground.png"));
+        Sprites["brick"] = Image.FromFile(Path.Combine(basePath, "terrain_blocks", "brick.png"));
+        // ... Load all mapped assets here
+    }
+}
 ```
-supermario/
-├── supermario.sln                  # Main Visual Studio Solution
-├── supermario/                     # Main Project Directory
-│   ├── supermario.csproj           # C# Project definition
-│   ├── Program.cs                  # Application Entry Point
-│   ├── assets/
-│   │   └── textures/               # [NEW] Dedicated texture folder
-│   │       ├── player/
-│   │       ├── enemies/
-│   │       ├── terrain_blocks/
-│   │       ├── pipes/
-│   │       ├── collectibles/
-│   │       ├── ui_menu/
-│   │       ├── backgrounds/
-│   │       └── effects/
-│   ├── Core/                       # Core gameplay data & entity definitions
-│   │   ├── GameManager.cs
-│   │   ├── Player.cs
-│   │   └── GameData.cs
-│   ├── Enemies/                    # Enemy logic and behaviors
-│   │   ├── Goomba.cs
-│   │   ├── Koopa.cs
-│   │   ├── FastEnemy.cs
-│   │   ├── JumpingEnemy.cs
-│   │   ├── PlatformPatrolEnemy.cs
-│   │   └── FlyingEnemy.cs
-│   ├── World/                      # World objects and physics bodies
-│   │   └── GameObjectS.cs
-│   ├── UI/                         # UI screens, rendering, and partial game loop
-│   │   ├── MainMenuForm.cs         # Title Screen Menu
-│   │   ├── mainWin.cs              # Main Game Window
-│   │   ├── mainWin.LevelData.cs    # Level map definitions
-│   │   ├── mainWin.LevelBuilder.cs # Translates map data to physical objects
-│   │   ├── mainWin.Collectibles.cs # Coin/Mushroom logic
-│   │   ├── mainWin.EnemyUpdates.cs # Enemy loop integration
-│   │   ├── mainWin.HUD.cs          # UI Overlays (score, lives)
-│   │   └── mainWin.Physics.cs      # Collision & Gravity calculation
-│   ├── Properties/                 # Assembly info & resx properties
-│   └── Resources/                  # Pre-existing embedded resources (.resx)
+
+*Important:* Call `TextureLoader.LoadAll()` exactly once in `mainWin.cs` constructor or `Form_Load` event.
+
+### Step 2: Ensure Assets are Copied to Output Directory
+Since the assets are file-based, you must update `supermario.csproj` to include the `assets/` folder with `<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>`.
+
+```xml
+<ItemGroup>
+  <Content Include="assets\textures\**\*.*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
 ```
 
-## 2. Core Systems
+### Step 3: Implement Sprite Rendering
+In `mainWin.cs` or wherever the drawing happens (`e.Graphics.DrawImage`), replace the current colored rectangles or legacy `.resx` resources with the cached textures.
 
-* **Game Loop**: Driven by a `Timer` inside `mainWin.cs`. On every tick, the game updates physics, moves enemies, checks collisions, and triggers `Invalidate()` to force a redraw.
-* **Rendering**: Handled via WinForms `OnPaint` (or `Paint` event). Elements are drawn directly onto the form's `Graphics` context using `DrawImage`.
-* **State Management**: Handled via `GameManager` and UI state logic in `mainWin`.
-* **Physics & Collisions**: Found in `mainWin.Physics.cs`. Uses Axis-Aligned Bounding Box (AABB) collision checks between the player/enemies and the tiles (`GameObjectS`).
+```csharp
+// Example for rendering the player:
+if (player.Velocity.X == 0) {
+    e.Graphics.DrawImage(TextureLoader.Sprites["player_idle"], player.Bounds);
+} else {
+    // Basic walk cycle logic using a timer counter
+    e.Graphics.DrawImage(TextureLoader.Sprites["player_walk_1"], player.Bounds);
+}
+```
 
-## 3. Entity Systems
+### Step 4: Sprite Replacement for Level Objects
+In `mainWin.LevelBuilder.cs` and `GameObjectS.cs`, modify the object drawing logic to use the loaded textures.
+- Map the ground `GameObjectS` to `TextureLoader.Sprites["ground"]`.
+- Map the brick blocks to `TextureLoader.Sprites["brick"]`.
+- Use a `TextureBrush` if you need to tile the `sky_bg.png` across the form.
 
-### Player System
-* `Core/Player.cs`: Maintains player state (health, speed, jump velocity, state such as Small/Super Mario).
-* Player rendering and control logic are deeply intertwined with the `mainWin` partial classes, specifically physics for jumping/gravity and keyboard events for movement.
+---
 
-### Enemy System
-* Located under `Enemies/`.
-* Base concepts rely on shared behavior arrays or inheritance.
-* The game loop iterates over active enemies (handled in `mainWin.EnemyUpdates.cs`) updating their positions and handling collision with the player (damage/stomping) or walls (reversing direction).
-* Different enemy types feature custom movement rules (e.g., `FlyingEnemy` ignores gravity, `JumpingEnemy` applies upward velocity on timers).
+## 3. Handling Animations
 
-### Level & World Systems
-* Defined in `mainWin.LevelData.cs` typically as 2D arrays or string maps.
-* `mainWin.LevelBuilder.cs` parses the level maps and generates `GameObjectS` (which are effectively solid blocks or interactive tiles).
-* `World/GameObjectS.cs` acts as the base data structure for world colliders.
+For objects that require animation (e.g., Mario walking, Question Blocks shimmering, Coins spinning), implement a global `FrameCounter` integer in the main game timer loop:
 
-## 4. Texture Integration & Asset Replacement
+```csharp
+private int globalFrame = 0;
 
-**Currently**, assets are embedded into the `.resx` files (e.g., `Properties/Resources.resx` and `Resources/` folder).
+private void GameTimer_Tick(object sender, EventArgs e) {
+    globalFrame++;
+    // Physics & updates here...
+    Invalidate();
+}
+```
 
-**New Workflow for Asset Expansion:**
-1. **Place Assets**: Put all new PNG/sprites in the newly created `assets/textures/...` subdirectories.
-2. **Dynamic Loading (Recommended)**: Instead of locking assets into the `Resources.resx`, future modifications should update the code to load images dynamically using `Image.FromFile()` from the `assets/textures/` directory. This makes swapping textures dramatically easier.
-   - *Example:* `Image playerSprite = Image.FromFile("assets/textures/player/mario_idle.png");`
-3. **Sprite States**: Group animations logically. Ensure filenames denote state (e.g., `goomba_walk_1.png`, `goomba_walk_2.png`).
-4. **Caching**: Because WinForms GDI+ can be slow when loading images every frame, ensure images are loaded *once* during `mainWin_Load` or a custom initialization step, and cached in `Dictionary<string, Image>` or similar structures.
+When rendering, use `globalFrame` to toggle between sprites:
+```csharp
+Image currentCoin = (globalFrame % 20 < 10) 
+    ? TextureLoader.Sprites["coin_1"] 
+    : TextureLoader.Sprites["coin_2"];
+e.Graphics.DrawImage(currentCoin, coinBounds);
+```
 
-## 5. Build & Execution Instructions
-
-Since this is a standard .NET WinForms project:
-1. **Building**: Open `supermario.sln` in Visual Studio (or Rider) and build.
-   - Alternatively, build via MSBuild: `msbuild supermario.sln /p:Configuration=Debug`
-2. **Running**: Execute the generated `.exe` in `bin/Debug/supermario.exe` or hit `F5` in Visual Studio.
-
-## 6. Important Technical Constraints
-
-- **WinForms GDI+ Performance**: WinForms is NOT a game engine. Heavy rendering of hundreds of high-res textures per frame *will* cause lag. Keep textures optimized (small dimensions) and strictly avoid calling `Image.FromFile` inside the `Paint` event.
-- **Double Buffering**: Ensure `DoubleBuffered = true` remains active on the main form to prevent screen flickering.
-- **No Native Animation Engine**: Animations must be handled manually by cycling arrays of `Image` objects based on a timer tick or frame counter.
-
-## 7. Best Practices for Future Claude Code Sessions
-
-- **Context limits**: When editing physics, only include `mainWin.Physics.cs` rather than the whole `mainWin` family.
-- **Asset references**: If you add new UI assets or textures, ensure the paths are relative to the executable (e.g., `AppDomain.CurrentDomain.BaseDirectory + @"\assets\textures\..."`) OR set the assets in `.csproj` to "Copy if newer". For this project, we'll configure MSBuild to copy the `assets/` folder to the output directory automatically.
-- **Avoid massive refactors**: WinForms UI files and `.Designer.cs` can easily break if the partial class structure is modified carelessly. Always rely on targeted file edits.
+By adhering strictly to this caching and frame-logic pattern, the Super Mario project will maintain high 60fps performance while utilizing the new HD pixel art pack!
