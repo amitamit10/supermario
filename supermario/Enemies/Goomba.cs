@@ -6,7 +6,6 @@ namespace supermario
 {
     class Goomba
     {
-        // ── State ──────────────────────────────────────────────────────────────────────
         public Point Position { get; set; }
         public PictureBox Visual { get; }
         public bool IsAlive { get; private set; }
@@ -19,14 +18,12 @@ namespace supermario
         private const float SQUISH_DURATION = 600f;
         private const float WALK_SPEED = 1.5f;
 
-        // Walk animation
         private int walkFrame = 0;
         private int walkTick = 0;
 
         public static readonly Size NormalSize = new Size(50, 52);
         public static readonly Size SquishedSize = new Size(60, 18);
 
-        // ─────────────────────────────────────────────────────────────────────────
         public Goomba(Point startPosition)
         {
             Position = startPosition;
@@ -49,12 +46,16 @@ namespace supermario
         {
             if (!IsAlive || IsSquished) return;
 
-            // Walk animation
             walkTick++;
-            if (walkTick >= 10) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; }
+            if (walkTick >= 10)
+            {
+                walkTick = 0;
+                walkFrame = (walkFrame + 1) % 2;
+                Visual.Invalidate();
+            }
 
-            int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
-            if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
+            int newX = Position.X + (int)System.Math.Round(Direction * WALK_SPEED);
+            if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)System.Math.Round(Direction * WALK_SPEED); }
             Position = new Point(newX, Position.Y);
         }
 
@@ -74,14 +75,22 @@ namespace supermario
         public void Kill() => IsAlive = false;
         public Rectangle Bounds => new Rectangle(Position.X, Position.Y, Visual.Width, Visual.Height);
 
-        // ── GDI+ Sprite ───────────────────────────────────────────────────────────────────
         private void DrawSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
 
             int w = Visual.Width;
             int h = Visual.Height;
+
+            if (!IsSquished && TextureLoader.TryGetSheet("enemies", out var enemiesSheet))
+            {
+                g.DrawFrame(enemiesSheet, walkFrame % 2, 64, 64, new Rectangle(0, 0, w, h));
+                return;
+            }
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
             if (IsSquished)
             {
@@ -89,11 +98,9 @@ namespace supermario
                 return;
             }
 
-            // ── Foot/leg wobble ───────────────────────────────────────────────────
             int leftLegOff = walkFrame == 0 ? 3 : -3;
             int rightLegOff = -leftLegOff;
 
-            // ── Feet ──────────────────────────────────────────────────────────────
             Color footDark = Color.FromArgb(90, 40, 5);
             Color footMid = Color.FromArgb(130, 65, 15);
 
@@ -108,7 +115,6 @@ namespace supermario
                 g.FillEllipse(shoeBrush, w - 20, h - 12 + rightLegOff, 10, 5);
             }
 
-            // ── Body ──────────────────────────────────────────────────────────────
             int bodyTop = 6;
             int bodyH = h - 18;
             using (var bodyBrush = new LinearGradientBrush(
@@ -120,7 +126,6 @@ namespace supermario
             using (var bodySheen = new SolidBrush(Color.FromArgb(50, 255, 200, 140)))
                 g.FillEllipse(bodySheen, w / 4, bodyTop + 4, w / 3, bodyH / 3);
 
-            // ── Dark mushroom-cap top ─────────────────────────────────────────────────
             using (var capPath = new GraphicsPath())
             using (var capBrush = new SolidBrush(Color.FromArgb(85, 35, 5)))
             {
@@ -131,7 +136,6 @@ namespace supermario
             using (var capSheen = new SolidBrush(Color.FromArgb(35, 255, 160, 100)))
                 g.FillEllipse(capSheen, w / 3, bodyTop + 4, w / 5, bodyH / 5);
 
-            // ── Angry eyebrows ────────────────────────────────────────────────────
             using (var brow = new Pen(Color.FromArgb(50, 15, 0), 3.5f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             {
                 int midY = bodyTop + bodyH / 2 - 5;
@@ -139,7 +143,6 @@ namespace supermario
                 g.DrawLine(brow, w - 19, midY + 3, w - 5, midY - 3);
             }
 
-            // ── Eyes ──────────────────────────────────────────────────────────────
             int eyeY = bodyTop + bodyH / 2 - 2;
             g.FillEllipse(Brushes.White, 5, eyeY, 14, 14);
             g.FillEllipse(Brushes.White, w - 19, eyeY, 14, 14);
@@ -154,7 +157,6 @@ namespace supermario
                 g.FillEllipse(eyeSheen, w - 16, eyeY + 4, 3, 3);
             }
 
-            // ── Fangs ──────────────────────────────────────────────────────────────
             int fangY = eyeY + 14;
             g.FillRectangle(Brushes.White, 11, fangY, 7, 5);
             g.FillRectangle(Brushes.White, w - 18, fangY, 7, 5);
