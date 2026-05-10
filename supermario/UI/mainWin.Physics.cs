@@ -7,9 +7,9 @@ namespace supermario
 {
     partial class mainWin
     {
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  PHYSICS / COLLISION
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void CheckPlatformCollisions()
         {
             var playerRect = new Rectangle(player.Position.X, player.Position.Y,
@@ -112,9 +112,9 @@ namespace supermario
             player.Position = new Point(player.Position.X, player.Position.Y + 16);
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  FALL DAMAGE
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void HandleFallDamage()
         {
             if (wasGroundedLastFrame && !player.IsGrounded)
@@ -160,9 +160,9 @@ namespace supermario
             }
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  CAMERA
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void UpdateCamera()
         {
             int screenX = player.Position.X - cameraX;
@@ -185,6 +185,7 @@ namespace supermario
 
         private void ScrollObjects(int scroll)
         {
+            SuspendLayout();
             foreach (var p in platforms)
                 p.PictureBox.Left -= scroll;
             foreach (var b in questionBlocks)
@@ -195,11 +196,12 @@ namespace supermario
             foreach (var c in coins)
                 if (!c.IsCollected) c.Visual.Left -= scroll;
             // Mushrooms, goombas, koopas, fast enemies use world-space positioning per frame
+            ResumeLayout(false);
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  LEVEL RESET / LOAD
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void RestartLevel()
         {
             // Death restart – wipe score and coins as a penalty (level advance keeps them)

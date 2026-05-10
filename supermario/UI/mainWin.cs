@@ -41,9 +41,9 @@ namespace supermario
         private long _accumulatedMs = 0;
         private const long FIXED_STEP_MS = 16;
 
-        // ── Question-block animation ─────────────────────────────────────────
-        private Timer questionAnimTimer;
+        // ── Question-block animation ───────────────────────────────────────────
         private int questionAnimFrame = 0;
+        private int _animStepCount = 0;
         private List<PictureBox> animatedBlocks = new List<PictureBox>();
 
         // ── Coin spin animation ──────────────────────────────────────────────
@@ -55,7 +55,7 @@ namespace supermario
         private int walkFrameTimer = 0;
         private bool isWalking = false;
 
-        // ── Background cloud / scenery ───────────────────────────────────────
+        // ── Background cloud / scenery ────────────────────────────────────────
         private static readonly (int wx, int y, int w)[] CLOUDS = {
             (200, 55, 130), (550, 35, 90), (900, 65, 160), (1200, 45, 110),
             (1500, 70, 140), (1800, 40, 100), (2100, 60, 130), (2400, 50, 90),
@@ -81,7 +81,7 @@ namespace supermario
         private const float DEATH_ANIMATION_DURATION = 2000f;
         private float maxFallStartY = 0;
         private bool wasGroundedLastFrame = true;
-        private const float FALL_DAMAGE_THRESHOLD = 60f;
+        private const float FALL_DAMAGE_THRESHOLD = 120f;
         private bool canTakeFallDamage = true;
         private bool _levelComplete = false;
 
@@ -106,13 +106,13 @@ namespace supermario
             InitializeGame();
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  BACKGROUND PAINTING
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         protected override void OnPaintBackground(PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
             int W = ClientSize.Width, H = ClientSize.Height;
 
             using (var sky = new LinearGradientBrush(new Point(0, 0), new Point(0, H),
@@ -186,9 +186,9 @@ namespace supermario
             }
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  GAME INIT
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void InitializeGame()
         {
             KeyPreview = true;
@@ -225,29 +225,20 @@ namespace supermario
             picboxplayer.BringToFront();
 
             InitHud();
-            FormClosing += (s, e) => { gameTimer?.Stop(); questionAnimTimer?.Stop(); };
-
-            questionAnimTimer = new Timer { Interval = 110 };
-            questionAnimTimer.Tick += (s, e) =>
-            {
-                questionAnimFrame = (questionAnimFrame + 1) % 6;
-                coinAnimFrame = (coinAnimFrame + 1) % 8;
-                foreach (var b in animatedBlocks) b.Invalidate();
-            };
-            questionAnimTimer.Start();
+            FormClosing += (s, e) => { gameTimer?.Stop(); };
 
             CreateLongLevel();
 
-            gameTimer = new Timer { Interval = 8 };
+            gameTimer = new Timer { Interval = 16 };
             gameTimer.Tick += GameLoop;
             KeyDown += MainWin_KeyDown;
             KeyUp += MainWin_KeyUp;
 
             Text = $"Super Mario – Level {currentLevelNumber}";
         }
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  GAME LOOP
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void GameLoop(object sender, EventArgs e)
         {
             if (!gameManager.IsGameRunning) return;
@@ -270,6 +261,14 @@ namespace supermario
                 UpdateCamera();
                 UpdateHud();
                 CheckWinCondition();
+                _animStepCount++;
+                if (_animStepCount >= 7)
+                {
+                    _animStepCount = 0;
+                    questionAnimFrame = (questionAnimFrame + 1) % 6;
+                    coinAnimFrame = (coinAnimFrame + 1) % 8;
+                    foreach (var b in animatedBlocks) b.Invalidate();
+                }
                 Invalidate(new Rectangle(0, 0, ClientSize.Width, 520));
             }
         }
@@ -324,9 +323,9 @@ namespace supermario
             picboxplayer.Invalidate();
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  INPUT
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void MainWin_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.D || e.KeyCode == Keys.Right) moveRight = true;
@@ -354,9 +353,9 @@ namespace supermario
             if (e.KeyCode == Keys.W || e.KeyCode == Keys.Up || e.KeyCode == Keys.Space) jump = false;
         }
 
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         //  LOAD EVENT
-        // ════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════
         private void mainWin_Load(object sender, EventArgs e)
         {
             Text = $"Super Mario – Level {currentLevelNumber}";
