@@ -5,9 +5,6 @@ using System.Windows.Forms;
 
 namespace supermario
 {
-    // ────────────────────────────────────────────────────────────────────────
-    //  KOOPA  –  green turtle enemy; first stomp → shell, second → removed
-    // ────────────────────────────────────────────────────────────────────────
     class Koopa
     {
         public Point Position { get; set; }
@@ -48,7 +45,12 @@ namespace supermario
         {
             if (!IsAlive || IsShell) return;
             walkTick++;
-            if (walkTick >= 10) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; }
+            if (walkTick >= 10)
+            {
+                walkTick = 0;
+                walkFrame = (walkFrame + 1) % 2;
+                Visual.Invalidate();
+            }
             int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
             if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
             Position = new Point(newX, Position.Y);
@@ -77,16 +79,23 @@ namespace supermario
         public void Kill() => IsAlive = false;
         public Rectangle Bounds => new Rectangle(Position.X, Position.Y, Visual.Width, Visual.Height);
 
-        // ── GDI+ sprite ───────────────────────────────────────────────────
         private void DrawSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             int w = Visual.Width, h = Visual.Height;
+
+            if (!IsShell && TextureLoader.TryGetSheet("enemies", out var enemiesSheet))
+            {
+                g.DrawFrame(enemiesSheet, 2 + (walkFrame % 2), 64, 96, new Rectangle(0, 0, w, h));
+                return;
+            }
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
             if (IsShell) { DrawShell(g, w, h); return; }
 
-            // Legs
             int lOff = walkFrame == 0 ? 2 : -2;
             using (var b = new SolidBrush(Color.FromArgb(70, 130, 40)))
             {
@@ -94,30 +103,25 @@ namespace supermario
                 DrawRoundRect(g, b, w - 19, h - 15 + (-lOff), 16, 13, 4);
             }
 
-            // Shell body
             int sTop = 3, sH = h - 18;
             using (var lg = new LinearGradientBrush(
                 new Point(0, sTop), new Point(w, sTop + sH),
                 Color.FromArgb(70, 185, 55), Color.FromArgb(30, 110, 25)))
                 g.FillEllipse(lg, 2, sTop, w - 4, sH);
 
-            // Shell sheen
             using (var sh = new SolidBrush(Color.FromArgb(70, 255, 255, 180)))
                 g.FillEllipse(sh, w / 4, sTop + 3, w / 3, sH / 4);
 
-            // Shell hex lines
             using (var pen = new Pen(Color.FromArgb(50, 0, 90, 0), 1.5f))
             {
                 g.DrawEllipse(pen, 8, sTop + 5, w - 16, sH - 10);
                 g.DrawLine(pen, w / 2, sTop + 3, w / 2, sTop + sH - 3);
             }
 
-            // Face
             int fX = w / 4, fY = sTop + sH / 2, fW = w / 2, fH = 18;
             using (var face = new SolidBrush(Color.FromArgb(240, 215, 165)))
                 g.FillEllipse(face, fX, fY, fW, fH);
 
-            // Eyes
             g.FillEllipse(Brushes.White, fX + 2,          fY + 1, 8, 8);
             g.FillEllipse(Brushes.White, fX + fW - 10,    fY + 1, 8, 8);
             using (var p2 = new SolidBrush(Color.FromArgb(25, 15, 0)))
