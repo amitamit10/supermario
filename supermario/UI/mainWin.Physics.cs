@@ -225,27 +225,33 @@ namespace supermario
         // ══════════════════════════════════════════════════════════════════
         private bool UpdateCamera()
         {
-            bool cameraMoved = false;
+            int newCam = cameraX;
             int screenX = player.Position.X - cameraX;
-            if (screenX > SCROLL_THRESHOLD && player.Position.X > SCROLL_THRESHOLD)
-            {
-                int newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
-                ScrollObjects(newCam - cameraX);
-                cameraX = newCam;
-                cameraMoved = true;
-            }
-            else if (screenX < 200 && cameraX > 0)
-            {
-                int newCam = Math.Max(player.Position.X - 200, 0);
-                ScrollObjects(newCam - cameraX);
-                cameraX = newCam;
-                cameraMoved = true;
-            }
-            // Don't override the death-animation position that HandleDeathAnimation just set
-            if (!isDying)
-                picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
 
+            if (screenX > SCROLL_THRESHOLD && player.Position.X > SCROLL_THRESHOLD)
+                newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
+            else if (screenX < 200 && cameraX > 0)
+                newCam = Math.Max(player.Position.X - 200, 0);
+
+            bool cameraMoved = newCam != cameraX;
+            if (cameraMoved)
+            {
+                ScrollObjects(newCam - cameraX);
+                cameraX = newCam;
+            }
+
+            UpdatePlayerScreenLocation();
             return cameraMoved;
+        }
+
+        private void UpdatePlayerScreenLocation()
+        {
+            // Don't override the death-animation position that HandleDeathAnimation just set.
+            if (isDying) return;
+
+            Point screenLocation = new Point(player.Position.X - cameraX, player.Position.Y);
+            if (picboxplayer.Location != screenLocation)
+                picboxplayer.Location = screenLocation;
         }
 
         private void ScrollObjects(int scroll)
