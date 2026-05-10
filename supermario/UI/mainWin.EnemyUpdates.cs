@@ -66,7 +66,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX,
+                        plat.Position.X,
                         plat.Position.Y,
                         plat.PictureBox.Width,
                         plat.PictureBox.Height);
@@ -84,6 +84,7 @@ namespace supermario
                         goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
                         goomba.VerticalVelocity = 0;
                         gGrounded = true;
+                        break;
                     }
                     else if (minOverlap == overlapLeft || minOverlap == overlapRight)
                     {
@@ -188,7 +189,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!kRect.IntersectsWith(pr)) continue;
 
@@ -201,6 +202,7 @@ namespace supermario
                         k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
                         k.VerticalVelocity = 0;
                         kGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { k.ReverseDirection(); break; }
                 }
@@ -300,7 +302,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!feRect.IntersectsWith(pr)) continue;
 
@@ -313,6 +315,7 @@ namespace supermario
                         fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
                         fe.VerticalVelocity = 0;
                         feGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { fe.ReverseDirection(); break; }
                 }
@@ -410,7 +413,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!jeRect.IntersectsWith(pr)) continue;
 
@@ -423,6 +426,7 @@ namespace supermario
                         je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
                         je.VerticalVelocity = 0;
                         jeGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { je.ReverseDirection(); break; }
                 }
@@ -521,7 +525,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!peRect.IntersectsWith(pr)) continue;
 
@@ -534,6 +538,7 @@ namespace supermario
                         pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
                         pe.VerticalVelocity = 0;
                         peGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { pe.ReverseDirection(); peWallHit = true; break; }
                 }
@@ -549,7 +554,7 @@ namespace supermario
                     foreach (var plat in platforms)
                     {
                         var pr = new Rectangle(
-                            plat.PictureBox.Left + cameraX, plat.Position.Y,
+                            plat.Position.X, plat.Position.Y,
                             plat.PictureBox.Width, plat.PictureBox.Height);
                         if (probe.IntersectsWith(pr)) { groundAhead = true; break; }
                     }
@@ -656,7 +661,7 @@ namespace supermario
                     foreach (var plat in platforms)
                     {
                         var pr = new Rectangle(
-                            plat.PictureBox.Left + cameraX, plat.Position.Y,
+                            plat.Position.X, plat.Position.Y,
                             plat.PictureBox.Width, plat.PictureBox.Height);
                         if (!flRect.IntersectsWith(pr)) continue;
 
@@ -669,6 +674,7 @@ namespace supermario
                             fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
                             fl.VerticalVelocity = 0;
                             flGrounded = true;
+                            break;
                         }
                         else if (min == ol || min == orr) { fl.ReverseDirection(); break; }
                     }
