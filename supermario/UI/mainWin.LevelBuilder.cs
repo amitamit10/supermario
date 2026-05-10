@@ -42,7 +42,7 @@ namespace supermario
                 {
                     Size = new Size(40, 40),
                     Location = new Point(x, 513),
-                    BackColor = Color.Transparent,
+                    BackColor = Color.FromArgb(185, 100, 40),
                 };
                 brick.Paint += DrawGroundBrick;
                 Controls.Add(brick);
@@ -79,7 +79,7 @@ namespace supermario
             {
                 Size = new Size(w, h),
                 Location = new Point(x, y),
-                BackColor = Color.Transparent,
+                BackColor = Color.FromArgb(210, 140, 65),
             };
             p.Paint += DrawPlatformTile;
             Controls.Add(p);

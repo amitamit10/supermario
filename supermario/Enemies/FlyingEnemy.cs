@@ -67,7 +67,6 @@ namespace supermario
                 if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)(Direction * 1.2f); }
                 Position = new Point(newX, Position.Y);
             }
-            Visual.Invalidate();
         }
 
         public void ReverseDirection() => Direction = -Direction;
