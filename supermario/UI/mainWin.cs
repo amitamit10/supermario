@@ -42,6 +42,7 @@ namespace supermario
         private const long FIXED_STEP_MS = 16;
 
         // ── Question-block animation ─────────────────────────────────────
+        private int globalTick = 0;
         private int questionAnimFrame = 0;
         private int _animStepCount = 0;
         private List<PictureBox> animatedBlocks = new List<PictureBox>();
@@ -113,11 +114,25 @@ namespace supermario
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             int W = ClientSize.Width, H = ClientSize.Height;
 
             using (var sky = new LinearGradientBrush(new Point(0, 0), new Point(0, H),
                 Color.FromArgb(92, 148, 252), Color.FromArgb(178, 218, 255)))
                 g.FillRectangle(sky, 0, 0, W, H);
+
+            if (TextureLoader.TryGetSheet("bg", out var bg))
+            {
+                int tileHeight = Math.Max(1, H);
+                int tileWidth = Math.Max(1, bg.Width * tileHeight / bg.Height);
+                int offset = tileWidth == 0 ? 0 : (int)(cameraX * 0.12) % tileWidth;
+                for (int x = -offset; x < W; x += tileWidth)
+                {
+                    g.DrawImage(bg, new Rectangle(x, 0, tileWidth, tileHeight),
+                        new Rectangle(0, 0, bg.Width, bg.Height), GraphicsUnit.Pixel);
+                }
+                return;
+            }
 
             DrawMountains(g, W, H, (int)(cameraX * 0.08));
             DrawHills(g, W, H, (int)(cameraX * 0.25));
@@ -193,6 +208,8 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void InitializeGame()
         {
+            TextureLoader.LoadAll();
+
             KeyPreview = true;
             DoubleBuffered = true;
             Focus();
@@ -253,6 +270,7 @@ namespace supermario
             bool didStep = false;
             while (_accumulatedMs >= FIXED_STEP_MS)
             {
+                globalTick++;
                 PhysicsStep();
                 _accumulatedMs -= FIXED_STEP_MS;
                 didStep = true;

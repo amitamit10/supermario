@@ -51,7 +51,12 @@ namespace supermario
 
             // Walk animation
             walkTick++;
-            if (walkTick >= 10) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; }
+            if (walkTick >= 10)
+            {
+                walkTick = 0;
+                walkFrame = (walkFrame + 1) % 2;
+                Visual.Invalidate();
+            }
 
             int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
             if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
@@ -78,10 +83,19 @@ namespace supermario
         private void DrawSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
 
             int w = Visual.Width;
             int h = Visual.Height;
+
+            if (!IsSquished && TextureLoader.TryGetSheet("enemies", out var enemiesSheet))
+            {
+                g.DrawFrame(enemiesSheet, walkFrame % 2, 64, 64, new Rectangle(0, 0, w, h));
+                return;
+            }
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
             if (IsSquished)
             {

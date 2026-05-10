@@ -1,7 +1,7 @@
 # Super Mario — C# WinForms Platformer
 
 A Mario-style 2D platformer built with C# .NET Framework 4.7.2 and Windows Forms.  
-All graphics are drawn procedurally with GDI+ (no external sprite sheets).
+Core sprites render from generated pixel-art sprite sheets, with GDI+ fallbacks for variants not covered by the texture pack.
 
 ---
 
@@ -130,7 +130,7 @@ flowchart LR
 
 ## Tech Notes
 
-- **Rendering**: All sprites drawn with GDI+ (`LinearGradientBrush`, `GraphicsPath`, `SmoothingMode.AntiAlias`) — no image files for enemies or tiles.
+- **Rendering**: Player, Goomba, Koopa, items, blocks, and background draw from `assets/textures/sprite_sheets/`; specialized variants still use GDI+ procedural fallbacks.
 - **Physics**: Fixed 16 ms timestep; timer fires every 8 ms and accumulates steps.
 - **Collision**: AABB overlap — resolves smallest overlap axis first.
 - **Camera**: Horizontal scroll only; parallax background at 8 %, 12 %, 25 % speeds.

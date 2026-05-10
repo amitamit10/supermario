@@ -55,7 +55,16 @@ namespace supermario
         {
             var pb = (PictureBox)sender;
             var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             int w = pb.Width, h = pb.Height;
+
+            if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
+            {
+                g.DrawFrame(blocksSheet, 3, 64, 64, new Rectangle(0, 0, w, h));
+                return;
+            }
+
             using (var fill = new SolidBrush(Color.FromArgb(185, 100, 40)))
                 g.FillRectangle(fill, 0, 0, w, h);
             using (var mortar = new Pen(Color.FromArgb(120, 60, 15), 2f))
@@ -91,7 +100,16 @@ namespace supermario
         {
             var pb = (PictureBox)sender;
             var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             int w = pb.Width, h = pb.Height;
+
+            if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
+            {
+                g.DrawTiledFrame(blocksSheet, 3, 64, 64, new Rectangle(0, 0, w, h), 40, 40);
+                return;
+            }
+
             using (var fill = new SolidBrush(Color.FromArgb(210, 140, 65)))
                 g.FillRectangle(fill, 0, 0, w, h);
             int bw = 40, bh = 20;
@@ -259,8 +277,16 @@ namespace supermario
                 box.Paint += (s, pe) =>
                 {
                     var g = pe.Graphics;
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    g.SmoothingMode = SmoothingMode.None;
+                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
                     int bw = box.Width, bh = box.Height;
+
+                    if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
+                    {
+                        int frameIndex = block.IsHit ? 2 : (globalTick / 7 % 2);
+                        g.DrawFrame(blocksSheet, frameIndex, 64, 64, new Rectangle(0, 0, bw, bh));
+                        return;
+                    }
 
                     if (block.IsHit)
                     {

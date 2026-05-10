@@ -47,6 +47,38 @@ namespace supermario
 
     internal static class GraphicsExtensions
     {
+        public static void DrawFrame(this Graphics g, Image sheet, int frameIndex, int frameWidth, int frameHeight, Rectangle destRect)
+        {
+            if (sheet == null || frameWidth <= 0 || frameHeight <= 0 || destRect.Width <= 0 || destRect.Height <= 0)
+                return;
+
+            var state = g.Save();
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+
+            var sourceRect = new Rectangle(frameIndex * frameWidth, 0, frameWidth, frameHeight);
+            g.DrawImage(sheet, destRect, sourceRect, GraphicsUnit.Pixel);
+            g.Restore(state);
+        }
+
+        public static void DrawTiledFrame(this Graphics g, Image sheet, int frameIndex, int frameWidth, int frameHeight,
+            Rectangle destRect, int tileWidth, int tileHeight)
+        {
+            if (sheet == null || tileWidth <= 0 || tileHeight <= 0 || destRect.Width <= 0 || destRect.Height <= 0)
+                return;
+
+            var state = g.Save();
+            g.SetClip(destRect);
+            for (int y = destRect.Top; y < destRect.Bottom; y += tileHeight)
+            {
+                for (int x = destRect.Left; x < destRect.Right; x += tileWidth)
+                {
+                    DrawFrame(g, sheet, frameIndex, frameWidth, frameHeight, new Rectangle(x, y, tileWidth, tileHeight));
+                }
+            }
+            g.Restore(state);
+        }
+
         public static void FillRoundedRect(this System.Drawing.Graphics g, System.Drawing.Brush b, int x, int y, int w, int h, int r)
         {
             if (w <= 0 || h <= 0) return;
