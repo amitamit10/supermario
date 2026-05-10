@@ -9,7 +9,7 @@ namespace supermario
         public bool IsGrounded { get; set; }
         public Point Position { get; set; }
 
-        private float VerticalVelocity;
+        public float VerticalVelocity { get; private set; }
         private float HorizontalVelocity;
 
         private const float MoveSpeed = 3.5f;

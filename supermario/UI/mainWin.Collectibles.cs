@@ -91,6 +91,7 @@ namespace supermario
             var playerRect = new Rectangle(player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
             for (int i = coins.Count - 1; i >= 0; i--)
             {
                 var coin = coins[i];
@@ -108,6 +109,7 @@ namespace supermario
                 player.Score += 10;
                 coins.RemoveAt(i);
             }
+            ResumeLayout(false);
         }
 
         private void ClearCoins()

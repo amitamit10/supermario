@@ -67,7 +67,7 @@ namespace supermario
             (2700, 515, 200), (3100, 530, 150), (3500, 520, 190),
         };
 
-        private bool moveRight = false, moveLeft = false, jump = false;
+        private bool moveRight = false, moveLeft = false, jump = false, _prevJump = false;
         private int cameraX = 0;
         private const int SCROLL_THRESHOLD = 400;
         private const int LEVEL_PIXEL_WIDTH = 3000;
@@ -309,7 +309,10 @@ namespace supermario
             }
             else walkFrame = 0;
 
-            player.Move(dir, jump);
+            // Edge-detect the jump key so holding it down doesn't cause auto-jump on landing
+            bool jumpEdge = jump && !_prevJump;
+            _prevJump = jump;
+            player.Move(dir, jumpEdge);
             CheckPlatformCollisions();
             CheckQuestionBlockCollisions();
             HandleFallDamage();
