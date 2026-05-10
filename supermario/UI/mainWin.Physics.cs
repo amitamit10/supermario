@@ -12,44 +12,96 @@ namespace supermario
         // ══════════════════════════════════════════════════════════════════
         private void CheckPlatformCollisions()
         {
-            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+            Rectangle previousRect = new Rectangle(player.PreviousPosition.X, player.PreviousPosition.Y,
+                picboxplayer.Width, picboxplayer.Height);
+            Rectangle playerRect = new Rectangle(player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
             bool foundGround = false;
 
             foreach (var plat in platforms)
             {
-                var platRect = new Rectangle(plat.Position.X, plat.Position.Y,
+                if (plat.Type == "finish") continue;
+
+                Rectangle platRect = new Rectangle(plat.Position.X, plat.Position.Y,
                     plat.PictureBox.Width, plat.PictureBox.Height);
+
+                bool horizontallyOverlaps = playerRect.Right > platRect.Left && playerRect.Left < platRect.Right;
+                if (playerRect.Bottom == platRect.Top && horizontallyOverlaps)
+                {
+                    foundGround = true;
+                    continue;
+                }
+
                 if (!playerRect.IntersectsWith(platRect)) continue;
 
-                int overlapTop    = playerRect.Bottom - platRect.Top;
-                int overlapBottom = platRect.Bottom - playerRect.Top;
-                int overlapLeft   = playerRect.Right - platRect.Left;
-                int overlapRight  = platRect.Right - playerRect.Left;
-                int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
-
-                if (minOverlap == overlapTop && overlapTop < 20)
+                if (plat.Type == "ground")
                 {
-                    player.Position = new Point(player.Position.X, platRect.Top - picboxplayer.Height);
-                    player.IsGrounded = true;
+                    player.LandOn(platRect.Top, picboxplayer.Height);
                     foundGround = true;
-                    // Continue checking pipes – don't break early
+                    playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                        picboxplayer.Width, picboxplayer.Height);
+                    continue;
                 }
-                else if (plat.Type == "pipe")
+
+                bool crossedTop = previousRect.Bottom <= platRect.Top && player.VerticalVelocity >= 0;
+                bool crossedBottom = previousRect.Top >= platRect.Bottom && player.VerticalVelocity < 0;
+                bool crossedLeft = previousRect.Right <= platRect.Left && player.HorizontalVelocity > 0;
+                bool crossedRight = previousRect.Left >= platRect.Right && player.HorizontalVelocity < 0;
+
+                if (crossedTop)
                 {
-                    // Pipes block horizontal movement when the player approaches from the side
-                    bool feetBelowRim = player.Position.Y + picboxplayer.Height > platRect.Top + 10;
-                    if (feetBelowRim && overlapLeft > 0 && overlapLeft <= 22 && overlapLeft < overlapTop)
-                    {
-                        player.Position = new Point(platRect.Left - picboxplayer.Width, player.Position.Y);
-                    }
-                    else if (feetBelowRim && overlapRight > 0 && overlapRight <= 22 && overlapRight < overlapTop)
-                    {
-                        player.Position = new Point(platRect.Right, player.Position.Y);
-                    }
+                    player.LandOn(platRect.Top, picboxplayer.Height);
+                    foundGround = true;
                 }
+                else if (crossedBottom)
+                {
+                    player.HitCeiling(platRect.Bottom);
+                }
+                else if (crossedLeft)
+                {
+                    player.BlockHorizontal(platRect.Left - picboxplayer.Width);
+                }
+                else if (crossedRight)
+                {
+                    player.BlockHorizontal(platRect.Right);
+                }
+                else
+                {
+                    ResolveSmallestOverlap(playerRect, platRect, ref foundGround);
+                }
+
+                playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                    picboxplayer.Width, picboxplayer.Height);
             }
-            if (!foundGround) player.IsGrounded = false;
+
+            if (!foundGround) player.LeaveGround();
+        }
+
+        private void ResolveSmallestOverlap(Rectangle playerRect, Rectangle platRect, ref bool foundGround)
+        {
+            int overlapTop = playerRect.Bottom - platRect.Top;
+            int overlapBottom = platRect.Bottom - playerRect.Top;
+            int overlapLeft = playerRect.Right - platRect.Left;
+            int overlapRight = platRect.Right - playerRect.Left;
+            int minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
+
+            if (minOverlap == overlapTop && player.VerticalVelocity >= 0)
+            {
+                player.LandOn(platRect.Top, picboxplayer.Height);
+                foundGround = true;
+            }
+            else if (minOverlap == overlapBottom && player.VerticalVelocity < 0)
+            {
+                player.HitCeiling(platRect.Bottom);
+            }
+            else if (minOverlap == overlapLeft)
+            {
+                player.BlockHorizontal(platRect.Left - picboxplayer.Width);
+            }
+            else
+            {
+                player.BlockHorizontal(platRect.Right);
+            }
         }
 
         private void CheckQuestionBlockCollisions()
@@ -66,6 +118,7 @@ namespace supermario
                 if (!headRect.IntersectsWith(blockRect)) continue;
 
                 block.IsHit = true;
+                player.HitCeiling(blockRect.Bottom);
                 block.Visual.Invalidate();
 
                 if (block.PowerUpInside == PowerUpType.Coin)
@@ -170,28 +223,35 @@ namespace supermario
         // ══════════════════════════════════════════════════════════════════
         //  CAMERA
         // ══════════════════════════════════════════════════════════════════
-        private void UpdateCamera()
+        private bool UpdateCamera()
         {
+            bool cameraMoved = false;
             int screenX = player.Position.X - cameraX;
             if (screenX > SCROLL_THRESHOLD && player.Position.X > SCROLL_THRESHOLD)
             {
                 int newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
                 ScrollObjects(newCam - cameraX);
                 cameraX = newCam;
+                cameraMoved = true;
             }
             else if (screenX < 200 && cameraX > 0)
             {
                 int newCam = Math.Max(player.Position.X - 200, 0);
                 ScrollObjects(newCam - cameraX);
                 cameraX = newCam;
+                cameraMoved = true;
             }
             // Don't override the death-animation position that HandleDeathAnimation just set
             if (!isDying)
                 picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
+
+            return cameraMoved;
         }
 
         private void ScrollObjects(int scroll)
         {
+            if (scroll == 0) return;
+
             SuspendLayout();
             foreach (var p in platforms)
                 p.PictureBox.Left -= scroll;
@@ -229,7 +289,7 @@ namespace supermario
             _levelComplete = false;
             _lastHudHealth = -1; _lastHudLevel = -1; _lastHudSuper = false;
             _lastHudScore = -1; _lastHudCoins = -1;
-            player.Respawn(new Point(100, 405));
+            player.Respawn(GetPlayerStartPosition());
             player.IsGrounded = true; player.Health = 3;
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
@@ -239,6 +299,12 @@ namespace supermario
             Text = $"Super Mario – Level {currentLevelNumber}";
             UpdateHud();
             gameManager.StartGame(); gameTimer.Start();
+        }
+
+
+        private Point GetPlayerStartPosition()
+        {
+            return new Point(PLAYER_START_X, GROUND_TOP_Y - originalPlayerSize.Height);
         }
 
         private void ClearPlatforms()
