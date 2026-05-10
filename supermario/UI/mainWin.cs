@@ -330,7 +330,7 @@ namespace supermario
             // Edge-detect the jump key so holding it down doesn't cause auto-jump on landing
             bool jumpEdge = jump && !_prevJump;
             _prevJump = jump;
-            player.Move(dir, jumpEdge);
+            player.Move(dir, jumpEdge, jump);
             CheckPlatformCollisions();
             CheckQuestionBlockCollisions();
             HandleFallDamage();
