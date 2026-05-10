@@ -53,6 +53,7 @@
     <Compile Include="Core\GameManager.cs" />
     <Compile Include="Core\Player.cs" />
     <Compile Include="Core\GameData.cs" />
+    <Compile Include="Core\TextureLoader.cs" />
 
     <!-- Enemies -->
     <Compile Include="Enemies\Goomba.cs" />
@@ -117,6 +118,31 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resources\questionBlock.png" />
+    <Content Include="..\assets\textures\sprite_sheets\blocks_sheet.png">
+      <Link>assets\textures\sprite_sheets\blocks_sheet.png</Link>
+      <TargetPath>assets\textures\sprite_sheets\blocks_sheet.png</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\assets\textures\sprite_sheets\enemies_sheet.png">
+      <Link>assets\textures\sprite_sheets\enemies_sheet.png</Link>
+      <TargetPath>assets\textures\sprite_sheets\enemies_sheet.png</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\assets\textures\sprite_sheets\items_sheet.png">
+      <Link>assets\textures\sprite_sheets\items_sheet.png</Link>
+      <TargetPath>assets\textures\sprite_sheets\items_sheet.png</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\assets\textures\sprite_sheets\player_sheet.png">
+      <Link>assets\textures\sprite_sheets\player_sheet.png</Link>
+      <TargetPath>assets\textures\sprite_sheets\player_sheet.png</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\assets\textures\sprite_sheets\world_bg.png">
+      <Link>assets\textures\sprite_sheets\world_bg.png</Link>
+      <TargetPath>assets\textures\sprite_sheets\world_bg.png</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
