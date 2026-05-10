@@ -42,6 +42,7 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
             for (int i = goombas.Count - 1; i >= 0; i--)
             {
                 var goomba = goombas[i];
@@ -51,6 +52,14 @@ namespace supermario
                     Controls.Remove(goomba.Visual);
                     goomba.Visual.Dispose();
                     goombas.RemoveAt(i);
+                    continue;
+                }
+
+                // Squished enemies don't need gravity or platform checks; handle and skip early
+                if (goomba.IsSquished)
+                {
+                    if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
+                    goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
                     continue;
                 }
 
@@ -94,13 +103,6 @@ namespace supermario
                 }
                 goomba.IsGrounded = gGrounded;
 
-                if (goomba.IsSquished)
-                {
-                    if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
-                    goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
-                    continue;
-                }
-
                 goomba.Update();
                 goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
 
@@ -127,6 +129,7 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
+            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -163,6 +166,7 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
             for (int i = koopas.Count - 1; i >= 0; i--)
             {
                 var k = koopas[i];
@@ -172,6 +176,14 @@ namespace supermario
                     Controls.Remove(k.Visual);
                     k.Visual.Dispose();
                     koopas.RemoveAt(i);
+                    continue;
+                }
+
+                // Shell state: no gravity needed, just tick timer and skip physics
+                if (k.IsShell)
+                {
+                    if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
+                    k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
                     continue;
                 }
 
@@ -208,14 +220,6 @@ namespace supermario
                 }
                 k.IsGrounded = kGrounded;
 
-                // Shell timer – remove after duration
-                if (k.IsShell)
-                {
-                    if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
-                    k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
-                    continue;
-                }
-
                 k.Update();
                 k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
 
@@ -241,6 +245,7 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
+            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -276,6 +281,7 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
             for (int i = fastEnemies.Count - 1; i >= 0; i--)
             {
                 var fe = fastEnemies[i];
@@ -285,6 +291,13 @@ namespace supermario
                     Controls.Remove(fe.Visual);
                     fe.Visual.Dispose();
                     fastEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (fe.IsSquished)
+                {
+                    if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
+                    fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
                     continue;
                 }
 
@@ -321,13 +334,6 @@ namespace supermario
                 }
                 fe.IsGrounded = feGrounded;
 
-                if (fe.IsSquished)
-                {
-                    if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
-                    fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
-                    continue;
-                }
-
                 fe.Update();
                 fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
 
@@ -353,6 +359,7 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
+            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -388,6 +395,7 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
             for (int i = jumpingEnemies.Count - 1; i >= 0; i--)
             {
                 var je = jumpingEnemies[i];
@@ -397,6 +405,13 @@ namespace supermario
                     Controls.Remove(je.Visual);
                     je.Visual.Dispose();
                     jumpingEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (je.IsSquished)
+                {
+                    if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
+                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
                     continue;
                 }
 
@@ -432,13 +447,6 @@ namespace supermario
                 }
                 je.IsGrounded = jeGrounded;
 
-                if (je.IsSquished)
-                {
-                    if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
-                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
-                    continue;
-                }
-
                 je.Update();
                 je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
 
@@ -464,6 +472,7 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
+            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -499,6 +508,7 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
             for (int i = patrolEnemies.Count - 1; i >= 0; i--)
             {
                 var pe = patrolEnemies[i];
@@ -508,6 +518,13 @@ namespace supermario
                     Controls.Remove(pe.Visual);
                     pe.Visual.Dispose();
                     patrolEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (pe.IsSquished)
+                {
+                    if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
+                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
                     continue;
                 }
 
@@ -545,7 +562,7 @@ namespace supermario
                 pe.IsGrounded = peGrounded;
 
                 // Edge detection – skip if wall collision already reversed direction this frame
-                if (peGrounded && !pe.IsSquished && !peWallHit)
+                if (peGrounded && !peWallHit)
                 {
                     int frontX = pe.Direction > 0 ? pe.Position.X + pe.Visual.Width : pe.Position.X;
                     int probeY  = pe.Position.Y + pe.Visual.Height + 4;
@@ -559,13 +576,6 @@ namespace supermario
                         if (probe.IntersectsWith(pr)) { groundAhead = true; break; }
                     }
                     if (!groundAhead) pe.ReverseDirection();
-                }
-
-                if (pe.IsSquished)
-                {
-                    if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
-                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
-                    continue;
                 }
 
                 pe.Update();
@@ -593,6 +603,7 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
+            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -628,6 +639,8 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
+            SuspendLayout();
+
             for (int i = flyingEnemies.Count - 1; i >= 0; i--)
             {
                 var fl = flyingEnemies[i];
@@ -637,6 +650,14 @@ namespace supermario
                     Controls.Remove(fl.Visual);
                     fl.Visual.Dispose();
                     flyingEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                // Squished enemies need no physics; tick timer and skip
+                if (fl.IsSquished)
+                {
+                    if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
+                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
                     continue;
                 }
 
@@ -680,13 +701,6 @@ namespace supermario
                     }
                     fl.IsGrounded = flGrounded;
 
-                    if (fl.IsSquished)
-                    {
-                        if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
-                        fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
-                        continue;
-                    }
-
                     fl.Update();
                     fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
                 }
@@ -714,6 +728,7 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
+            ResumeLayout(false);
         }
     }
 }

@@ -54,7 +54,10 @@ namespace supermario
 
         private void CheckQuestionBlockCollisions()
         {
-            var headRect = new Rectangle(player.Position.X, player.Position.Y, picboxplayer.Width, 30);
+            // Only trigger when jumping upward; walking on a nearby platform must not hit blocks
+            if (player.VerticalVelocity >= 0) return;
+
+            var headRect = new Rectangle(player.Position.X, player.Position.Y, picboxplayer.Width, 20);
             foreach (var block in questionBlocks)
             {
                 if (block.IsHit) continue;
@@ -143,12 +146,16 @@ namespace supermario
         private void HandleDeathAnimation(long stepMs)
         {
             deathTimer += stepMs;
+            // phase 1: jump up 100 px from death position
+            // phase 2: fall from the top of the jump (deathY - 100) downward 400 px
+            // Both phases share the same reference so there is no snap at the transition.
+            int deathTopY = (int)(player.Position.Y - 100);
             if (deathTimer < 500)
                 picboxplayer.Location = new Point(picboxplayer.Location.X,
                     (int)(player.Position.Y - (deathTimer / 500f) * 100));
             else if (deathTimer < DEATH_ANIMATION_DURATION)
                 picboxplayer.Location = new Point(picboxplayer.Location.X,
-                    (int)(player.Position.Y + ((deathTimer - 500) / (DEATH_ANIMATION_DURATION - 500)) * 300));
+                    (int)(deathTopY + ((deathTimer - 500) / (DEATH_ANIMATION_DURATION - 500)) * 400));
             else
             {
                 isDying = false;
