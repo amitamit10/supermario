@@ -41,21 +41,21 @@ namespace supermario
         private long _accumulatedMs = 0;
         private const long FIXED_STEP_MS = 16;
 
-        // ── Question-block animation ───────────────────────────────────────────
+        // ── Question-block animation ─────────────────────────────────────
         private int questionAnimFrame = 0;
         private int _animStepCount = 0;
         private List<PictureBox> animatedBlocks = new List<PictureBox>();
 
-        // ── Coin spin animation ──────────────────────────────────────────────
+        // ── Coin spin animation ─────────────────────────────────────────
         private int coinAnimFrame = 0;
 
-        // ── Player direction / animation ─────────────────────────────────────
+        // ── Player direction / animation ───────────────────────────────
         private bool facingRight = true;
         private int walkFrame = 0;
         private int walkFrameTimer = 0;
         private bool isWalking = false;
 
-        // ── Background cloud / scenery ────────────────────────────────────────
+        // ── Background cloud / scenery ────────────────────────────────
         private static readonly (int wx, int y, int w)[] CLOUDS = {
             (200, 55, 130), (550, 35, 90), (900, 65, 160), (1200, 45, 110),
             (1500, 70, 140), (1800, 40, 100), (2100, 60, 130), (2400, 50, 90),
@@ -85,12 +85,12 @@ namespace supermario
         private bool canTakeFallDamage = true;
         private bool _levelComplete = false;
 
-        // ── Invincibility frames ─────────────────────────────────────────────
+        // ── Invincibility frames ──────────────────────────────────────
         private bool isInvincible = false;
         private float invincibleTimer = 0f;
         private const float INVINCIBLE_DURATION = 1500f;
 
-        // ── HUD ──────────────────────────────────────────────────────────────
+        // ── HUD ───────────────────────────────────────────────────────
         private Label _hudLabel;
         private Label _scoreLabel;
         private readonly Label[] _heartLabels = new Label[3];
@@ -106,9 +106,9 @@ namespace supermario
             InitializeGame();
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         //  BACKGROUND PAINTING
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         protected override void OnPaintBackground(PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -147,8 +147,9 @@ namespace supermario
 
         private void DrawHills(Graphics g, int W, int H, int offset)
         {
-            foreach (var (wx, hy, r) in HILLS)
+            foreach (var hill in HILLS)
             {
+                int wx = hill.wx; int hy = hill.y; int r = hill.r;
                 int sx = wx - offset;
                 for (int rep = -1; rep <= 1; rep++)
                 {
@@ -164,8 +165,9 @@ namespace supermario
 
         private void DrawClouds(Graphics g, int W, int H, int offset)
         {
-            foreach (var (wx, cy, cw) in CLOUDS)
+            foreach (var cloud in CLOUDS)
             {
+                int wx = cloud.wx; int cy = cloud.y; int cw = cloud.w;
                 int sx = wx - offset;
                 for (int rep = -1; rep <= 1; rep++)
                 {
@@ -186,9 +188,9 @@ namespace supermario
             }
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         //  GAME INIT
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         private void InitializeGame()
         {
             KeyPreview = true;
@@ -236,9 +238,9 @@ namespace supermario
 
             Text = $"Super Mario – Level {currentLevelNumber}";
         }
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         //  GAME LOOP
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         private void GameLoop(object sender, EventArgs e)
         {
             if (!gameManager.IsGameRunning) return;
@@ -323,9 +325,9 @@ namespace supermario
             picboxplayer.Invalidate();
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         //  INPUT
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         private void MainWin_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.D || e.KeyCode == Keys.Right) moveRight = true;
@@ -353,9 +355,9 @@ namespace supermario
             if (e.KeyCode == Keys.W || e.KeyCode == Keys.Up || e.KeyCode == Keys.Space) jump = false;
         }
 
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         //  LOAD EVENT
-        // ══════════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════
         private void mainWin_Load(object sender, EventArgs e)
         {
             Text = $"Super Mario – Level {currentLevelNumber}";
