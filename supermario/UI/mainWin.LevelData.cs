@@ -180,14 +180,18 @@ namespace supermario
             new PlatformData(1340, 353, 80, 160),  // Pipe 3: 4 blocks tall
         };
         private static readonly QBlockDef[] LEVEL_1_QBLOCKS = {
-            new QBlockDef(460, 353, PowerUpType.Coin),     // Row of 3 question blocks
-            new QBlockDef(510, 353, PowerUpType.Coin),
-            new QBlockDef(560, 353, PowerUpType.Mushroom), // Third block = mushroom!
-            new QBlockDef(970, 313, PowerUpType.Mushroom), // Above raised platform
-            new QBlockDef(1500, 273, PowerUpType.Coin),    // Elevated run triple row
-            new QBlockDef(1550, 273, PowerUpType.Coin),
-            new QBlockDef(1600, 273, PowerUpType.Coin),
-            new QBlockDef(2120, 333, PowerUpType.Mushroom),// Challenge reward
+            // Row of 3 above Y=433 platform (440-580): block_Y = 433-158 = 275
+            new QBlockDef(460, 275, PowerUpType.Coin),
+            new QBlockDef(510, 275, PowerUpType.Coin),
+            new QBlockDef(560, 275, PowerUpType.Mushroom),
+            // Above Y=393 raised platform (850-1050): block_Y = 393-158 = 235
+            new QBlockDef(970, 235, PowerUpType.Mushroom),
+            // Row of 3 above Y=393 elevated run (1440-1700): block_Y = 235
+            new QBlockDef(1500, 235, PowerUpType.Coin),
+            new QBlockDef(1550, 235, PowerUpType.Coin),
+            new QBlockDef(1600, 235, PowerUpType.Coin),
+            // Above Y=373 challenge platform (2070-2200): block_Y = 373-158 = 215
+            new QBlockDef(2120, 215, PowerUpType.Mushroom),
         };
         // Goomba h=52: ground Y=461; platform@Y=393 → Y=341
         private static readonly EnemyDef[] LEVEL_1_GOOMBAS = {
@@ -248,14 +252,21 @@ namespace supermario
             new PlatformData(2100, 353, 80, 160), // Pipe 3: 4 blocks
         };
         private static readonly QBlockDef[] LEVEL_2_QBLOCKS = {
-            new QBlockDef(290,  313, PowerUpType.Mushroom), // Hard early reward
-            new QBlockDef(760,  293, PowerUpType.Coin),
-            new QBlockDef(1110, 313, PowerUpType.Coin),
-            new QBlockDef(1420, 313, PowerUpType.Mushroom),
-            new QBlockDef(1610, 293, PowerUpType.Coin),
-            new QBlockDef(1660, 293, PowerUpType.Coin),
-            new QBlockDef(2165, 273, PowerUpType.Mushroom),
-            new QBlockDef(2530, 373, PowerUpType.Coin),
+            // Above Y=433 platform (200-340): block_Y = 433-158 = 275
+            new QBlockDef(290,  275, PowerUpType.Mushroom),
+            // Above Y=373 platform (700-860): block_Y = 373-158 = 215
+            new QBlockDef(760,  215, PowerUpType.Coin),
+            // Above Y=393 platform (1070-1210): block_Y = 393-158 = 235
+            new QBlockDef(1110, 235, PowerUpType.Coin),
+            // Above Y=413 platform (1370-1490): block_Y = 413-158 = 255
+            new QBlockDef(1420, 255, PowerUpType.Mushroom),
+            // Row above Y=353 deep traverse (1560-1760): block_Y = 353-158 = 195
+            new QBlockDef(1610, 195, PowerUpType.Coin),
+            new QBlockDef(1660, 195, PowerUpType.Coin),
+            // Above pipe top at Y=353 (2100-2180): block_Y = 195
+            new QBlockDef(2165, 195, PowerUpType.Mushroom),
+            // Above Y=433 platform (2540-2620), accessible from nearby: block_Y = 275
+            new QBlockDef(2530, 275, PowerUpType.Coin),
         };
         // Goomba: ground Y=461; Y=373→321, Y=353→301, Y=433→401
         private static readonly EnemyDef[] LEVEL_2_GOOMBAS = {
@@ -314,14 +325,20 @@ namespace supermario
             new PlatformData(800, 393, 80, 120), // Pipe 2: 3 blocks (step up)
         };
         private static readonly QBlockDef[] LEVEL_3_QBLOCKS = {
-            new QBlockDef(240,  313, PowerUpType.Coin),
-            new QBlockDef(1080, 273, PowerUpType.Mushroom),
-            new QBlockDef(1440, 233, PowerUpType.Coin),
-            new QBlockDef(1490, 233, PowerUpType.Coin),
-            new QBlockDef(1640, 273, PowerUpType.Mushroom),
-            new QBlockDef(2000, 293, PowerUpType.Coin),
-            new QBlockDef(2310, 233, PowerUpType.Coin),
-            new QBlockDef(2360, 233, PowerUpType.Mushroom),
+            // Above Y=373 platform (160-280): block_Y = 373-158 = 215
+            new QBlockDef(240,  215, PowerUpType.Coin),
+            // Above Y=353 landing (990-1130): block_Y = 353-158 = 195
+            new QBlockDef(1080, 195, PowerUpType.Mushroom),
+            // Row above Y=273 high platform (1390-1490): block_Y = 273-158 = 115
+            new QBlockDef(1440, 115, PowerUpType.Coin),
+            new QBlockDef(1490, 115, PowerUpType.Coin),
+            // Above Y=313 sky traverse (1560-1680): block_Y = 313-158 = 155
+            new QBlockDef(1640, 155, PowerUpType.Mushroom),
+            // Between platforms over Y=393 zone, reachable from ground: block_Y = 235
+            new QBlockDef(2000, 235, PowerUpType.Coin),
+            // Row above Y=273 reward platform (2270-2410): block_Y = 115
+            new QBlockDef(2310, 115, PowerUpType.Coin),
+            new QBlockDef(2360, 115, PowerUpType.Mushroom),
         };
         // Goomba: Y=373→321, Y=353→301, Y=313→261
         private static readonly EnemyDef[] LEVEL_3_GOOMBAS = {
