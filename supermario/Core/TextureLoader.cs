@@ -24,10 +24,19 @@ namespace supermario
         {
             if (_loaded) return;
 
-            string sheetDirectory = FindSheetDirectory();
-            foreach (var sheet in SheetFiles)
+            string sheetDirectory;
+            try { sheetDirectory = FindSheetDirectory(); }
+            catch { _loaded = true; return; } // no sheet directory – use procedural fallback
+
+            foreach (var kvp in SheetFiles)
             {
-                Sheets[sheet.Key] = Image.FromFile(Path.Combine(sheetDirectory, sheet.Value));
+                string path = Path.Combine(sheetDirectory, kvp.Value);
+                try
+                {
+                    if (File.Exists(path))
+                        Sheets[kvp.Key] = Image.FromFile(path);
+                }
+                catch { /* skip missing/corrupt sheet; fall back to procedural drawing */ }
             }
 
             _loaded = true;

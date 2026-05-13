@@ -70,19 +70,29 @@ namespace supermario
 
         private void ResolveSmallestOverlap(Rectangle playerRect, Rectangle platRect, ref bool foundGround)
         {
-            int overlapTop = playerRect.Bottom - platRect.Top;
-            int overlapBottom = platRect.Bottom - playerRect.Top;
-            int overlapLeft = playerRect.Right - platRect.Left;
-            int overlapRight = platRect.Right - playerRect.Left;
-            int minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
+            int overlapTop    = playerRect.Bottom - platRect.Top;
+            int overlapBottom = platRect.Bottom   - playerRect.Top;
+            int overlapLeft   = playerRect.Right  - platRect.Left;
+            int overlapRight  = platRect.Right    - playerRect.Left;
+            int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
             if (minOverlap == overlapTop && player.VerticalVelocity >= 0)
             {
+                // Player's bottom grazed the platform surface – land on top.
                 player.LandOn(platRect.Top, picboxplayer.Height);
                 foundGround = true;
             }
-            else if (minOverlap == overlapBottom && player.VerticalVelocity < 0)
+            else if (minOverlap == overlapBottom)
             {
+                // Player's head is inside the platform underside – ceiling bounce
+                // regardless of vertical velocity (covers the moving-upward edge case
+                // where crossedBottom was not caught by the directional checks).
+                player.HitCeiling(platRect.Bottom);
+            }
+            else if (minOverlap == overlapTop)
+            {
+                // Top is smallest overlap but player is moving upward (rare corner);
+                // treat as a ceiling to prevent the player clipping through sideways.
                 player.HitCeiling(platRect.Bottom);
             }
             else if (minOverlap == overlapLeft)
