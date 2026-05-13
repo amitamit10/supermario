@@ -326,7 +326,6 @@ namespace supermario
             _prevJump = jump;
             player.Move(dir, jumpEdge, jump);
             CheckPlatformCollisions();
-            CheckQuestionBlockCollisions();
             HandleFallDamage();
             UpdateGoombas();
             UpdateKoopas();

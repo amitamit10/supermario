@@ -74,7 +74,56 @@ namespace supermario
                     picboxplayer.Width, picboxplayer.Height);
             }
 
+            // ── Question blocks: solid physical blocks + bottom-only activation ─────
+            foreach (var block in questionBlocks)
+            {
+                Rectangle blockRect = new Rectangle(block.Position.X, block.Position.Y,
+                    block.Visual.Width, block.Visual.Height);
+
+                bool hOverlap = playerRect.Right > blockRect.Left && playerRect.Left < blockRect.Right;
+                if (playerRect.Bottom == blockRect.Top && hOverlap) { foundGround = true; continue; }
+
+                if (!playerRect.IntersectsWith(blockRect)) continue;
+
+                bool qCrossedTop    = previousRect.Bottom <= blockRect.Top    && player.VerticalVelocity >= 0;
+                bool qCrossedBottom = previousRect.Top    >= blockRect.Bottom  && player.VerticalVelocity < 0;
+                bool qCrossedLeft   = previousRect.Right  <= blockRect.Left    && player.HorizontalVelocity > 0;
+                bool qCrossedRight  = previousRect.Left   >= blockRect.Right   && player.HorizontalVelocity < 0;
+
+                if      (qCrossedTop)    { player.LandOn(blockRect.Top, picboxplayer.Height); foundGround = true; }
+                else if (qCrossedBottom) { player.HitCeiling(blockRect.Bottom); if (!block.IsHit) ActivateQuestionBlock(block); }
+                else if (qCrossedLeft)   { player.BlockHorizontal(blockRect.Left - picboxplayer.Width); }
+                else if (qCrossedRight)  { player.BlockHorizontal(blockRect.Right); }
+                else                     { ResolveQBlockOverlap(playerRect, blockRect, block, ref foundGround); }
+
+                playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                    picboxplayer.Width, picboxplayer.Height);
+            }
+
             if (!foundGround) player.LeaveGround();
+        }
+
+        private void ResolveQBlockOverlap(Rectangle playerRect, Rectangle blockRect, QuestionBlock block, ref bool foundGround)
+        {
+            int overlapTop    = playerRect.Bottom - blockRect.Top;
+            int overlapBottom = blockRect.Bottom  - playerRect.Top;
+            int overlapLeft   = playerRect.Right  - blockRect.Left;
+            int overlapRight  = blockRect.Right   - playerRect.Left;
+            int minO = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
+
+            if      (minO == overlapTop && player.VerticalVelocity >= 0) { player.LandOn(blockRect.Top, picboxplayer.Height); foundGround = true; }
+            else if (minO == overlapBottom) { player.HitCeiling(blockRect.Bottom); if (!block.IsHit && player.VerticalVelocity < 0) ActivateQuestionBlock(block); }
+            else if (minO == overlapTop)    { player.HitCeiling(blockRect.Bottom); }  // upward corner case
+            else if (minO == overlapLeft)   { player.BlockHorizontal(blockRect.Left - picboxplayer.Width); }
+            else                            { player.BlockHorizontal(blockRect.Right); }
+        }
+
+        private void ActivateQuestionBlock(QuestionBlock block)
+        {
+            block.IsHit = true;
+            block.Visual.Invalidate();
+            if (block.PowerUpInside == PowerUpType.Coin) { coinCount++; player.Score += 50; }
+            else SpawnMushroom(block.Position);
         }
 
         private void ResolveSmallestOverlap(Rectangle playerRect, Rectangle platRect, ref bool foundGround)
@@ -109,37 +158,6 @@ namespace supermario
             else
             {
                 player.BlockHorizontal(platRect.Right);
-            }
-        }
-
-        private void CheckQuestionBlockCollisions()
-        {
-            // Only trigger when jumping upward; walking on a nearby platform must not hit blocks
-            if (player.VerticalVelocity >= 0) return;
-
-            var headRect = new Rectangle(player.Position.X, player.Position.Y, picboxplayer.Width, 20);
-            foreach (var block in questionBlocks)
-            {
-                if (block.IsHit) continue;
-                var blockRect = new Rectangle(block.Position.X, block.Position.Y,
-                    block.Visual.Width, block.Visual.Height);
-                if (!headRect.IntersectsWith(blockRect)) continue;
-
-                block.IsHit = true;
-                player.HitCeiling(blockRect.Bottom);
-                block.Visual.Invalidate();
-
-                if (block.PowerUpInside == PowerUpType.Coin)
-                {
-                    // Instant coin reward
-                    coinCount++;
-                    player.Score += 50;
-                }
-                else
-                {
-                    // Spawn a moving mushroom collectible
-                    SpawnMushroom(block.Position);
-                }
             }
         }
 
