@@ -23,14 +23,18 @@ namespace supermario
         public static void LoadAll()
         {
             if (_loaded) return;
+            _loaded = true;
 
-            string sheetDirectory = FindSheetDirectory();
+            string sheetDirectory;
+            try { sheetDirectory = FindSheetDirectory(); }
+            catch { return; }
+
             foreach (var sheet in SheetFiles)
             {
-                Sheets[sheet.Key] = Image.FromFile(Path.Combine(sheetDirectory, sheet.Value));
+                string path = Path.Combine(sheetDirectory, sheet.Value);
+                try { Sheets[sheet.Key] = Image.FromFile(path); }
+                catch { }
             }
-
-            _loaded = true;
         }
 
         public static bool TryGetSheet(string key, out Image sheet)

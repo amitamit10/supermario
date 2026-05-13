@@ -34,6 +34,15 @@ namespace supermario
 
                 if (!playerRect.IntersectsWith(platRect)) continue;
 
+                if (plat.Type == "ground")
+                {
+                    player.LandOn(platRect.Top, picboxplayer.Height);
+                    foundGround = true;
+                    playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                        picboxplayer.Width, picboxplayer.Height);
+                    continue;
+                }
+
                 bool crossedTop = previousRect.Bottom <= platRect.Top && player.VerticalVelocity >= 0;
                 bool crossedBottom = previousRect.Top >= platRect.Bottom && player.VerticalVelocity < 0;
                 bool crossedLeft = previousRect.Right <= platRect.Left && player.HorizontalVelocity > 0;
@@ -70,19 +79,27 @@ namespace supermario
 
         private void ResolveSmallestOverlap(Rectangle playerRect, Rectangle platRect, ref bool foundGround)
         {
-            int overlapTop = playerRect.Bottom - platRect.Top;
-            int overlapBottom = platRect.Bottom - playerRect.Top;
-            int overlapLeft = playerRect.Right - platRect.Left;
-            int overlapRight = platRect.Right - playerRect.Left;
-            int minOverlap = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
+            int overlapTop    = playerRect.Bottom - platRect.Top;
+            int overlapBottom = platRect.Bottom   - playerRect.Top;
+            int overlapLeft   = playerRect.Right  - platRect.Left;
+            int overlapRight  = platRect.Right    - playerRect.Left;
+            int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
             if (minOverlap == overlapTop && player.VerticalVelocity >= 0)
             {
                 player.LandOn(platRect.Top, picboxplayer.Height);
                 foundGround = true;
             }
-            else if (minOverlap == overlapBottom && player.VerticalVelocity < 0)
+            else if (minOverlap == overlapBottom)
             {
+                // Ceiling hit regardless of velocity — covers the edge case where the
+                // directional crossed-bottom check was not triggered.
+                player.HitCeiling(platRect.Bottom);
+            }
+            else if (minOverlap == overlapTop)
+            {
+                // Top is smallest overlap but player is moving upward; treat as ceiling
+                // to prevent clipping through the platform sideways.
                 player.HitCeiling(platRect.Bottom);
             }
             else if (minOverlap == overlapLeft)
@@ -214,28 +231,41 @@ namespace supermario
         // ══════════════════════════════════════════════════════════════════
         //  CAMERA
         // ══════════════════════════════════════════════════════════════════
-        private void UpdateCamera()
+        private bool UpdateCamera()
         {
+            int newCam = cameraX;
             int screenX = player.Position.X - cameraX;
+
             if (screenX > SCROLL_THRESHOLD && player.Position.X > SCROLL_THRESHOLD)
-            {
-                int newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
-                ScrollObjects(newCam - cameraX);
-                cameraX = newCam;
-            }
+                newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
             else if (screenX < 200 && cameraX > 0)
+                newCam = Math.Max(player.Position.X - 200, 0);
+
+            bool cameraMoved = newCam != cameraX;
+            if (cameraMoved)
             {
-                int newCam = Math.Max(player.Position.X - 200, 0);
                 ScrollObjects(newCam - cameraX);
                 cameraX = newCam;
             }
-            // Don't override the death-animation position that HandleDeathAnimation just set
-            if (!isDying)
-                picboxplayer.Location = new Point(player.Position.X - cameraX, player.Position.Y);
+
+            UpdatePlayerScreenLocation();
+            return cameraMoved;
+        }
+
+        private void UpdatePlayerScreenLocation()
+        {
+            // Don't override the death-animation position that HandleDeathAnimation just set.
+            if (isDying) return;
+
+            Point screenLocation = new Point(player.Position.X - cameraX, player.Position.Y);
+            if (picboxplayer.Location != screenLocation)
+                picboxplayer.Location = screenLocation;
         }
 
         private void ScrollObjects(int scroll)
         {
+            if (scroll == 0) return;
+
             SuspendLayout();
             foreach (var p in platforms)
                 p.PictureBox.Left -= scroll;
@@ -273,7 +303,7 @@ namespace supermario
             _levelComplete = false;
             _lastHudHealth = -1; _lastHudLevel = -1; _lastHudSuper = false;
             _lastHudScore = -1; _lastHudCoins = -1;
-            player.Respawn(new Point(100, 405));
+            player.Respawn(GetPlayerStartPosition());
             player.IsGrounded = true; player.Health = 3;
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
@@ -283,6 +313,11 @@ namespace supermario
             Text = $"Super Mario – Level {currentLevelNumber}";
             UpdateHud();
             gameManager.StartGame(); gameTimer.Start();
+        }
+
+        private Point GetPlayerStartPosition()
+        {
+            return new Point(PLAYER_START_X, GROUND_TOP_Y - originalPlayerSize.Height);
         }
 
         private void ClearPlatforms()
