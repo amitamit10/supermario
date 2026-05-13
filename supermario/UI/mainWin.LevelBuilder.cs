@@ -36,19 +36,16 @@ namespace supermario
 
         private void CreateBrickGround()
         {
-            for (int x = 0; x < 3000; x += 40)
+            var ground = new PictureBox
             {
-                var brick = new PictureBox
-                {
-                    Size = new Size(40, 40),
-                    Location = new Point(x, 513),
-                    BackColor = Color.FromArgb(185, 100, 40),
-                };
-                brick.Paint += DrawGroundBrick;
-                Controls.Add(brick);
-                brick.SendToBack();
-                platforms.Add(new GameObjectS(brick, brick.Location, "ground"));
-            }
+                Size = new Size(LEVEL_PIXEL_WIDTH, 40),
+                Location = new Point(0, GROUND_TOP_Y),
+                BackColor = Color.FromArgb(185, 100, 40),
+            };
+            ground.Paint += DrawGroundBrick;
+            Controls.Add(ground);
+            ground.SendToBack();
+            platforms.Add(new GameObjectS(ground, ground.Location, "ground"));
         }
 
         private static void DrawGroundBrick(object sender, PaintEventArgs e)
@@ -61,7 +58,7 @@ namespace supermario
 
             if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
             {
-                g.DrawFrame(blocksSheet, 3, 64, 64, new Rectangle(0, 0, w, h));
+                g.DrawTiledFrame(blocksSheet, 3, 64, 64, new Rectangle(0, 0, w, h), 40, 40);
                 return;
             }
 
@@ -69,10 +66,12 @@ namespace supermario
                 g.FillRectangle(fill, 0, 0, w, h);
             using (var mortar = new Pen(Color.FromArgb(120, 60, 15), 2f))
             {
+                for (int x = 0; x < w; x += 40)
+                {
+                    g.DrawLine(mortar, x, 0, x, h);
+                    g.DrawLine(mortar, x + 20, h / 2, x + 20, h);
+                }
                 g.DrawLine(mortar, 0, h / 2, w, h / 2);
-                g.DrawLine(mortar, w / 2, 0, w / 2, h / 2);
-                g.DrawLine(mortar, w / 4, h / 2, w / 4, h);
-                g.DrawLine(mortar, 3 * w / 4, h / 2, 3 * w / 4, h);
             }
             using (var hi1 = new SolidBrush(Color.FromArgb(70, 255, 210, 150)))
                 g.FillRectangle(hi1, 0, 0, w, 3);
