@@ -299,7 +299,7 @@ namespace supermario
             currentLevel = allLevels[currentLevelNumber - 1];
             gameManager.ResetGame();
             cameraX = 0; isDying = false; isInvincible = false; invincibleTimer = 0f;
-            wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false;
+            wasGroundedLastFrame = true; canTakeFallDamage = true; isPlayerSuper = false; facingRight = true;
             _levelComplete = false;
             _lastHudHealth = -1; _lastHudLevel = -1; _lastHudSuper = false;
             _lastHudScore = -1; _lastHudCoins = -1;
