@@ -55,6 +55,14 @@ namespace supermario
                     continue;
                 }
 
+                if (goomba.Position.Y > 620)
+                {
+                    Controls.Remove(goomba.Visual);
+                    goomba.Visual.Dispose();
+                    goombas.RemoveAt(i);
+                    continue;
+                }
+
                 // Squished enemies don't need gravity or platform checks; handle and skip early
                 if (goomba.IsSquished)
                 {
@@ -67,7 +75,7 @@ namespace supermario
                 {
                     goomba.VerticalVelocity += 0.6f;
                     if (goomba.VerticalVelocity > 15f) goomba.VerticalVelocity = 15f;
-                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)goomba.VerticalVelocity);
+                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)Math.Round(goomba.VerticalVelocity));
                 }
 
                 bool gGrounded = false;
@@ -179,6 +187,14 @@ namespace supermario
                     continue;
                 }
 
+                if (k.Position.Y > 620)
+                {
+                    Controls.Remove(k.Visual);
+                    k.Visual.Dispose();
+                    koopas.RemoveAt(i);
+                    continue;
+                }
+
                 // Shell state: no gravity needed, just tick timer and skip physics
                 if (k.IsShell)
                 {
@@ -192,7 +208,7 @@ namespace supermario
                 {
                     k.VerticalVelocity += 0.6f;
                     if (k.VerticalVelocity > 15f) k.VerticalVelocity = 15f;
-                    k.Position = new Point(k.Position.X, k.Position.Y + (int)k.VerticalVelocity);
+                    k.Position = new Point(k.Position.X, k.Position.Y + (int)Math.Round(k.VerticalVelocity));
                 }
 
                 // Platform collision
@@ -294,6 +310,14 @@ namespace supermario
                     continue;
                 }
 
+                if (fe.Position.Y > 620)
+                {
+                    Controls.Remove(fe.Visual);
+                    fe.Visual.Dispose();
+                    fastEnemies.RemoveAt(i);
+                    continue;
+                }
+
                 if (fe.IsSquished)
                 {
                     if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
@@ -306,7 +330,7 @@ namespace supermario
                 {
                     fe.VerticalVelocity += 0.6f;
                     if (fe.VerticalVelocity > 15f) fe.VerticalVelocity = 15f;
-                    fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)fe.VerticalVelocity);
+                    fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)Math.Round(fe.VerticalVelocity));
                 }
 
                 // Platform collision
@@ -408,6 +432,14 @@ namespace supermario
                     continue;
                 }
 
+                if (je.Position.Y > 620)
+                {
+                    Controls.Remove(je.Visual);
+                    je.Visual.Dispose();
+                    jumpingEnemies.RemoveAt(i);
+                    continue;
+                }
+
                 if (je.IsSquished)
                 {
                     if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
@@ -420,7 +452,7 @@ namespace supermario
                 {
                     je.VerticalVelocity += 0.6f;
                     if (je.VerticalVelocity > 15f) je.VerticalVelocity = 15f;
-                    je.Position = new Point(je.Position.X, je.Position.Y + (int)je.VerticalVelocity);
+                    je.Position = new Point(je.Position.X, je.Position.Y + (int)Math.Round(je.VerticalVelocity));
                 }
 
                 bool jeGrounded = false;
@@ -521,6 +553,14 @@ namespace supermario
                     continue;
                 }
 
+                if (pe.Position.Y > 620)
+                {
+                    Controls.Remove(pe.Visual);
+                    pe.Visual.Dispose();
+                    patrolEnemies.RemoveAt(i);
+                    continue;
+                }
+
                 if (pe.IsSquished)
                 {
                     if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
@@ -533,7 +573,7 @@ namespace supermario
                 {
                     pe.VerticalVelocity += 0.6f;
                     if (pe.VerticalVelocity > 15f) pe.VerticalVelocity = 15f;
-                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)pe.VerticalVelocity);
+                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)Math.Round(pe.VerticalVelocity));
                 }
 
                 bool peGrounded = false;
@@ -653,6 +693,14 @@ namespace supermario
                     continue;
                 }
 
+                if (fl.Position.Y > 620)
+                {
+                    Controls.Remove(fl.Visual);
+                    fl.Visual.Dispose();
+                    flyingEnemies.RemoveAt(i);
+                    continue;
+                }
+
                 // Squished enemies need no physics; tick timer and skip
                 if (fl.IsSquished)
                 {
@@ -674,7 +722,7 @@ namespace supermario
                     {
                         fl.VerticalVelocity += 0.6f;
                         if (fl.VerticalVelocity > 15f) fl.VerticalVelocity = 15f;
-                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)fl.VerticalVelocity);
+                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)Math.Round(fl.VerticalVelocity));
                     }
 
                     bool flGrounded = false;
