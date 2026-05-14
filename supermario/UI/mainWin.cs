@@ -319,13 +319,13 @@ namespace supermario
             int dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
 
             if (dir != 0) facingRight = (dir > 0);
-            isWalking = dir != 0 && player.IsGrounded;
 
             // Edge-detect the jump key so holding it down doesn't cause auto-jump on landing
             bool jumpEdge = jump && !_prevJump;
             _prevJump = jump;
             player.Move(dir, jumpEdge, jump);
             CheckPlatformCollisions();
+            isWalking = dir != 0 && player.IsGrounded;
             HandleFallDamage();
             UpdateGoombas();
             UpdateKoopas();
