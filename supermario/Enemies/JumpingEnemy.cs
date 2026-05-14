@@ -46,7 +46,7 @@ namespace supermario
         {
             if (!IsAlive || IsSquished) return;
             walkTick++;
-            if (walkTick >= 8) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; }
+            if (walkTick >= 8) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; Visual.Invalidate(); }
 
             if (IsGrounded)
             {
