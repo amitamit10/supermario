@@ -327,6 +327,8 @@ namespace supermario
             CheckPlatformCollisions();
             isWalking = dir != 0 && player.IsGrounded;
             HandleFallDamage();
+
+            SuspendLayout();
             UpdateGoombas();
             UpdateKoopas();
             UpdateFastEnemies();
@@ -335,6 +337,7 @@ namespace supermario
             UpdateFlyingEnemies();
             UpdateMushrooms();
             UpdateCoins();
+            ResumeLayout(false);
 
             picboxplayer.Invalidate();
         }
@@ -358,7 +361,7 @@ namespace supermario
             {
                 gameTimer.Stop(); _stopwatch.Stop();
                 gameManager.EndGame();
-                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED";
+                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED  [Enter to Resume]";
             }
         }
 

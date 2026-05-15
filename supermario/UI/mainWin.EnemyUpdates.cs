@@ -42,7 +42,6 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
-            SuspendLayout();
             for (int i = goombas.Count - 1; i >= 0; i--)
             {
                 var goomba = goombas[i];
@@ -137,7 +136,6 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
-            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -174,7 +172,6 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
-            SuspendLayout();
             for (int i = koopas.Count - 1; i >= 0; i--)
             {
                 var k = koopas[i];
@@ -261,7 +258,6 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
-            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -297,7 +293,6 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
-            SuspendLayout();
             for (int i = fastEnemies.Count - 1; i >= 0; i--)
             {
                 var fe = fastEnemies[i];
@@ -383,7 +378,6 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
-            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -419,7 +413,6 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
-            SuspendLayout();
             for (int i = jumpingEnemies.Count - 1; i >= 0; i--)
             {
                 var je = jumpingEnemies[i];
@@ -504,7 +497,6 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
-            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -540,7 +532,6 @@ namespace supermario
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
-            SuspendLayout();
             for (int i = patrolEnemies.Count - 1; i >= 0; i--)
             {
                 var pe = patrolEnemies[i];
@@ -643,7 +634,6 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
-            ResumeLayout(false);
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -678,8 +668,6 @@ namespace supermario
             var playerRect = new Rectangle(
                 player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
-
-            SuspendLayout();
 
             for (int i = flyingEnemies.Count - 1; i >= 0; i--)
             {
@@ -776,7 +764,6 @@ namespace supermario
                     if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
                 }
             }
-            ResumeLayout(false);
         }
     }
 }
