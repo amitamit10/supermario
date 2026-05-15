@@ -15,7 +15,6 @@ namespace supermario
         private void CreateLongLevel()
         {
             CreateBrickGround();
-            ClearPowerUps();
             foreach (var p in currentLevel)
                 AddPlatform(p.X, p.Y, p.Width, p.Height);
             AddPipes();

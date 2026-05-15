@@ -174,7 +174,9 @@ namespace supermario
             else
             {
                 MessageBox.Show($"You completed ALL levels! 🏆\nFinal Score: {player.Score}  Coins: {coinCount}", "YOU WIN!", MessageBoxButtons.OK);
-                RestartLevel();
+                player.Score = 0;
+                coinCount = 0;
+                DoLevelSetup(1);
             }
         }
 
