@@ -49,11 +49,10 @@ namespace supermario
         {
             if (!IsAlive || IsSquished) return;
             walkTick++;
-            if (walkTick >= 5) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; }
-            int newX = Position.X + (int)(Direction * WALK_SPEED);
-            if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)(Direction * WALK_SPEED); }
+            if (walkTick >= 5) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; Visual.Invalidate(); }
+            int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
+            if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
             Position = new Point(newX, Position.Y);
-            Visual.Invalidate();
         }
 
         public void ReverseDirection() => Direction = -Direction;
@@ -72,7 +71,7 @@ namespace supermario
         public void Kill() => IsAlive = false;
         public Rectangle Bounds => new Rectangle(Position.X, Position.Y, Visual.Width, Visual.Height);
 
-        // ── GDI+ sprite ───────────────────────────────────────────────────────
+        // ── GDI+ sprite ───────────────────────────────────────────────────
         private void DrawSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;

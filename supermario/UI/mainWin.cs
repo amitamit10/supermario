@@ -41,21 +41,20 @@ namespace supermario
         private long _accumulatedMs = 0;
         private const long FIXED_STEP_MS = 16;
 
-        // ── Question-block animation ─────────────────────────────────────────
-        private Timer questionAnimTimer;
+        // ── Question-block animation ─────────────────────────────────────
+        private int globalTick = 0;
         private int questionAnimFrame = 0;
+        private int _animStepCount = 0;
         private List<PictureBox> animatedBlocks = new List<PictureBox>();
 
-        // ── Coin spin animation ──────────────────────────────────────────────
+        // ── Coin spin animation ─────────────────────────────────────────
         private int coinAnimFrame = 0;
 
-        // ── Player direction / animation ─────────────────────────────────────
+        // ── Player direction / animation ───────────────────────────────
         private bool facingRight = true;
-        private int walkFrame = 0;
-        private int walkFrameTimer = 0;
         private bool isWalking = false;
 
-        // ── Background cloud / scenery ───────────────────────────────────────
+        // ── Background cloud / scenery ────────────────────────────────
         private static readonly (int wx, int y, int w)[] CLOUDS = {
             (200, 55, 130), (550, 35, 90), (900, 65, 160), (1200, 45, 110),
             (1500, 70, 140), (1800, 40, 100), (2100, 60, 130), (2400, 50, 90),
@@ -67,12 +66,14 @@ namespace supermario
             (2700, 515, 200), (3100, 530, 150), (3500, 520, 190),
         };
 
-        private bool moveRight = false, moveLeft = false, jump = false;
+        private bool moveRight = false, moveLeft = false, jump = false, _prevJump = false;
         private int cameraX = 0;
         private const int SCROLL_THRESHOLD = 400;
         private const int LEVEL_PIXEL_WIDTH = 3000;
         private const int FLAGPOLE_X = 2750;
         private const int CAMERA_MAX = LEVEL_PIXEL_WIDTH - 982;
+        private const int PLAYER_START_X = 100;
+        private const int GROUND_TOP_Y = 513;
         private bool isPlayerSuper = false;
         private Size originalPlayerSize = new Size(68, 68);
         private Size superPlayerSize = new Size(82, 82);
@@ -81,16 +82,16 @@ namespace supermario
         private const float DEATH_ANIMATION_DURATION = 2000f;
         private float maxFallStartY = 0;
         private bool wasGroundedLastFrame = true;
-        private const float FALL_DAMAGE_THRESHOLD = 60f;
+        private const float FALL_DAMAGE_THRESHOLD = 120f;
         private bool canTakeFallDamage = true;
         private bool _levelComplete = false;
 
-        // ── Invincibility frames ─────────────────────────────────────────────
+        // ── Invincibility frames ──────────────────────────────────────
         private bool isInvincible = false;
         private float invincibleTimer = 0f;
         private const float INVINCIBLE_DURATION = 1500f;
 
-        // ── HUD ──────────────────────────────────────────────────────────────
+        // ── HUD ───────────────────────────────────────────────────────
         private Label _hudLabel;
         private Label _scoreLabel;
         private readonly Label[] _heartLabels = new Label[3];
@@ -112,12 +113,26 @@ namespace supermario
         protected override void OnPaintBackground(PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             int W = ClientSize.Width, H = ClientSize.Height;
 
             using (var sky = new LinearGradientBrush(new Point(0, 0), new Point(0, H),
                 Color.FromArgb(92, 148, 252), Color.FromArgb(178, 218, 255)))
                 g.FillRectangle(sky, 0, 0, W, H);
+
+            if (TextureLoader.TryGetSheet("bg", out var bg))
+            {
+                int tileHeight = Math.Max(1, H);
+                int tileWidth = Math.Max(1, bg.Width * tileHeight / bg.Height);
+                int offset = tileWidth == 0 ? 0 : (int)(cameraX * 0.12) % tileWidth;
+                for (int x = -offset; x < W; x += tileWidth)
+                {
+                    g.DrawImage(bg, new Rectangle(x, 0, tileWidth, tileHeight),
+                        new Rectangle(0, 0, bg.Width, bg.Height), GraphicsUnit.Pixel);
+                }
+                return;
+            }
 
             DrawMountains(g, W, H, (int)(cameraX * 0.08));
             DrawHills(g, W, H, (int)(cameraX * 0.25));
@@ -147,8 +162,9 @@ namespace supermario
 
         private void DrawHills(Graphics g, int W, int H, int offset)
         {
-            foreach (var (wx, hy, r) in HILLS)
+            foreach (var hill in HILLS)
             {
+                int wx = hill.wx; int hy = hill.y; int r = hill.r;
                 int sx = wx - offset;
                 for (int rep = -1; rep <= 1; rep++)
                 {
@@ -164,8 +180,9 @@ namespace supermario
 
         private void DrawClouds(Graphics g, int W, int H, int offset)
         {
-            foreach (var (wx, cy, cw) in CLOUDS)
+            foreach (var cloud in CLOUDS)
             {
+                int wx = cloud.wx; int cy = cloud.y; int cw = cloud.w;
                 int sx = wx - offset;
                 for (int rep = -1; rep <= 1; rep++)
                 {
@@ -191,6 +208,8 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void InitializeGame()
         {
+            TextureLoader.LoadAll();
+
             KeyPreview = true;
             DoubleBuffered = true;
             Focus();
@@ -216,7 +235,7 @@ namespace supermario
                 picboxplayer.BringToFront();
             }
 
-            player = new Player(new Point(100, 405), null);
+            player = new Player(GetPlayerStartPosition(), null);
             player.IsGrounded = true;
             player.Health = 3;
             player.OnDamageTaken = () => { BecomeNormal(); };
@@ -225,20 +244,11 @@ namespace supermario
             picboxplayer.BringToFront();
 
             InitHud();
-            FormClosing += (s, e) => { gameTimer?.Stop(); questionAnimTimer?.Stop(); };
-
-            questionAnimTimer = new Timer { Interval = 110 };
-            questionAnimTimer.Tick += (s, e) =>
-            {
-                questionAnimFrame = (questionAnimFrame + 1) % 6;
-                coinAnimFrame = (coinAnimFrame + 1) % 8;
-                foreach (var b in animatedBlocks) b.Invalidate();
-            };
-            questionAnimTimer.Start();
+            FormClosing += (s, e) => { gameTimer?.Stop(); };
 
             CreateLongLevel();
 
-            gameTimer = new Timer { Interval = 8 };
+            gameTimer = new Timer { Interval = 16 };
             gameTimer.Tick += GameLoop;
             KeyDown += MainWin_KeyDown;
             KeyUp += MainWin_KeyUp;
@@ -260,6 +270,7 @@ namespace supermario
             bool didStep = false;
             while (_accumulatedMs >= FIXED_STEP_MS)
             {
+                globalTick++;
                 PhysicsStep();
                 _accumulatedMs -= FIXED_STEP_MS;
                 didStep = true;
@@ -267,10 +278,19 @@ namespace supermario
 
             if (didStep)
             {
-                UpdateCamera();
+                bool cameraMoved = UpdateCamera();
                 UpdateHud();
                 CheckWinCondition();
-                Invalidate(new Rectangle(0, 0, ClientSize.Width, 520));
+                _animStepCount++;
+                if (_animStepCount >= 7)
+                {
+                    _animStepCount = 0;
+                    questionAnimFrame = (questionAnimFrame + 1) % 6;
+                    coinAnimFrame = (coinAnimFrame + 1) % 8;
+                    foreach (var b in animatedBlocks) b.Invalidate();
+                }
+                if (cameraMoved)
+                    Invalidate(new Rectangle(0, 0, ClientSize.Width, 520));
             }
         }
 
@@ -299,19 +319,16 @@ namespace supermario
             int dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
 
             if (dir != 0) facingRight = (dir > 0);
-            isWalking = dir != 0 && player.IsGrounded;
 
-            if (isWalking)
-            {
-                walkFrameTimer++;
-                if (walkFrameTimer >= 6) { walkFrameTimer = 0; walkFrame = (walkFrame + 1) % 3; }
-            }
-            else walkFrame = 0;
-
-            player.Move(dir, jump);
+            // Edge-detect the jump key so holding it down doesn't cause auto-jump on landing
+            bool jumpEdge = jump && !_prevJump;
+            _prevJump = jump;
+            player.Move(dir, jumpEdge, jump);
             CheckPlatformCollisions();
-            CheckQuestionBlockCollisions();
+            isWalking = dir != 0 && player.IsGrounded;
             HandleFallDamage();
+
+            SuspendLayout();
             UpdateGoombas();
             UpdateKoopas();
             UpdateFastEnemies();
@@ -320,6 +337,7 @@ namespace supermario
             UpdateFlyingEnemies();
             UpdateMushrooms();
             UpdateCoins();
+            ResumeLayout(false);
 
             picboxplayer.Invalidate();
         }
@@ -343,7 +361,7 @@ namespace supermario
             {
                 gameTimer.Stop(); _stopwatch.Stop();
                 gameManager.EndGame();
-                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED";
+                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED  [Enter to Resume]";
             }
         }
 

@@ -61,9 +61,17 @@ namespace supermario
         private void DrawCoinSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             var pb = (PictureBox)sender;
             int w = pb.Width, h = pb.Height;
+
+            if (TextureLoader.TryGetSheet("items", out var itemsSheet))
+            {
+                int frameIndex = globalTick / 7 % 4;
+                g.DrawFrame(itemsSheet, frameIndex, 64, 64, new Rectangle(0, 0, w, h));
+                return;
+            }
 
             // Animate coin by squishing horizontally
             float squeeze = 1f - 0.6f * Math.Abs((float)Math.Sin(coinAnimFrame * Math.PI / 4.0));
@@ -156,6 +164,14 @@ namespace supermario
                 var m = spawnedMushrooms[i];
                 if (m.IsCollected) { spawnedMushrooms.RemoveAt(i); continue; }
 
+                if (m.Position.Y > 580)
+                {
+                    Controls.Remove(m.Visual);
+                    m.Visual.Dispose();
+                    spawnedMushrooms.RemoveAt(i);
+                    continue;
+                }
+
                 // Gravity
                 if (!m.IsGrounded)
                 {
@@ -169,8 +185,8 @@ namespace supermario
 
                 // Move
                 int newX = m.Position.X + (int)m.VelocityX;
-                if (newX < 0 || newX > 2960) m.VelocityX = -m.VelocityX;
-                int newY = m.Position.Y + (int)m.VerticalVelocity;
+                if (newX < 0 || newX > 2960) { m.VelocityX = -m.VelocityX; newX = Math.Max(0, Math.Min(2960, newX)); }
+                int newY = m.Position.Y + (int)Math.Round(m.VerticalVelocity);
                 m.Position = new Point(newX, newY);
 
                 // Platform collisions
@@ -223,9 +239,16 @@ namespace supermario
         private void DrawMushroomSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             var pb = (PictureBox)sender;
             int w = pb.Width, h = pb.Height;
+
+            if (TextureLoader.TryGetSheet("items", out var itemsSheet))
+            {
+                g.DrawFrame(itemsSheet, 4, 64, 64, new Rectangle(0, 0, w, h));
+                return;
+            }
 
             // Stem / base (cream)
             using (var stem = new SolidBrush(Color.FromArgb(245, 230, 190)))

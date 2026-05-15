@@ -13,7 +13,7 @@ namespace supermario
         private void DrawPlayerSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.SmoothingMode = SmoothingMode.None;
             g.InterpolationMode = InterpolationMode.NearestNeighbor;
 
             int w = picboxplayer.Width;
@@ -28,6 +28,18 @@ namespace supermario
             {
                 g.TranslateTransform(w, 0);
                 g.ScaleTransform(-1, 1);
+            }
+
+            if (TextureLoader.TryGetSheet("player", out var playerSheet))
+            {
+                int frameIndex = 0;
+                if (!player.IsGrounded || player.VerticalVelocity != 0)
+                    frameIndex = 3;
+                else if (isWalking)
+                    frameIndex = (globalTick / 6 % 2 == 0) ? 1 : 2;
+
+                g.DrawFrame(playerSheet, frameIndex, 64, 64, new Rectangle(0, 0, w, h));
+                return;
             }
 
             g.DrawImage(img, 0, 0, w, h);
