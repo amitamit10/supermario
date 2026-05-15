@@ -54,11 +54,27 @@ namespace supermario
                     continue;
                 }
 
+                if (goomba.Position.Y > 620)
+                {
+                    Controls.Remove(goomba.Visual);
+                    goomba.Visual.Dispose();
+                    goombas.RemoveAt(i);
+                    continue;
+                }
+
+                // Squished enemies don't need gravity or platform checks; handle and skip early
+                if (goomba.IsSquished)
+                {
+                    if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
+                    goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
+                    continue;
+                }
+
                 if (!goomba.IsGrounded)
                 {
                     goomba.VerticalVelocity += 0.6f;
                     if (goomba.VerticalVelocity > 15f) goomba.VerticalVelocity = 15f;
-                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)goomba.VerticalVelocity);
+                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)Math.Round(goomba.VerticalVelocity));
                 }
 
                 bool gGrounded = false;
@@ -66,7 +82,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX,
+                        plat.Position.X,
                         plat.Position.Y,
                         plat.PictureBox.Width,
                         plat.PictureBox.Height);
@@ -84,6 +100,7 @@ namespace supermario
                         goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
                         goomba.VerticalVelocity = 0;
                         gGrounded = true;
+                        break;
                     }
                     else if (minOverlap == overlapLeft || minOverlap == overlapRight)
                     {
@@ -92,13 +109,6 @@ namespace supermario
                     }
                 }
                 goomba.IsGrounded = gGrounded;
-
-                if (goomba.IsSquished)
-                {
-                    if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
-                    goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
-                    continue;
-                }
 
                 goomba.Update();
                 goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
@@ -174,12 +184,28 @@ namespace supermario
                     continue;
                 }
 
+                if (k.Position.Y > 620)
+                {
+                    Controls.Remove(k.Visual);
+                    k.Visual.Dispose();
+                    koopas.RemoveAt(i);
+                    continue;
+                }
+
+                // Shell state: no gravity needed, just tick timer and skip physics
+                if (k.IsShell)
+                {
+                    if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
+                    k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
+                    continue;
+                }
+
                 // Gravity
                 if (!k.IsGrounded)
                 {
                     k.VerticalVelocity += 0.6f;
                     if (k.VerticalVelocity > 15f) k.VerticalVelocity = 15f;
-                    k.Position = new Point(k.Position.X, k.Position.Y + (int)k.VerticalVelocity);
+                    k.Position = new Point(k.Position.X, k.Position.Y + (int)Math.Round(k.VerticalVelocity));
                 }
 
                 // Platform collision
@@ -188,7 +214,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!kRect.IntersectsWith(pr)) continue;
 
@@ -201,18 +227,11 @@ namespace supermario
                         k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
                         k.VerticalVelocity = 0;
                         kGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { k.ReverseDirection(); break; }
                 }
                 k.IsGrounded = kGrounded;
-
-                // Shell timer – remove after duration
-                if (k.IsShell)
-                {
-                    if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
-                    k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
-                    continue;
-                }
 
                 k.Update();
                 k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
@@ -286,12 +305,27 @@ namespace supermario
                     continue;
                 }
 
+                if (fe.Position.Y > 620)
+                {
+                    Controls.Remove(fe.Visual);
+                    fe.Visual.Dispose();
+                    fastEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (fe.IsSquished)
+                {
+                    if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
+                    fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
+                    continue;
+                }
+
                 // Gravity
                 if (!fe.IsGrounded)
                 {
                     fe.VerticalVelocity += 0.6f;
                     if (fe.VerticalVelocity > 15f) fe.VerticalVelocity = 15f;
-                    fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)fe.VerticalVelocity);
+                    fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)Math.Round(fe.VerticalVelocity));
                 }
 
                 // Platform collision
@@ -300,7 +334,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!feRect.IntersectsWith(pr)) continue;
 
@@ -313,17 +347,11 @@ namespace supermario
                         fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
                         fe.VerticalVelocity = 0;
                         feGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { fe.ReverseDirection(); break; }
                 }
                 fe.IsGrounded = feGrounded;
-
-                if (fe.IsSquished)
-                {
-                    if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
-                    fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
-                    continue;
-                }
 
                 fe.Update();
                 fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
@@ -397,12 +425,27 @@ namespace supermario
                     continue;
                 }
 
+                if (je.Position.Y > 620)
+                {
+                    Controls.Remove(je.Visual);
+                    je.Visual.Dispose();
+                    jumpingEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (je.IsSquished)
+                {
+                    if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
+                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+                    continue;
+                }
+
                 // Gravity
                 if (!je.IsGrounded)
                 {
                     je.VerticalVelocity += 0.6f;
                     if (je.VerticalVelocity > 15f) je.VerticalVelocity = 15f;
-                    je.Position = new Point(je.Position.X, je.Position.Y + (int)je.VerticalVelocity);
+                    je.Position = new Point(je.Position.X, je.Position.Y + (int)Math.Round(je.VerticalVelocity));
                 }
 
                 bool jeGrounded = false;
@@ -410,7 +453,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!jeRect.IntersectsWith(pr)) continue;
 
@@ -423,17 +466,11 @@ namespace supermario
                         je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
                         je.VerticalVelocity = 0;
                         jeGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { je.ReverseDirection(); break; }
                 }
                 je.IsGrounded = jeGrounded;
-
-                if (je.IsSquished)
-                {
-                    if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
-                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
-                    continue;
-                }
 
                 je.Update();
                 je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
@@ -507,12 +544,27 @@ namespace supermario
                     continue;
                 }
 
+                if (pe.Position.Y > 620)
+                {
+                    Controls.Remove(pe.Visual);
+                    pe.Visual.Dispose();
+                    patrolEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                if (pe.IsSquished)
+                {
+                    if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
+                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+                    continue;
+                }
+
                 // Gravity
                 if (!pe.IsGrounded)
                 {
                     pe.VerticalVelocity += 0.6f;
                     if (pe.VerticalVelocity > 15f) pe.VerticalVelocity = 15f;
-                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)pe.VerticalVelocity);
+                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)Math.Round(pe.VerticalVelocity));
                 }
 
                 bool peGrounded = false;
@@ -521,7 +573,7 @@ namespace supermario
                 foreach (var plat in platforms)
                 {
                     var pr = new Rectangle(
-                        plat.PictureBox.Left + cameraX, plat.Position.Y,
+                        plat.Position.X, plat.Position.Y,
                         plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!peRect.IntersectsWith(pr)) continue;
 
@@ -534,13 +586,14 @@ namespace supermario
                         pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
                         pe.VerticalVelocity = 0;
                         peGrounded = true;
+                        break;
                     }
                     else if (min == ol || min == orr) { pe.ReverseDirection(); peWallHit = true; break; }
                 }
                 pe.IsGrounded = peGrounded;
 
                 // Edge detection – skip if wall collision already reversed direction this frame
-                if (peGrounded && !pe.IsSquished && !peWallHit)
+                if (peGrounded && !peWallHit)
                 {
                     int frontX = pe.Direction > 0 ? pe.Position.X + pe.Visual.Width : pe.Position.X;
                     int probeY  = pe.Position.Y + pe.Visual.Height + 4;
@@ -549,18 +602,11 @@ namespace supermario
                     foreach (var plat in platforms)
                     {
                         var pr = new Rectangle(
-                            plat.PictureBox.Left + cameraX, plat.Position.Y,
+                            plat.Position.X, plat.Position.Y,
                             plat.PictureBox.Width, plat.PictureBox.Height);
                         if (probe.IntersectsWith(pr)) { groundAhead = true; break; }
                     }
                     if (!groundAhead) pe.ReverseDirection();
-                }
-
-                if (pe.IsSquished)
-                {
-                    if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
-                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
-                    continue;
                 }
 
                 pe.Update();
@@ -635,6 +681,22 @@ namespace supermario
                     continue;
                 }
 
+                if (fl.Position.Y > 620)
+                {
+                    Controls.Remove(fl.Visual);
+                    fl.Visual.Dispose();
+                    flyingEnemies.RemoveAt(i);
+                    continue;
+                }
+
+                // Squished enemies need no physics; tick timer and skip
+                if (fl.IsSquished)
+                {
+                    if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
+                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    continue;
+                }
+
                 if (fl.HasWings)
                 {
                     // Sine-wave flight – Update() manages both axes
@@ -648,7 +710,7 @@ namespace supermario
                     {
                         fl.VerticalVelocity += 0.6f;
                         if (fl.VerticalVelocity > 15f) fl.VerticalVelocity = 15f;
-                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)fl.VerticalVelocity);
+                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)Math.Round(fl.VerticalVelocity));
                     }
 
                     bool flGrounded = false;
@@ -656,7 +718,7 @@ namespace supermario
                     foreach (var plat in platforms)
                     {
                         var pr = new Rectangle(
-                            plat.PictureBox.Left + cameraX, plat.Position.Y,
+                            plat.Position.X, plat.Position.Y,
                             plat.PictureBox.Width, plat.PictureBox.Height);
                         if (!flRect.IntersectsWith(pr)) continue;
 
@@ -669,17 +731,11 @@ namespace supermario
                             fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
                             fl.VerticalVelocity = 0;
                             flGrounded = true;
+                            break;
                         }
                         else if (min == ol || min == orr) { fl.ReverseDirection(); break; }
                     }
                     fl.IsGrounded = flGrounded;
-
-                    if (fl.IsSquished)
-                    {
-                        if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
-                        fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
-                        continue;
-                    }
 
                     fl.Update();
                     fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
