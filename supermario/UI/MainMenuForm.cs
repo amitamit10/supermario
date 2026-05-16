@@ -113,7 +113,6 @@ namespace supermario
         private void LaunchGame()
         {
             _animTimer.Stop();
-            Hide();
             var game = new mainWin();
             game.FormClosed += (s, e) =>
             {
@@ -122,7 +121,9 @@ namespace supermario
                 BringToFront();
                 _animTimer.Start();
             };
+            // Show game first so there is no desktop flash when the fullscreen menu hides
             game.Show();
+            Hide();
         }
 
         // ════════════════════════════════════════════════════════════════════

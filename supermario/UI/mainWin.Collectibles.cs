@@ -99,7 +99,6 @@ namespace supermario
             var playerRect = new Rectangle(player.Position.X, player.Position.Y,
                 picboxplayer.Width, picboxplayer.Height);
 
-            SuspendLayout();
             for (int i = coins.Count - 1; i >= 0; i--)
             {
                 var coin = coins[i];
@@ -117,7 +116,6 @@ namespace supermario
                 player.Score += 10;
                 coins.RemoveAt(i);
             }
-            ResumeLayout(false);
         }
 
         private void ClearCoins()
@@ -166,6 +164,14 @@ namespace supermario
                 var m = spawnedMushrooms[i];
                 if (m.IsCollected) { spawnedMushrooms.RemoveAt(i); continue; }
 
+                if (m.Position.Y > 580)
+                {
+                    Controls.Remove(m.Visual);
+                    m.Visual.Dispose();
+                    spawnedMushrooms.RemoveAt(i);
+                    continue;
+                }
+
                 // Gravity
                 if (!m.IsGrounded)
                 {
@@ -179,8 +185,8 @@ namespace supermario
 
                 // Move
                 int newX = m.Position.X + (int)m.VelocityX;
-                if (newX < 0 || newX > 2960) m.VelocityX = -m.VelocityX;
-                int newY = m.Position.Y + (int)m.VerticalVelocity;
+                if (newX < 0 || newX > 2960) { m.VelocityX = -m.VelocityX; newX = Math.Max(0, Math.Min(2960, newX)); }
+                int newY = m.Position.Y + (int)Math.Round(m.VerticalVelocity);
                 m.Position = new Point(newX, newY);
 
                 // Platform collisions
