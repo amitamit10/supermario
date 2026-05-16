@@ -72,6 +72,8 @@ namespace supermario
         private const int LEVEL_PIXEL_WIDTH = 3000;
         private const int FLAGPOLE_X = 2750;
         private const int CAMERA_MAX = LEVEL_PIXEL_WIDTH - 982;
+        private const int PLAYER_START_X = 100;
+        private const int GROUND_TOP_Y = 513;
         private bool isPlayerSuper = false;
         private Size originalPlayerSize = new Size(68, 68);
         private Size superPlayerSize = new Size(82, 82);
@@ -233,7 +235,7 @@ namespace supermario
                 picboxplayer.BringToFront();
             }
 
-            player = new Player(new Point(100, 405), null);
+            player = new Player(GetPlayerStartPosition(), null);
             player.IsGrounded = true;
             player.Health = 3;
             player.OnDamageTaken = () => { BecomeNormal(); };
@@ -268,7 +270,7 @@ namespace supermario
             bool didStep = false;
             while (_accumulatedMs >= FIXED_STEP_MS)
             {
-                globalTick++;
+                globalTick = (globalTick + 1) % 168;
                 PhysicsStep();
                 _accumulatedMs -= FIXED_STEP_MS;
                 didStep = true;
@@ -276,7 +278,7 @@ namespace supermario
 
             if (didStep)
             {
-                UpdateCamera();
+                bool cameraMoved = UpdateCamera();
                 UpdateHud();
                 CheckWinCondition();
                 _animStepCount++;
@@ -287,7 +289,8 @@ namespace supermario
                     coinAnimFrame = (coinAnimFrame + 1) % 8;
                     foreach (var b in animatedBlocks) b.Invalidate();
                 }
-                Invalidate(new Rectangle(0, 0, ClientSize.Width, 520));
+                if (cameraMoved)
+                    Invalidate(new Rectangle(0, 0, ClientSize.Width, 520));
             }
         }
 
@@ -303,7 +306,7 @@ namespace supermario
                 }
             }
 
-            if (isDying) { HandleDeathAnimation(FIXED_STEP_MS); return; }
+            if (isDying) { isWalking = false; HandleDeathAnimation(FIXED_STEP_MS); picboxplayer.Invalidate(); return; }
 
             // Pit detection – player fell off the bottom of the world
             if (player.Position.Y > 580)
@@ -323,8 +326,10 @@ namespace supermario
             _prevJump = jump;
             player.Move(dir, jumpEdge, jump);
             CheckPlatformCollisions();
-            CheckQuestionBlockCollisions();
+            isWalking = dir != 0 && player.IsGrounded;
             HandleFallDamage();
+
+            SuspendLayout();
             UpdateGoombas();
             UpdateKoopas();
             UpdateFastEnemies();
@@ -333,6 +338,7 @@ namespace supermario
             UpdateFlyingEnemies();
             UpdateMushrooms();
             UpdateCoins();
+            ResumeLayout(false);
 
             picboxplayer.Invalidate();
         }
@@ -356,7 +362,10 @@ namespace supermario
             {
                 gameTimer.Stop(); _stopwatch.Stop();
                 gameManager.EndGame();
-                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED";
+                // Clear movement state so no keys appear "held" on resume
+                moveRight = moveLeft = jump = false;
+                _prevJump = false;
+                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED  [Enter to Resume]";
             }
         }
 
