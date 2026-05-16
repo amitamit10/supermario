@@ -77,6 +77,8 @@ namespace supermario
                     goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)Math.Round(goomba.VerticalVelocity));
                 }
 
+                if (goomba.Position.Y > 600) { goomba.Kill(); continue; }
+
                 bool gGrounded = false;
                 var gRect = goomba.Bounds;
                 foreach (var plat in platforms)
@@ -137,7 +139,7 @@ namespace supermario
                 bool fallingDown = playerBottom - goombaTop < 24;
                 bool playerAbove = player.Position.Y < goomba.Position.Y + goomba.Visual.Height / 2;
 
-                if (fallingDown && playerAbove)
+                if (fallingDown && playerAbove && player.VerticalVelocity >= 0)
                 {
                     goomba.Squish();
                     player.Bounce();
@@ -223,6 +225,8 @@ namespace supermario
                     k.Position = new Point(k.Position.X, k.Position.Y + (int)Math.Round(k.VerticalVelocity));
                 }
 
+                if (k.Position.Y > 600) { k.Kill(); continue; }
+
                 // Platform collision
                 bool kGrounded = false;
                 var kRect = k.Bounds;
@@ -273,7 +277,7 @@ namespace supermario
                 bool falling = pBottom - k.Position.Y < 24;
                 bool above   = player.Position.Y < k.Position.Y + k.Visual.Height / 2;
 
-                if (falling && above)
+                if (falling && above && player.VerticalVelocity >= 0)
                 {
                     k.Stomp();
                     player.Bounce();
@@ -357,6 +361,8 @@ namespace supermario
                     fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)Math.Round(fe.VerticalVelocity));
                 }
 
+                if (fe.Position.Y > 600) { fe.Kill(); continue; }
+
                 // Platform collision
                 bool feGrounded = false;
                 var feRect = fe.Bounds;
@@ -407,7 +413,7 @@ namespace supermario
                 bool fall = pBot - fe.Position.Y < 24;
                 bool abv  = player.Position.Y < fe.Position.Y + fe.Visual.Height / 2;
 
-                if (fall && abv)
+                if (fall && abv && player.VerticalVelocity >= 0)
                 {
                     fe.Squish();
                     player.Bounce();
@@ -491,6 +497,8 @@ namespace supermario
                     je.Position = new Point(je.Position.X, je.Position.Y + (int)Math.Round(je.VerticalVelocity));
                 }
 
+                if (je.Position.Y > 600) { je.Kill(); continue; }
+
                 bool jeGrounded = false;
                 var jeRect = je.Bounds;
                 foreach (var plat in platforms)
@@ -549,7 +557,7 @@ namespace supermario
                 bool falling = pBottom - je.Position.Y < 24;
                 bool above   = player.Position.Y < je.Position.Y + je.Visual.Height / 2;
 
-                if (falling && above)
+                if (falling && above && player.VerticalVelocity >= 0)
                 {
                     je.Squish();
                     player.Bounce();
@@ -633,6 +641,8 @@ namespace supermario
                     pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)Math.Round(pe.VerticalVelocity));
                 }
 
+                if (pe.Position.Y > 600) { pe.Kill(); continue; }
+
                 bool peGrounded = false;
                 bool peWallHit = false;
                 var peRect = pe.Bounds;
@@ -704,7 +714,7 @@ namespace supermario
                 bool fall2 = pBot2 - pe.Position.Y < 24;
                 bool abv2  = player.Position.Y < pe.Position.Y + pe.Visual.Height / 2;
 
-                if (fall2 && abv2)
+                if (fall2 && abv2 && player.VerticalVelocity >= 0)
                 {
                     pe.Squish();
                     player.Bounce();
@@ -797,6 +807,8 @@ namespace supermario
                         fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)Math.Round(fl.VerticalVelocity));
                     }
 
+                    if (fl.Position.Y > 600) { fl.Kill(); continue; }
+
                     bool flGrounded = false;
                     var flRect = fl.Bounds;
                     foreach (var plat in platforms)
@@ -848,7 +860,7 @@ namespace supermario
                 bool fall3 = pBot3 - fl.Position.Y < 24;
                 bool abv3  = player.Position.Y < fl.Position.Y + fl.Visual.Height / 2;
 
-                if (fall3 && abv3)
+                if (fall3 && abv3 && player.VerticalVelocity >= 0)
                 {
                     bool hadWings = fl.HasWings;
                     fl.Stomp();

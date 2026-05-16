@@ -27,13 +27,17 @@ namespace supermario
 
             string sheetDirectory;
             try { sheetDirectory = FindSheetDirectory(); }
-            catch { return; }
+            catch { _loaded = true; return; } // no sheet directory – use procedural fallback
 
-            foreach (var sheet in SheetFiles)
+            foreach (var kvp in SheetFiles)
             {
-                string path = Path.Combine(sheetDirectory, sheet.Value);
-                try { Sheets[sheet.Key] = Image.FromFile(path); }
-                catch { }
+                string path = Path.Combine(sheetDirectory, kvp.Value);
+                try
+                {
+                    if (File.Exists(path))
+                        Sheets[kvp.Key] = Image.FromFile(path);
+                }
+                catch { /* skip missing/corrupt sheet; fall back to procedural drawing */ }
             }
         }
 

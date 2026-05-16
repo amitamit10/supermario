@@ -136,19 +136,21 @@ namespace supermario
 
             if (minOverlap == overlapTop && player.VerticalVelocity >= 0)
             {
+                // Player's bottom grazed the platform surface – land on top.
                 player.LandOn(platRect.Top, picboxplayer.Height);
                 foundGround = true;
             }
             else if (minOverlap == overlapBottom)
             {
-                // Ceiling hit regardless of velocity — covers the edge case where the
-                // directional crossed-bottom check was not triggered.
+                // Player's head is inside the platform underside – ceiling bounce
+                // regardless of vertical velocity (covers the moving-upward edge case
+                // where crossedBottom was not caught by the directional checks).
                 player.HitCeiling(platRect.Bottom);
             }
             else if (minOverlap == overlapTop)
             {
-                // Top is smallest overlap but player is moving upward; treat as ceiling
-                // to prevent clipping through the platform sideways.
+                // Top is smallest overlap but player is moving upward (rare corner);
+                // treat as a ceiling to prevent the player clipping through sideways.
                 player.HitCeiling(platRect.Bottom);
             }
             else if (minOverlap == overlapLeft)
