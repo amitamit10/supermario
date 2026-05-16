@@ -52,8 +52,6 @@ namespace supermario
 
         // ── Player direction / animation ───────────────────────────────
         private bool facingRight = true;
-        private int walkFrame = 0;
-        private int walkFrameTimer = 0;
         private bool isWalking = false;
 
         // ── Background cloud / scenery ────────────────────────────────
@@ -272,7 +270,7 @@ namespace supermario
             bool didStep = false;
             while (_accumulatedMs >= FIXED_STEP_MS)
             {
-                globalTick++;
+                globalTick = (globalTick + 1) % 168;
                 PhysicsStep();
                 _accumulatedMs -= FIXED_STEP_MS;
                 didStep = true;
@@ -308,7 +306,7 @@ namespace supermario
                 }
             }
 
-            if (isDying) { HandleDeathAnimation(FIXED_STEP_MS); return; }
+            if (isDying) { isWalking = false; HandleDeathAnimation(FIXED_STEP_MS); picboxplayer.Invalidate(); return; }
 
             // Pit detection – player fell off the bottom of the world
             if (player.Position.Y > 580)
@@ -321,22 +319,16 @@ namespace supermario
             int dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
 
             if (dir != 0) facingRight = (dir > 0);
-            isWalking = dir != 0 && player.IsGrounded;
-
-            if (isWalking)
-            {
-                walkFrameTimer++;
-                if (walkFrameTimer >= 6) { walkFrameTimer = 0; walkFrame = (walkFrame + 1) % 3; }
-            }
-            else walkFrame = 0;
 
             // Edge-detect the jump key so holding it down doesn't cause auto-jump on landing
             bool jumpEdge = jump && !_prevJump;
             _prevJump = jump;
             player.Move(dir, jumpEdge, jump);
             CheckPlatformCollisions();
-            CheckQuestionBlockCollisions();
+            isWalking = dir != 0 && player.IsGrounded;
             HandleFallDamage();
+
+            SuspendLayout();
             UpdateGoombas();
             UpdateKoopas();
             UpdateFastEnemies();
@@ -345,6 +337,7 @@ namespace supermario
             UpdateFlyingEnemies();
             UpdateMushrooms();
             UpdateCoins();
+            ResumeLayout(false);
 
             picboxplayer.Invalidate();
         }
@@ -368,7 +361,10 @@ namespace supermario
             {
                 gameTimer.Stop(); _stopwatch.Stop();
                 gameManager.EndGame();
-                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED";
+                // Clear movement state so no keys appear "held" on resume
+                moveRight = moveLeft = jump = false;
+                _prevJump = false;
+                Text = $"Super Mario – Level {currentLevelNumber} – PAUSED  [Enter to Resume]";
             }
         }
 
