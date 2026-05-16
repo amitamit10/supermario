@@ -9,7 +9,7 @@ namespace supermario
         public Point Position { get; private set; }
         public string Type { get; private set; }
 
-        public Rectangle Bounds => PictureBox.Bounds;
+        public Rectangle Bounds => new Rectangle(Position.X, Position.Y, PictureBox.Width, PictureBox.Height);
 
         public GameObjectS(PictureBox pictureBox, Point position, string type)
         {

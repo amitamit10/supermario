@@ -23,6 +23,7 @@ namespace supermario
         public static void LoadAll()
         {
             if (_loaded) return;
+            _loaded = true;
 
             string sheetDirectory;
             try { sheetDirectory = FindSheetDirectory(); }
@@ -38,8 +39,6 @@ namespace supermario
                 }
                 catch { /* skip missing/corrupt sheet; fall back to procedural drawing */ }
             }
-
-            _loaded = true;
         }
 
         public static bool TryGetSheet(string key, out Image sheet)
