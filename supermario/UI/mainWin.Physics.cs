@@ -332,7 +332,7 @@ namespace supermario
             _stopwatch.Restart(); _lastTickMs = 0; _accumulatedMs = 0;
             Text = $"Super Mario – Level {currentLevelNumber}";
             UpdateHud();
-            gameManager.StartGame(); gameTimer.Start();
+            gameManager.StartGame(); gameTimer.Stop(); gameTimer.Start();
         }
 
         private Point GetPlayerStartPosition()
@@ -358,6 +358,7 @@ namespace supermario
             flyingEnemies.Clear();
             ClearCoins();
             ClearPowerUps();
+            animatedBlocks.Clear();
         }
 
     }

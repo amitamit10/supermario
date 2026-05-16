@@ -270,7 +270,7 @@ namespace supermario
             bool didStep = false;
             while (_accumulatedMs >= FIXED_STEP_MS)
             {
-                globalTick++;
+                globalTick = (globalTick + 1) % 168;
                 PhysicsStep();
                 _accumulatedMs -= FIXED_STEP_MS;
                 didStep = true;
@@ -306,7 +306,7 @@ namespace supermario
                 }
             }
 
-            if (isDying) { HandleDeathAnimation(FIXED_STEP_MS); return; }
+            if (isDying) { isWalking = false; HandleDeathAnimation(FIXED_STEP_MS); picboxplayer.Invalidate(); return; }
 
             // Pit detection – player fell off the bottom of the world
             if (player.Position.Y > 580)
@@ -361,6 +361,9 @@ namespace supermario
             {
                 gameTimer.Stop(); _stopwatch.Stop();
                 gameManager.EndGame();
+                // Clear movement state so no keys appear "held" on resume
+                moveRight = moveLeft = jump = false;
+                _prevJump = false;
                 Text = $"Super Mario – Level {currentLevelNumber} – PAUSED  [Enter to Resume]";
             }
         }
