@@ -95,7 +95,7 @@ namespace supermario
                     int overlapRight  = pr.Right - gRect.Left;
                     int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
-                    if (minOverlap == overlapTop && overlapTop < 25)
+                    if (minOverlap == overlapTop && overlapTop < 30)
                     {
                         goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
                         goomba.VerticalVelocity = 0;
@@ -109,6 +109,21 @@ namespace supermario
                     }
                 }
                 goomba.IsGrounded = gGrounded;
+
+                // Question block wall collision
+                var gBounds2 = goomba.Bounds;
+                foreach (var qb in questionBlocks)
+                {
+                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
+                    if (!gBounds2.IntersectsWith(br)) continue;
+                    int qot = gBounds2.Bottom - br.Top;
+                    int qob = br.Bottom - gBounds2.Top;
+                    int qol = gBounds2.Right - br.Left;
+                    int qorr = br.Right - gBounds2.Left;
+                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
+                    if ((qmin == qol || qmin == qorr) && qmin < qot)
+                    { goomba.ReverseDirection(); break; }
+                }
 
                 goomba.Update();
                 goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
@@ -222,7 +237,7 @@ namespace supermario
                     int ol = kRect.Right - pr.Left, orr = pr.Right - kRect.Left;
                     int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                    if (min == ot && ot < 25)
+                    if (min == ot && ot < 30)
                     {
                         k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
                         k.VerticalVelocity = 0;
@@ -232,6 +247,20 @@ namespace supermario
                     else if (min == ol || min == orr) { k.ReverseDirection(); break; }
                 }
                 k.IsGrounded = kGrounded;
+
+                var kBounds2 = k.Bounds;
+                foreach (var qb in questionBlocks)
+                {
+                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
+                    if (!kBounds2.IntersectsWith(br)) continue;
+                    int qot = kBounds2.Bottom - br.Top;
+                    int qob = br.Bottom - kBounds2.Top;
+                    int qol = kBounds2.Right - br.Left;
+                    int qorr = br.Right - kBounds2.Left;
+                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
+                    if ((qmin == qol || qmin == qorr) && qmin < qot)
+                    { k.ReverseDirection(); break; }
+                }
 
                 k.Update();
                 k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
@@ -342,7 +371,7 @@ namespace supermario
                     int ol = feRect.Right - pr.Left, orr = pr.Right - feRect.Left;
                     int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                    if (min == ot && ot < 25)
+                    if (min == ot && ot < 30)
                     {
                         fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
                         fe.VerticalVelocity = 0;
@@ -352,6 +381,20 @@ namespace supermario
                     else if (min == ol || min == orr) { fe.ReverseDirection(); break; }
                 }
                 fe.IsGrounded = feGrounded;
+
+                var feBounds2 = fe.Bounds;
+                foreach (var qb in questionBlocks)
+                {
+                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
+                    if (!feBounds2.IntersectsWith(br)) continue;
+                    int qot = feBounds2.Bottom - br.Top;
+                    int qob = br.Bottom - feBounds2.Top;
+                    int qol = feBounds2.Right - br.Left;
+                    int qorr = br.Right - feBounds2.Left;
+                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
+                    if ((qmin == qol || qmin == qorr) && qmin < qot)
+                    { fe.ReverseDirection(); break; }
+                }
 
                 fe.Update();
                 fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
@@ -461,16 +504,39 @@ namespace supermario
                     int ol = jeRect.Right - pr.Left, orr = pr.Right - jeRect.Left;
                     int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                    if (min == ot && ot < 25)
+                    if (min == ot && ot < 30)
                     {
                         je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
                         je.VerticalVelocity = 0;
                         jeGrounded = true;
                         break;
                     }
+                    else if (min == ob && ob < 20 && je.VerticalVelocity < 0)
+                    {
+                        // Ceiling hit while jumping upward
+                        je.Position = new Point(je.Position.X, pr.Bottom);
+                        je.VerticalVelocity = 0;
+                        break;
+                    }
                     else if (min == ol || min == orr) { je.ReverseDirection(); break; }
                 }
                 je.IsGrounded = jeGrounded;
+
+                var jeBounds2 = je.Bounds;
+                foreach (var qb in questionBlocks)
+                {
+                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
+                    if (!jeBounds2.IntersectsWith(br)) continue;
+                    int qot = jeBounds2.Bottom - br.Top;
+                    int qob = br.Bottom - jeBounds2.Top;
+                    int qol = jeBounds2.Right - br.Left;
+                    int qorr = br.Right - jeBounds2.Left;
+                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
+                    if (qmin == qob && qob < 20 && je.VerticalVelocity < 0)
+                    { je.Position = new Point(je.Position.X, br.Bottom); je.VerticalVelocity = 0; break; }
+                    if ((qmin == qol || qmin == qorr) && qmin < qot)
+                    { je.ReverseDirection(); break; }
+                }
 
                 je.Update();
                 je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
@@ -581,7 +647,7 @@ namespace supermario
                     int ol = peRect.Right - pr.Left, orr = pr.Right - peRect.Left;
                     int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                    if (min == ot && ot < 25)
+                    if (min == ot && ot < 30)
                     {
                         pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
                         pe.VerticalVelocity = 0;
@@ -591,6 +657,24 @@ namespace supermario
                     else if (min == ol || min == orr) { pe.ReverseDirection(); peWallHit = true; break; }
                 }
                 pe.IsGrounded = peGrounded;
+
+                // Question block wall collision for patrol enemies
+                if (!peWallHit)
+                {
+                    var peBounds2 = pe.Bounds;
+                    foreach (var qb in questionBlocks)
+                    {
+                        var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
+                        if (!peBounds2.IntersectsWith(br)) continue;
+                        int qot = peBounds2.Bottom - br.Top;
+                        int qob = br.Bottom - peBounds2.Top;
+                        int qol = peBounds2.Right - br.Left;
+                        int qorr = br.Right - peBounds2.Left;
+                        int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
+                        if ((qmin == qol || qmin == qorr) && qmin < qot)
+                        { pe.ReverseDirection(); peWallHit = true; break; }
+                    }
+                }
 
                 // Edge detection – skip if wall collision already reversed direction this frame
                 if (peGrounded && !peWallHit)
@@ -726,7 +810,7 @@ namespace supermario
                         int ol = flRect.Right - pr.Left, orr = pr.Right - flRect.Left;
                         int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                        if (min == ot && ot < 25)
+                        if (min == ot && ot < 30)
                         {
                             fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
                             fl.VerticalVelocity = 0;
@@ -736,6 +820,21 @@ namespace supermario
                         else if (min == ol || min == orr) { fl.ReverseDirection(); break; }
                     }
                     fl.IsGrounded = flGrounded;
+
+                    // Question block wall collision (no-wings mode)
+                    var flBounds2 = fl.Bounds;
+                    foreach (var qb in questionBlocks)
+                    {
+                        var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
+                        if (!flBounds2.IntersectsWith(br)) continue;
+                        int qot = flBounds2.Bottom - br.Top;
+                        int qob = br.Bottom - flBounds2.Top;
+                        int qol = flBounds2.Right - br.Left;
+                        int qorr = br.Right - flBounds2.Left;
+                        int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
+                        if ((qmin == qol || qmin == qorr) && qmin < qot)
+                        { fl.ReverseDirection(); break; }
+                    }
 
                     fl.Update();
                     fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
