@@ -93,6 +93,7 @@
     <Compile Include="ML\NeuralNetwork.cs" />
     <Compile Include="ML\NeuralNetworkControl.cs" />
     <Compile Include="ML\MarioAgent.cs" />
+    <Compile Include="ML\NetworkSerializer.cs" />
     <Compile Include="ML\Population.cs" />
 
     <!-- Properties -->

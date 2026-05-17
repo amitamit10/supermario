@@ -7,8 +7,8 @@ namespace supermario.ML
 {
     public class Population
     {
-        public List<MarioAgent> Agents { get; private set; }
-        public int Generation { get; private set; }
+        public List<MarioAgent> Agents     { get; private set; }
+        public int              Generation { get; set; }
 
         private readonly Point _startPos;
 
@@ -28,11 +28,11 @@ namespace supermario.ML
         public List<MarioAgent> GetBestAgents()
         {
             int keep = Math.Max(2, (int)(NetParams.PopulationSize * NetParams.SurviveRate));
-            return Agents.OrderByDescending(a => a.Fitness).Take(keep).ToList();
+            return Agents.OrderByDescending(a => a.TotalFitness).Take(keep).ToList();
         }
 
         public MarioAgent BestAgent()
-            => Agents.OrderByDescending(a => a.Fitness).FirstOrDefault();
+            => Agents.OrderByDescending(a => a.TotalFitness).FirstOrDefault();
 
         public void CreateNewGeneration()
         {
