@@ -83,8 +83,13 @@ namespace supermario.ML
                 var neuron = layer.Neurons[ni];
 
                 neuron.Bias = double.Parse(parts[2], INV);
-                for (int wi = 0; wi < neuron.Weights.Length && wi + 3 < parts.Length; wi++)
+                int wi;
+                for (wi = 0; wi < neuron.Weights.Length && wi + 3 < parts.Length; wi++)
                     neuron.Weights[wi] = double.Parse(parts[wi + 3], INV);
+                // Zero out any weights the file did not provide so we don't end up
+                // with a hybrid of stored + random initial values.
+                for (; wi < neuron.Weights.Length; wi++)
+                    neuron.Weights[wi] = 0.0;
             }
 
             return (net, generation, fitness);

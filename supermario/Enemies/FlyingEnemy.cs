@@ -57,14 +57,14 @@ namespace supermario
             {
                 flyTimer += FLY_FREQUENCY;
                 int newX = Position.X + (int)Math.Round(Direction * FLY_SPEED);
-                if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * FLY_SPEED); }
+                if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * FLY_SPEED); }
                 int newY = baseY + (int)(Math.Sin(flyTimer) * FLY_AMPLITUDE);
                 Position = new Point(newX, newY);
             }
             else
             {
                 int newX = Position.X + (int)Math.Round(Direction * 1.2f);
-                if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * 1.2f); }
+                if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * 1.2f); }
                 Position = new Point(newX, Position.Y);
             }
         }

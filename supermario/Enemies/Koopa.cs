@@ -52,7 +52,7 @@ namespace supermario
                 Visual.Invalidate();
             }
             int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
-            if (newX < 0 || newX > 2960) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
+            if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
             Position = new Point(newX, Position.Y);
         }
 

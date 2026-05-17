@@ -107,6 +107,8 @@ namespace supermario
             _simTimer       = new Timer { Interval = 16 };
             _simTimer.Tick += SimTick;
 
+            FormClosed += (s, e) => { _simTimer.Stop(); _simTimer.Dispose(); };
+
             Shown += (s, e) => ResetTraining();
         }
 
@@ -362,7 +364,7 @@ namespace supermario
             if (_pop == null) return;
             int alive   = _pop.AliveCount;
             int total   = _pop.Agents.Count;
-            int genBest = _pop.Agents.Max(a => a.TotalFitness);
+            int genBest = total == 0 ? 0 : _pop.Agents.Max(a => a.TotalFitness);
 
             _lblGen.Text      = _pop.Generation.ToString();
             _lblAlive.Text    = $"{alive} / {total}";
@@ -544,8 +546,8 @@ namespace supermario
         private void GoBack()
         {
             _simTimer.Stop();
-            var menu = new MainMenuForm();
-            menu.Show();
+            // Closing this form triggers the FormClosed handler the launching
+            // MainMenuForm attached, which re-shows the original (hidden) menu.
             Close();
         }
 

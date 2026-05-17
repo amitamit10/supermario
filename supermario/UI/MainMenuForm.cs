@@ -208,7 +208,7 @@ namespace supermario
             foreach (var (rx, cy, cw) in CLOUDS)
             {
                 int sx = (int)(rx * (W + 320) - _cloudOffset);
-                while (sx + cw + 50 < 0) sx += W + 370;
+                while (sx + cw + 50 < 0) sx += W + 320;
                 int ch = cw / 2;
                 using (var shadow = new SolidBrush(Color.FromArgb(35, 80, 110, 165)))
                     g.FillEllipse(shadow, sx + 9, cy + 13, cw, ch);

@@ -23,7 +23,6 @@ namespace supermario
         public static void LoadAll()
         {
             if (_loaded) return;
-            _loaded = true;
 
             string sheetDirectory;
             try { sheetDirectory = FindSheetDirectory(); }
@@ -36,13 +35,18 @@ namespace supermario
                 {
                     if (File.Exists(path))
                     {
-                        // Read into memory so the PNG file isn't locked for the process lifetime.
+                        // Image.FromStream requires the stream to remain alive for the image's
+                        // lifetime; copy into a fresh Bitmap so we can dispose the stream now.
                         var bytes = File.ReadAllBytes(path);
-                        Sheets[kvp.Key] = Image.FromStream(new MemoryStream(bytes));
+                        using (var ms = new MemoryStream(bytes))
+                        using (var loaded = Image.FromStream(ms))
+                            Sheets[kvp.Key] = new Bitmap(loaded);
                     }
                 }
                 catch { /* skip missing/corrupt sheet; fall back to procedural drawing */ }
             }
+
+            _loaded = true;
         }
 
         public static bool TryGetSheet(string key, out Image sheet)
