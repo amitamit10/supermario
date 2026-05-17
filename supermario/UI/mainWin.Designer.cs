@@ -13,9 +13,16 @@
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                if (components != null) components.Dispose();
+                gameTimer?.Dispose();
+                _hudLabel?.Font?.Dispose();
+                _scoreLabel?.Font?.Dispose();
+                if (_heartLabels != null)
+                {
+                    foreach (var lbl in _heartLabels) lbl?.Font?.Dispose();
+                }
             }
             base.Dispose(disposing);
         }

@@ -184,10 +184,27 @@ namespace supermario
 
         private void BecomeSuper()
         {
+            if (isPlayerSuper) return;
             isPlayerSuper = true;
             picboxplayer.Size = superPlayerSize;
-            player.Health = Math.Min(player.Health + 1, 3);
-            player.Position = new Point(player.Position.X, player.Position.Y - 16);
+            int heightDelta = superPlayerSize.Height - originalPlayerSize.Height;
+            player.Position = new Point(player.Position.X, player.Position.Y - heightDelta);
+        }
+
+        // Enemy contact damage – super state absorbs one hit instead of stacking
+        // (health drop + shrink) penalties from a single touch.
+        private void HitByEnemy()
+        {
+            if (isInvincible) return;
+            isInvincible = true;
+            invincibleTimer = 0f;
+            if (isPlayerSuper)
+            {
+                BecomeNormal();
+                return;
+            }
+            player.TakeDamage(1);
+            if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
         }
 
         private void BecomeNormal()
@@ -195,7 +212,8 @@ namespace supermario
             if (!isPlayerSuper) return;
             isPlayerSuper = false;
             picboxplayer.Size = originalPlayerSize;
-            player.Position = new Point(player.Position.X, player.Position.Y + 16);
+            int heightDelta = superPlayerSize.Height - originalPlayerSize.Height;
+            player.Position = new Point(player.Position.X, player.Position.Y + heightDelta);
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -214,11 +232,8 @@ namespace supermario
                 float fallDist = player.Position.Y - maxFallStartY;
                 if (fallDist > FALL_DAMAGE_THRESHOLD && canTakeFallDamage && !isInvincible)
                 {
-                    player.TakeDamage(1);
                     canTakeFallDamage = false;
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    HitByEnemy();
                 }
                 maxFallStartY = 0;
             }

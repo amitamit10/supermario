@@ -82,7 +82,10 @@ namespace supermario
         private const float DEATH_ANIMATION_DURATION = 2000f;
         private float maxFallStartY = 0;
         private bool wasGroundedLastFrame = true;
-        private const float FALL_DAMAGE_THRESHOLD = 120f;
+        // Threshold above which a fall costs health. A single full jump reaches ~164 px,
+        // and the level-1 elevated run to ground drop is 120 px. Setting this above the
+        // tallest intentional traversal drop avoids punishing normal play.
+        private const float FALL_DAMAGE_THRESHOLD = 220f;
         private bool canTakeFallDamage = true;
         private bool _levelComplete = false;
 
@@ -358,7 +361,7 @@ namespace supermario
                 gameManager.StartGame();
                 gameTimer.Start();
             }
-            if (e.KeyCode == Keys.Escape)
+            if (e.KeyCode == Keys.Escape && !isDying)
             {
                 gameTimer.Stop(); _stopwatch.Stop();
                 gameManager.EndGame();
