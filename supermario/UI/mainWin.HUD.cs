@@ -10,6 +10,10 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         //  PLAYER SPRITE
         // ════════════════════════════════════════════════════════════════════
+        // Cached fallback sprite — Properties.Resources allocates a new Bitmap per access,
+        // so we hold a single instance instead of leaking one Bitmap per paint event.
+        private static Image _fallbackPlayerImage;
+
         private void DrawPlayerSprite(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -21,8 +25,6 @@ namespace supermario
 
             if (isInvincible && ((int)(invincibleTimer / 100f) % 2 == 0))
                 return;
-
-            var img = Properties.Resources.dcaeqy1_614416a8_3ae1_4448_94b4_e3ecefa3e53a;
 
             if (!facingRight)
             {
@@ -42,7 +44,9 @@ namespace supermario
                 return;
             }
 
-            g.DrawImage(img, 0, 0, w, h);
+            if (_fallbackPlayerImage == null)
+                _fallbackPlayerImage = Properties.Resources.dcaeqy1_614416a8_3ae1_4448_94b4_e3ecefa3e53a;
+            g.DrawImage(_fallbackPlayerImage, 0, 0, w, h);
         }
 
 
