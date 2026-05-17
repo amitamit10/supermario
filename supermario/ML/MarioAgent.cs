@@ -40,6 +40,7 @@ namespace supermario.ML
             Position = startPos;
             preciseX = startPos.X;
             preciseY = startPos.Y;
+            lastX    = startPos.X;
         }
 
         // ── Physics step (mirrors Player.Move) ──────────────────────────────────
@@ -61,7 +62,6 @@ namespace supermario.ML
             {
                 IsGrounded       = false;
                 VerticalVelocity = JumpPower;
-                jumpHeld         = true;
             }
             jumpHeld = jumpInput;
 
@@ -140,10 +140,13 @@ namespace supermario.ML
         {
             const double WORLD_W = 3000.0;
 
-            // 1. Gap distance: how far ahead until there is no floor platform below feet
+            // 1. Gap distance: how far ahead until there is no floor platform below feet.
+            // Start probing just past the agent's right edge; cap the start so very wide
+            // agents still run the loop.
             double gapDist = 1.0;
             int footY = agentPos.Y + agentH;
-            for (int dx = agentW; dx <= 300; dx += 10)
+            int probeStart = Math.Min(agentW, 290);
+            for (int dx = probeStart; dx <= 300; dx += 10)
             {
                 int checkX = agentPos.X + dx;
                 bool hasFloor = false;
@@ -155,24 +158,26 @@ namespace supermario.ML
                 if (!hasFloor) { gapDist = dx / 300.0; break; }
             }
 
-            // 2. Enemy distance: nearest enemy ahead
+            // 2. Enemy distance: nearest enemy ahead, measured from the agent's right edge.
             double enemyDist = 1.0;
+            int agentRight = agentPos.X + agentW;
             foreach (var e in enemyRects)
             {
-                int dx = e.Left - agentPos.Right;
+                int dx = e.Left - agentRight;
                 if (dx >= 0 && dx < 300)
                     enemyDist = Math.Min(enemyDist, dx / 300.0);
             }
 
-            // 3. Platform height diff ahead (normalized to ±1)
+            // 3. Platform height diff ahead (normalized to ±1) – search a window in
+            // front of the agent's right edge.
             double heightDiff = 0.0;
-            int lookAheadX = agentPos.X + agentW + 40;
+            int lookAheadX = agentRight + 40;
             double bestDist = double.MaxValue;
             foreach (var r in platformRects)
             {
-                if (r.Left > agentPos.X && r.Left < agentPos.X + 200)
+                if (r.Left > agentRight && r.Left < lookAheadX + 200)
                 {
-                    double d = r.Left - agentPos.X;
+                    double d = r.Left - agentRight;
                     if (d < bestDist) { bestDist = d; heightDiff = (agentPos.Y - r.Top) / 200.0; }
                 }
             }
