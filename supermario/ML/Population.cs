@@ -39,6 +39,16 @@ namespace supermario.ML
             var survivors = GetBestAgents();
             var next      = new List<MarioAgent>(NetParams.PopulationSize);
 
+            // Degenerate case: no agents yet — fall back to a fresh random population.
+            if (survivors.Count == 0)
+            {
+                for (int i = 0; i < NetParams.PopulationSize; i++)
+                    next.Add(new MarioAgent(new NeuralNetwork(NetParams.NetworkShape), _startPos));
+                Agents = next;
+                Generation++;
+                return;
+            }
+
             // Elitism: keep the single best agent unchanged
             next.Add(new MarioAgent(survivors[0].Brain.Clone(), _startPos));
 
