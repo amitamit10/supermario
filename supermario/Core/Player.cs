@@ -26,6 +26,7 @@ namespace supermario
         public int Health { get; set; }
         public int Score { get; set; }
         public bool IsGrounded { get; set; }
+        public float MaxX { get; set; } = 2950;
 
         public Point Position
         {
@@ -76,7 +77,7 @@ namespace supermario
             }
 
             horizontalVelocity = Clamp(horizontalVelocity, -MaxMoveSpeed, MaxMoveSpeed);
-            preciseX = Clamp(preciseX + horizontalVelocity, 0, 2950);
+            preciseX = Clamp(preciseX + horizontalVelocity, 0, MaxX);
 
             if (jumpPressed && IsGrounded)
             {
@@ -129,7 +130,7 @@ namespace supermario
 
         public void BlockHorizontal(int edgeX)
         {
-            preciseX = edgeX;
+            preciseX = Clamp(edgeX, 0, MaxX);
             position = new Point((int)Math.Round(preciseX), (int)Math.Round(preciseY));
             horizontalVelocity = 0;
         }

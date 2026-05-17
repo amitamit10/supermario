@@ -187,6 +187,7 @@ namespace supermario
             if (isPlayerSuper) return;
             isPlayerSuper = true;
             picboxplayer.Size = superPlayerSize;
+            player.MaxX = LEVEL_PIXEL_WIDTH - picboxplayer.Width;
             int heightDelta = superPlayerSize.Height - originalPlayerSize.Height;
             player.Position = new Point(player.Position.X, player.Position.Y - heightDelta);
         }
@@ -212,6 +213,7 @@ namespace supermario
             if (!isPlayerSuper) return;
             isPlayerSuper = false;
             picboxplayer.Size = originalPlayerSize;
+            player.MaxX = LEVEL_PIXEL_WIDTH - picboxplayer.Width;
             int heightDelta = superPlayerSize.Height - originalPlayerSize.Height;
             player.Position = new Point(player.Position.X, player.Position.Y + heightDelta);
         }
@@ -274,7 +276,7 @@ namespace supermario
             int screenX = player.Position.X - cameraX;
 
             if (screenX > SCROLL_THRESHOLD && player.Position.X > SCROLL_THRESHOLD)
-                newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CAMERA_MAX);
+                newCam = Math.Min(player.Position.X - SCROLL_THRESHOLD, CameraMax);
             else if (screenX < 200 && cameraX > 0)
                 newCam = Math.Max(player.Position.X - 200, 0);
 
@@ -344,6 +346,7 @@ namespace supermario
             player.IsGrounded = true; player.Health = 3;
             player.OnDamageTaken = () => { BecomeNormal(); };
             picboxplayer.Size = originalPlayerSize;
+            player.MaxX = LEVEL_PIXEL_WIDTH - picboxplayer.Width;
             picboxplayer.Location = player.Position;
             ClearPlatforms(); CreateLongLevel();
             _stopwatch.Restart(); _lastTickMs = 0; _accumulatedMs = 0;
