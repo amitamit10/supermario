@@ -3,7 +3,7 @@ namespace supermario.ML
     public class Neuron
     {
         public double[] Weights { get; private set; }
-        public double   Bias    { get; private set; }
+        public double   Bias    { get; set; }
         public double   Output  { get; private set; }
 
         public Neuron(int numInputs)

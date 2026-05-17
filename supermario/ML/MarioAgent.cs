@@ -17,11 +17,14 @@ namespace supermario.ML
         private const float GroundDecel  = 0.55f;
         private const float AirDecel     = 0.16f;
 
-        public NeuralNetwork Brain     { get; }
-        public bool          IsAlive   { get; set; } = true;
-        public int           Fitness   { get; set; }        // best X reached (world space)
-        public Point         Position  { get; set; }
-        public bool          IsGrounded{ get; set; }
+        public NeuralNetwork  Brain          { get; }
+        public bool           IsAlive        { get; set; } = true;
+        public int            Fitness        { get; set; }   // best X reached (world space)
+        public int            Score          { get; set; }   // coin bonus (each coin = 50)
+        public int            TotalFitness   => Fitness + Score;
+        public HashSet<int>   CollectedCoins { get; } = new HashSet<int>();
+        public Point          Position       { get; set; }
+        public bool           IsGrounded     { get; set; }
 
         public float VerticalVelocity   { get; private set; }
         public float HorizontalVelocity { get; private set; }
