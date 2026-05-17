@@ -35,7 +35,11 @@ namespace supermario
                 try
                 {
                     if (File.Exists(path))
-                        Sheets[kvp.Key] = Image.FromFile(path);
+                    {
+                        // Read into memory so the PNG file isn't locked for the process lifetime.
+                        var bytes = File.ReadAllBytes(path);
+                        Sheets[kvp.Key] = Image.FromStream(new MemoryStream(bytes));
+                    }
                 }
                 catch { /* skip missing/corrupt sheet; fall back to procedural drawing */ }
             }

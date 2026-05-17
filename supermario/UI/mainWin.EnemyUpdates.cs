@@ -145,12 +145,9 @@ namespace supermario
                     player.Bounce();
                     player.Score += 100;
                 }
-                else if (!isInvincible)
+                else
                 {
-                    player.TakeDamage(1);
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    HitByEnemy();
                 }
             }
         }
@@ -283,12 +280,15 @@ namespace supermario
                     player.Bounce();
                     player.Score += 150;
                 }
-                else if (!isInvincible)
+                else if (k.IsShell)
                 {
-                    player.TakeDamage(1);
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    // Walking into a dormant shell kicks it to death rather than damaging the player.
+                    k.Stomp();
+                    player.Score += 50;
+                }
+                else
+                {
+                    HitByEnemy();
                 }
             }
         }
@@ -419,12 +419,9 @@ namespace supermario
                     player.Bounce();
                     player.Score += 200;
                 }
-                else if (!isInvincible)
+                else
                 {
-                    player.TakeDamage(1);
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    HitByEnemy();
                 }
             }
         }
@@ -563,12 +560,9 @@ namespace supermario
                     player.Bounce();
                     player.Score += 150;
                 }
-                else if (!isInvincible)
+                else
                 {
-                    player.TakeDamage(1);
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    HitByEnemy();
                 }
             }
         }
@@ -720,12 +714,9 @@ namespace supermario
                     player.Bounce();
                     player.Score += 175;
                 }
-                else if (!isInvincible)
+                else
                 {
-                    player.TakeDamage(1);
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    HitByEnemy();
                 }
             }
         }
@@ -867,12 +858,9 @@ namespace supermario
                     player.Bounce();
                     player.Score += hadWings ? 200 : 300;
                 }
-                else if (!isInvincible)
+                else
                 {
-                    player.TakeDamage(1);
-                    isInvincible = true;
-                    invincibleTimer = 0f;
-                    if (player.Health <= 0) { isDying = true; deathTimer = 0f; }
+                    HitByEnemy();
                 }
             }
         }
