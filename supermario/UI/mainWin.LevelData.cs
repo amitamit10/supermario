@@ -169,10 +169,10 @@ namespace supermario
             new PlatformData(2530, 433, 40, 80),
             new PlatformData(2570, 393, 40, 120),
             new PlatformData(2610, 353, 40, 160),
-            new PlatformData(2640, 313, 40, 200),
-            new PlatformData(2660, 273, 40, 240),
-            new PlatformData(2690, 233, 40, 280),
-            new PlatformData(2710, 193, 40, 320),
+            new PlatformData(2650, 313, 40, 200),
+            new PlatformData(2690, 273, 40, 240),
+            new PlatformData(2730, 233, 40, 280),
+            new PlatformData(2770, 193, 40, 320),
         };
         private static readonly PlatformData[] LEVEL_1_PIPES = {
             new PlatformData(750,  433, 80,  80),  // Pipe 1: 2 blocks tall
@@ -241,10 +241,10 @@ namespace supermario
             // ── Underground exit: 6-step ascending staircase ─────────────────
             new PlatformData(2570, 473, 40,  40),
             new PlatformData(2610, 433, 40,  80),
-            new PlatformData(2640, 393, 40, 120),
-            new PlatformData(2670, 353, 40, 160),
-            new PlatformData(2700, 313, 40, 200),
-            new PlatformData(2720, 273, 40, 240),
+            new PlatformData(2650, 393, 40, 120),
+            new PlatformData(2690, 353, 40, 160),
+            new PlatformData(2730, 313, 40, 200),
+            new PlatformData(2770, 273, 40, 240),
         };
         private static readonly PlatformData[] LEVEL_2_PIPES = {
             new PlatformData(1230, 433, 80,  80), // Pipe 1: 2 blocks
@@ -317,8 +317,8 @@ namespace supermario
             new PlatformData(2570, 353, 40, 160),
             new PlatformData(2610, 313, 40, 200),
             new PlatformData(2650, 273, 40, 240),
-            new PlatformData(2680, 233, 40, 280),
-            new PlatformData(2720, 193, 40, 320),
+            new PlatformData(2690, 233, 40, 280),
+            new PlatformData(2730, 193, 40, 320),
         };
         private static readonly PlatformData[] LEVEL_3_PIPES = {
             new PlatformData(660, 433, 80,  80), // Pipe 1: 2 blocks (stepping stone)
