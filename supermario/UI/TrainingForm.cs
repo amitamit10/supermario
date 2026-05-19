@@ -310,6 +310,9 @@ namespace supermario
                 int genBest = _pop.BestAgent()?.TotalFitness ?? 0;
                 if (genBest > _bestEver) _bestEver = genBest;
                 _pop.CreateNewGeneration();
+                // Snap camera back to spawn so the first frame of the new generation
+                // isn't drawn with the stale far-right scroll position.
+                _cameraX = 0;
             }
 
             UpdateDashboard();
@@ -345,13 +348,22 @@ namespace supermario
                 int orr = plat.Right - ar.Left;
                 int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                if (min == ot && ot < 20)
+                if (min == ot && agent.VerticalVelocity >= 0)
                 {
+                    // Land on top of the platform. The original `ot < 20` threshold
+                    // let fast-falling agents (gravity up to ~15.5/frame) phase through.
                     agent.LandOn(plat.Top, AGENT_H);
                     foundGround = true;
                     ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
                 }
-                else if (min == ob)  { agent.HitCeiling(plat.Bottom); }
+                else if (min == ob && agent.VerticalVelocity < 0) { agent.HitCeiling(plat.Bottom); }
+                else if (min == ob && agent.VerticalVelocity >= 0)
+                {
+                    // Agent descended past the platform top in one frame – ground-snap.
+                    agent.LandOn(plat.Top, AGENT_H);
+                    foundGround = true;
+                    ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
+                }
                 else if (min == ol || min == orr)
                     agent.BlockHorizontal(min == ol ? plat.Left - AGENT_W : plat.Right);
             }

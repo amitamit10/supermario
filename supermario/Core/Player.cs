@@ -77,7 +77,9 @@ namespace supermario
             }
 
             horizontalVelocity = Clamp(horizontalVelocity, -MaxMoveSpeed, MaxMoveSpeed);
-            preciseX = Clamp(preciseX + horizontalVelocity, 0, MaxX);
+            float newX = preciseX + horizontalVelocity;
+            if (newX < 0 || newX > MaxX) horizontalVelocity = 0;
+            preciseX = Clamp(newX, 0, MaxX);
 
             if (jumpPressed && IsGrounded)
             {

@@ -26,7 +26,9 @@ namespace supermario
                     plat.PictureBox.Width, plat.PictureBox.Height);
 
                 bool horizontallyOverlaps = playerRect.Right > platRect.Left && playerRect.Left < platRect.Right;
-                if (playerRect.Bottom == platRect.Top && horizontallyOverlaps)
+                // Tolerate ±1 px rounding drift from LandOn so the grounded flag isn't
+                // dropped for a frame between physics step and collision pass.
+                if (Math.Abs(playerRect.Bottom - platRect.Top) <= 1 && horizontallyOverlaps)
                 {
                     foundGround = true;
                     continue;
@@ -81,7 +83,7 @@ namespace supermario
                     block.Visual.Width, block.Visual.Height);
 
                 bool hOverlap = playerRect.Right > blockRect.Left && playerRect.Left < blockRect.Right;
-                if (playerRect.Bottom == blockRect.Top && hOverlap) { foundGround = true; continue; }
+                if (Math.Abs(playerRect.Bottom - blockRect.Top) <= 1 && hOverlap) { foundGround = true; continue; }
 
                 if (!playerRect.IntersectsWith(blockRect)) continue;
 
@@ -113,7 +115,13 @@ namespace supermario
 
             if      (minO == overlapTop && player.VerticalVelocity >= 0) { player.LandOn(blockRect.Top, picboxplayer.Height); foundGround = true; }
             else if (minO == overlapBottom) { player.HitCeiling(blockRect.Bottom); if (!block.IsHit && player.VerticalVelocity < 0) ActivateQuestionBlock(block); }
-            else if (minO == overlapTop)    { player.HitCeiling(blockRect.Bottom); }  // upward corner case
+            else if (minO == overlapTop)
+            {
+                // Corner hit from below while moving up – treat as ceiling and also
+                // activate the block since the player physically struck its underside.
+                player.HitCeiling(blockRect.Bottom);
+                if (!block.IsHit && player.VerticalVelocity < 0) ActivateQuestionBlock(block);
+            }
             else if (minO == overlapLeft)   { player.BlockHorizontal(blockRect.Left - picboxplayer.Width); }
             else                            { player.BlockHorizontal(blockRect.Right); }
         }
@@ -227,6 +235,13 @@ namespace supermario
             {
                 maxFallStartY = player.Position.Y;
                 canTakeFallDamage = true;
+            }
+            else if (!player.IsGrounded)
+            {
+                // Track the apex of the jump/fall – fall damage should be measured
+                // from the highest point reached, not from the take-off Y.
+                if (player.Position.Y < maxFallStartY)
+                    maxFallStartY = player.Position.Y;
             }
 
             if (!wasGroundedLastFrame && player.IsGrounded && !isDying)

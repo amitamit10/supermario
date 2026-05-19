@@ -77,7 +77,13 @@ namespace supermario
                     goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)Math.Round(goomba.VerticalVelocity));
                 }
 
-                if (goomba.Position.Y > 600) { goomba.Kill(); continue; }
+                if (goomba.Position.Y > 600)
+                {
+                    Controls.Remove(goomba.Visual);
+                    goomba.Visual.Dispose();
+                    goombas.RemoveAt(i);
+                    continue;
+                }
 
                 bool gGrounded = false;
                 bool gWallHit = false;
@@ -105,11 +111,29 @@ namespace supermario
                         gGrounded = true;
                         break;
                     }
+                    else if (minOverlap == overlapBottom && goomba.VerticalVelocity >= 0)
+                    {
+                        // Descended past the platform top in a single frame – snap up to land
+                        // instead of silently falling through.
+                        goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
+                        goomba.VerticalVelocity = 0;
+                        gGrounded = true;
+                        break;
+                    }
                     else if (minOverlap == overlapLeft || minOverlap == overlapRight)
                     {
-                        // Wall hit; reverse but keep scanning so a floor platform later
-                        // in the list can still set gGrounded.
-                        if (!gWallHit) { goomba.ReverseDirection(); gWallHit = true; }
+                        // Wall hit; push out of the wall and reverse so we don't sit
+                        // embedded for several frames jittering against the platform.
+                        if (!gWallHit)
+                        {
+                            if (minOverlap == overlapLeft)
+                                goomba.Position = new Point(pr.Left - goomba.Visual.Width, goomba.Position.Y);
+                            else
+                                goomba.Position = new Point(pr.Right, goomba.Position.Y);
+                            goomba.ReverseDirection();
+                            gWallHit = true;
+                            gRect = goomba.Bounds;
+                        }
                         continue;
                     }
                 }
@@ -237,7 +261,13 @@ namespace supermario
                     k.Position = new Point(k.Position.X, k.Position.Y + (int)Math.Round(k.VerticalVelocity));
                 }
 
-                if (k.Position.Y > 600) { k.Kill(); continue; }
+                if (k.Position.Y > 600)
+                {
+                    Controls.Remove(k.Visual);
+                    k.Visual.Dispose();
+                    koopas.RemoveAt(i);
+                    continue;
+                }
 
                 // Platform collision
                 bool kGrounded = false;
@@ -261,9 +291,25 @@ namespace supermario
                         kGrounded = true;
                         break;
                     }
+                    else if (min == ob && k.VerticalVelocity >= 0)
+                    {
+                        k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
+                        k.VerticalVelocity = 0;
+                        kGrounded = true;
+                        break;
+                    }
                     else if (min == ol || min == orr)
                     {
-                        if (!kWallHit) { k.ReverseDirection(); kWallHit = true; }
+                        if (!kWallHit)
+                        {
+                            if (min == ol)
+                                k.Position = new Point(pr.Left - k.Visual.Width, k.Position.Y);
+                            else
+                                k.Position = new Point(pr.Right, k.Position.Y);
+                            k.ReverseDirection();
+                            kWallHit = true;
+                            kRect = k.Bounds;
+                        }
                         continue;
                     }
                 }
@@ -375,7 +421,13 @@ namespace supermario
                     fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)Math.Round(fe.VerticalVelocity));
                 }
 
-                if (fe.Position.Y > 600) { fe.Kill(); continue; }
+                if (fe.Position.Y > 600)
+                {
+                    Controls.Remove(fe.Visual);
+                    fe.Visual.Dispose();
+                    fastEnemies.RemoveAt(i);
+                    continue;
+                }
 
                 // Platform collision
                 bool feGrounded = false;
@@ -399,9 +451,25 @@ namespace supermario
                         feGrounded = true;
                         break;
                     }
+                    else if (min == ob && fe.VerticalVelocity >= 0)
+                    {
+                        fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
+                        fe.VerticalVelocity = 0;
+                        feGrounded = true;
+                        break;
+                    }
                     else if (min == ol || min == orr)
                     {
-                        if (!feWallHit) { fe.ReverseDirection(); feWallHit = true; }
+                        if (!feWallHit)
+                        {
+                            if (min == ol)
+                                fe.Position = new Point(pr.Left - fe.Visual.Width, fe.Position.Y);
+                            else
+                                fe.Position = new Point(pr.Right, fe.Position.Y);
+                            fe.ReverseDirection();
+                            feWallHit = true;
+                            feRect = fe.Bounds;
+                        }
                         continue;
                     }
                 }
@@ -513,7 +581,13 @@ namespace supermario
                     je.Position = new Point(je.Position.X, je.Position.Y + (int)Math.Round(je.VerticalVelocity));
                 }
 
-                if (je.Position.Y > 600) { je.Kill(); continue; }
+                if (je.Position.Y > 600)
+                {
+                    Controls.Remove(je.Visual);
+                    je.Visual.Dispose();
+                    jumpingEnemies.RemoveAt(i);
+                    continue;
+                }
 
                 bool jeGrounded = false;
                 bool jeWallHit = false;
@@ -543,9 +617,26 @@ namespace supermario
                         je.VerticalVelocity = 0;
                         break;
                     }
+                    else if (min == ob && je.VerticalVelocity >= 0)
+                    {
+                        // Fell past the platform in one frame – snap up.
+                        je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
+                        je.VerticalVelocity = 0;
+                        jeGrounded = true;
+                        break;
+                    }
                     else if (min == ol || min == orr)
                     {
-                        if (!jeWallHit) { je.ReverseDirection(); jeWallHit = true; }
+                        if (!jeWallHit)
+                        {
+                            if (min == ol)
+                                je.Position = new Point(pr.Left - je.Visual.Width, je.Position.Y);
+                            else
+                                je.Position = new Point(pr.Right, je.Position.Y);
+                            je.ReverseDirection();
+                            jeWallHit = true;
+                            jeRect = je.Bounds;
+                        }
                         continue;
                     }
                 }
@@ -659,7 +750,13 @@ namespace supermario
                     pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)Math.Round(pe.VerticalVelocity));
                 }
 
-                if (pe.Position.Y > 600) { pe.Kill(); continue; }
+                if (pe.Position.Y > 600)
+                {
+                    Controls.Remove(pe.Visual);
+                    pe.Visual.Dispose();
+                    patrolEnemies.RemoveAt(i);
+                    continue;
+                }
 
                 bool peGrounded = false;
                 bool peWallHit = false;
@@ -682,9 +779,25 @@ namespace supermario
                         peGrounded = true;
                         break;
                     }
+                    else if (min == ob && pe.VerticalVelocity >= 0)
+                    {
+                        pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
+                        pe.VerticalVelocity = 0;
+                        peGrounded = true;
+                        break;
+                    }
                     else if (min == ol || min == orr)
                     {
-                        if (!peWallHit) { pe.ReverseDirection(); peWallHit = true; }
+                        if (!peWallHit)
+                        {
+                            if (min == ol)
+                                pe.Position = new Point(pr.Left - pe.Visual.Width, pe.Position.Y);
+                            else
+                                pe.Position = new Point(pr.Right, pe.Position.Y);
+                            pe.ReverseDirection();
+                            peWallHit = true;
+                            peRect = pe.Bounds;
+                        }
                         continue;
                     }
                 }
@@ -829,7 +942,13 @@ namespace supermario
                         fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)Math.Round(fl.VerticalVelocity));
                     }
 
-                    if (fl.Position.Y > 600) { fl.Kill(); continue; }
+                    if (fl.Position.Y > 600)
+                    {
+                        Controls.Remove(fl.Visual);
+                        fl.Visual.Dispose();
+                        flyingEnemies.RemoveAt(i);
+                        continue;
+                    }
 
                     bool flGrounded = false;
                     bool flWallHit = false;
@@ -852,9 +971,25 @@ namespace supermario
                             flGrounded = true;
                             break;
                         }
+                        else if (min == ob && fl.VerticalVelocity >= 0)
+                        {
+                            fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
+                            fl.VerticalVelocity = 0;
+                            flGrounded = true;
+                            break;
+                        }
                         else if (min == ol || min == orr)
                         {
-                            if (!flWallHit) { fl.ReverseDirection(); flWallHit = true; }
+                            if (!flWallHit)
+                            {
+                                if (min == ol)
+                                    fl.Position = new Point(pr.Left - fl.Visual.Width, fl.Position.Y);
+                                else
+                                    fl.Position = new Point(pr.Right, fl.Position.Y);
+                                fl.ReverseDirection();
+                                flWallHit = true;
+                                flRect = fl.Bounds;
+                            }
                             continue;
                         }
                     }

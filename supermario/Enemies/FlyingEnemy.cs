@@ -53,18 +53,21 @@ namespace supermario
             walkTick++;
             if (walkTick >= 8) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; Visual.Invalidate(); }
 
+            int maxX = 3000 - Visual.Width;
             if (HasWings)
             {
                 flyTimer += FLY_FREQUENCY;
                 int newX = Position.X + (int)Math.Round(Direction * FLY_SPEED);
-                if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * FLY_SPEED); }
+                if (newX < 0 || newX > maxX) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * FLY_SPEED); }
+                if (newX < 0) newX = 0; else if (newX > maxX) newX = maxX;
                 int newY = baseY + (int)(Math.Sin(flyTimer) * FLY_AMPLITUDE);
                 Position = new Point(newX, newY);
             }
             else
             {
                 int newX = Position.X + (int)Math.Round(Direction * 1.2f);
-                if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * 1.2f); }
+                if (newX < 0 || newX > maxX) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * 1.2f); }
+                if (newX < 0) newX = 0; else if (newX > maxX) newX = maxX;
                 Position = new Point(newX, Position.Y);
             }
         }
@@ -108,16 +111,16 @@ namespace supermario
             {
                 // Wing flap offset
                 int wOff = walkFrame == 0 ? -4 : 4;
-                // Left wing
+                // Wings stay fully inside the PictureBox so they don't get clipped.
+                // Each wing is 18 wide, hugging the left/right body edges.
                 using (var wg = new SolidBrush(Color.FromArgb(220, 240, 255, 240)))
-                    g.FillEllipse(wg, -10, h / 3 + wOff, 22, 16);
+                    g.FillEllipse(wg, 0, h / 3 + wOff, 18, 16);
                 using (var wb = new Pen(Color.FromArgb(60, 160, 60), 1f))
-                    g.DrawEllipse(wb, -10, h / 3 + wOff, 22, 16);
-                // Right wing
+                    g.DrawEllipse(wb, 0, h / 3 + wOff, 18, 16);
                 using (var wg = new SolidBrush(Color.FromArgb(220, 240, 255, 240)))
-                    g.FillEllipse(wg, w - 12, h / 3 + wOff, 22, 16);
+                    g.FillEllipse(wg, w - 18, h / 3 + wOff, 18, 16);
                 using (var wb = new Pen(Color.FromArgb(60, 160, 60), 1f))
-                    g.DrawEllipse(wb, w - 12, h / 3 + wOff, 22, 16);
+                    g.DrawEllipse(wb, w - 18, h / 3 + wOff, 18, 16);
             }
 
             // Legs
@@ -170,6 +173,7 @@ namespace supermario
         {
             if (w <= 0 || h <= 0) return;
             r = System.Math.Min(r, System.Math.Min(w / 2, h / 2));
+            if (r <= 0) { g.FillRectangle(b, x, y, w, h); return; }
             using (var path = new GraphicsPath())
             {
                 path.AddArc(x, y, r * 2, r * 2, 180, 90);

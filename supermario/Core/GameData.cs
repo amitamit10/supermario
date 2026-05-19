@@ -83,6 +83,8 @@ namespace supermario
         {
             if (w <= 0 || h <= 0) return;
             r = System.Math.Min(r, System.Math.Min(w / 2, h / 2));
+            // GDI+ AddArc throws on a zero-sized rect; fall back to a plain rectangle.
+            if (r <= 0) { g.FillRectangle(b, x, y, w, h); return; }
             using (var path = new GraphicsPath())
             {
                 path.AddArc(x, y, r * 2, r * 2, 180, 90);
