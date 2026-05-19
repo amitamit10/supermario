@@ -381,12 +381,12 @@ namespace supermario
                     var sec = pickFrom[levelRandom.Next(pickFrom.Length)];
 
                     // Avoid repeating the same section type two consecutive times.
-                    // If the pool has more than one option, retry until we get a
-                    // different section (instead of giving up after a few tries
-                    // and silently accepting a duplicate).
+                    // Retry with a generous cap so we don't infinite-loop if a pool is
+                    // ever edited to contain duplicate references (all pools today have
+                    // distinct entries, but defense-in-depth).
                     if (pickFrom.Length > 1)
                     {
-                        while (Array.IndexOf(ALL_SECTIONS, sec) == prevSectionIdx)
+                        for (int t = 0; t < 16 && Array.IndexOf(ALL_SECTIONS, sec) == prevSectionIdx; t++)
                             sec = pickFrom[levelRandom.Next(pickFrom.Length)];
                     }
                     prevSectionIdx = Array.IndexOf(ALL_SECTIONS, sec);
