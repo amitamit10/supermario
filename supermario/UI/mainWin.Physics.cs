@@ -117,10 +117,12 @@ namespace supermario
             else if (minO == overlapBottom) { player.HitCeiling(blockRect.Bottom); if (!block.IsHit && player.VerticalVelocity < 0) ActivateQuestionBlock(block); }
             else if (minO == overlapTop)
             {
-                // Corner hit from below while moving up – treat as ceiling and also
-                // activate the block since the player physically struck its underside.
-                player.HitCeiling(blockRect.Bottom);
-                if (!block.IsHit && player.VerticalVelocity < 0) ActivateQuestionBlock(block);
+                // Smallest overlap is from above (player's bottom poking into block top)
+                // even though VV < 0 — a grazing top-corner contact, not a from-below
+                // hit. Push the player up onto the block instead of teleporting them
+                // through to the underside.
+                player.LandOn(blockRect.Top, picboxplayer.Height);
+                foundGround = true;
             }
             else if (minO == overlapLeft)   { player.BlockHorizontal(blockRect.Left - picboxplayer.Width); }
             else                            { player.BlockHorizontal(blockRect.Right); }

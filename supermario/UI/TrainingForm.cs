@@ -348,10 +348,12 @@ namespace supermario
                 int orr = plat.Right - ar.Left;
                 int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                if (min == ot && agent.VerticalVelocity >= 0)
+                if (min == ot)
                 {
                     // Land on top of the platform. The original `ot < 20` threshold
-                    // let fast-falling agents (gravity up to ~15.5/frame) phase through.
+                    // let fast-falling agents (gravity up to ~15.5/frame) phase through;
+                    // dropping it preserves the original "snap-up on top" behavior even
+                    // for deep overlaps.
                     agent.LandOn(plat.Top, AGENT_H);
                     foundGround = true;
                     ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
@@ -359,7 +361,8 @@ namespace supermario
                 else if (min == ob && agent.VerticalVelocity < 0) { agent.HitCeiling(plat.Bottom); }
                 else if (min == ob && agent.VerticalVelocity >= 0)
                 {
-                    // Agent descended past the platform top in one frame – ground-snap.
+                    // Descended past the platform top in one frame – ground-snap up
+                    // instead of silently falling through.
                     agent.LandOn(plat.Top, AGENT_H);
                     foundGround = true;
                     ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
