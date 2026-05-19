@@ -62,9 +62,23 @@ namespace supermario
         // ── Input ─────────────────────────────────────────────────────────────
         private void OnMenuKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Escape) Application.Exit();
-            if ((e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space) && !_showHowTo)
+            if (e.KeyCode == Keys.Escape)
+            {
+                // If the How-To panel is open, Esc closes the panel; otherwise it exits.
+                if (_showHowTo) { _showHowTo = false; Invalidate(); }
+                else            { Application.Exit(); }
+                return;
+            }
+
+            if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Space)
+            {
+                // KeyPreview routes the key here before the focused button gets it.
+                // Letting both fire would launch the game while clicking a different
+                // button (e.g. EXIT). Skip the global handler whenever a Button has focus.
+                if (ActiveControl is Button) return;
+                if (_showHowTo) return;
                 LaunchGame();
+            }
         }
 
         // ── Animation tick ────────────────────────────────────────────────────
@@ -120,33 +134,53 @@ namespace supermario
         private void LaunchTrainer()
         {
             _animTimer.Stop();
-            var trainer = new TrainingForm();
-            trainer.FormClosed += (s, e) =>
+            try
             {
-                _cloudOffset = 0f;
-                Show();
-                BringToFront();
+                var trainer = new TrainingForm();
+                trainer.FormClosed += (s, e) =>
+                {
+                    _cloudOffset = 0f;
+                    Show();
+                    BringToFront();
+                    _animTimer.Start();
+                };
+                trainer.Show();
+                Hide();
+            }
+            catch (Exception ex)
+            {
+                // If construction fails, keep the menu visible instead of leaving the
+                // user staring at an empty desktop.
                 _animTimer.Start();
-            };
-            trainer.Show();
-            Hide();
+                MessageBox.Show("Failed to open trainer:\n" + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         // ── Game launch ───────────────────────────────────────────────────────
         private void LaunchGame()
         {
             _animTimer.Stop();
-            var game = new mainWin();
-            game.FormClosed += (s, e) =>
+            try
             {
-                _cloudOffset = 0f;
-                Show();
-                BringToFront();
+                var game = new mainWin();
+                game.FormClosed += (s, e) =>
+                {
+                    _cloudOffset = 0f;
+                    Show();
+                    BringToFront();
+                    _animTimer.Start();
+                };
+                // Show game first so there is no desktop flash when the fullscreen menu hides
+                game.Show();
+                Hide();
+            }
+            catch (Exception ex)
+            {
                 _animTimer.Start();
-            };
-            // Show game first so there is no desktop flash when the fullscreen menu hides
-            game.Show();
-            Hide();
+                MessageBox.Show("Failed to start game:\n" + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         // ════════════════════════════════════════════════════════════════════
