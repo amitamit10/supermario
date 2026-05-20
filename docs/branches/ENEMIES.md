@@ -112,6 +112,7 @@ Stomp detection requires `player.VerticalVelocity >= 0` (commit `95a0a36`) so ju
 ### JumpingEnemy
 - Blue. Periodic leap every 90 ticks at `VY = -9f`. Spring-coil feet visual cue right before the leap.
 - Ceiling-hit while airborne now zeroes `VY` instead of clipping through (commit `1e82bb3`).
+- The jump timer only advances while grounded. A grounded enemy resting exactly on a platform top (`bottom == platformTop`) is *not* an `IntersectsWith` overlap, which used to clear `IsGrounded` every other frame and halve the real cadence (~3 s instead of ~1.5 s). A short downward footing probe now keeps `IsGrounded` stable so the 90-tick cadence holds.
 - Stomp score: **150**.
 
 ### PlatformPatrolEnemy

@@ -178,7 +178,7 @@ Settings sliders:
 - **Population** — 10 to 500 (default 60).
 - **Mutation %** — 1 to 50 (default 5).
 - **Survive %** — 5 to 80 (default 30).
-- **Net shape** — comma-separated integers, e.g. `4,6,4,2`. Validated; invalid shapes show a `MessageBox` with no state change.
+- **Net shape** — comma-separated integers, e.g. `4,6,4,2`. The simulation always feeds a fixed 4-value input vector (`ComputeInputs`) and reads 2 outputs (`Think`), so the first layer **must be 4** and the last **must be ≥ 2**; any other shape (or an incompatible loaded `.smnet`) is rejected with a `MessageBox` and no state change. This guard prevents an `IndexOutOfRangeException` in `Neuron.Forward` / `Think` on the sim timer.
 
 ## Per-Tick Flow
 
