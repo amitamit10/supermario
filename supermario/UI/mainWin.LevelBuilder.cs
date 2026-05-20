@@ -373,29 +373,36 @@ namespace supermario
 
                 for (int i = 0; i < total; i++)
                 {
-                    PlatformData[][] pool;
-                    if (i == 0)                              pool = new[] { openingPool[levelRandom.Next(openingPool.Length)] };
-                    else if (i < total * 2 / 3)             pool = new[] { midPool[levelRandom.Next(midPool.Length)] };
-                    else                                     pool = new[] { hardPool[levelRandom.Next(hardPool.Length)] };
+                    PlatformData[][] pickFrom;
+                    if (i == 0)                              pickFrom = openingPool;
+                    else if (i < total * 2 / 3)              pickFrom = midPool;
+                    else                                     pickFrom = hardPool;
 
-                    // Avoid repeating same section type two consecutive times
+                    var sec = pickFrom[levelRandom.Next(pickFrom.Length)];
+
+                    // Avoid repeating same section type two consecutive times.
+                    // Retry from the SAME pool so the difficulty curve is preserved.
                     int tries = 0;
-                    var sec = pool[0];
                     while (tries < 3 && Array.IndexOf(ALL_SECTIONS, sec) == prevSectionIdx)
                     {
-                        pool = new[] { midPool[levelRandom.Next(midPool.Length)] };
-                        sec = pool[0];
+                        sec = pickFrom[levelRandom.Next(pickFrom.Length)];
                         tries++;
                     }
                     prevSectionIdx = Array.IndexOf(ALL_SECTIONS, sec);
 
+                    int kept = 0;
                     foreach (var p in sec)
                     {
                         int ny = yBase + p.Y;
                         if (ny >= 250 && ny <= 483)
+                        {
                             result.Add(new PlatformData(xOff + p.X, ny, p.Width, p.Height));
+                            kept++;
+                        }
                     }
-                    if (sec.Length > 0)
+                    // Only advance xOff if at least one platform from this section was kept;
+                    // otherwise we'd leave an unjumpable empty gap of 130+ px.
+                    if (sec.Length > 0 && kept > 0)
                         xOff += sec.Max(p => p.X + p.Width) + 130;
                 }
 

@@ -80,6 +80,7 @@ namespace supermario
                 if (goomba.Position.Y > 600) { goomba.Kill(); continue; }
 
                 bool gGrounded = false;
+                bool gWallHit = false;
                 var gRect = goomba.Bounds;
                 foreach (var plat in platforms)
                 {
@@ -106,8 +107,10 @@ namespace supermario
                     }
                     else if (minOverlap == overlapLeft || minOverlap == overlapRight)
                     {
-                        goomba.ReverseDirection();
-                        break;
+                        // Wall hit; reverse but keep scanning so a floor platform later
+                        // in the list can still set gGrounded.
+                        if (!gWallHit) { goomba.ReverseDirection(); gWallHit = true; }
+                        continue;
                     }
                 }
                 goomba.IsGrounded = gGrounded;
@@ -206,11 +209,23 @@ namespace supermario
                     continue;
                 }
 
-                // Shell state: no gravity needed, just tick timer and skip physics
+                // Shell state: no gravity needed, just tick timer and skip physics.
+                // Walking-into-shell kicks it for points; bypass the rest of the physics
+                // path so player-collision is handled here, not by the dead branch below.
                 if (k.IsShell)
                 {
                     if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
                     k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
+
+                    if (!isDying)
+                    {
+                        var shellWorld = new Rectangle(k.Position.X, k.Position.Y, k.Visual.Width, k.Visual.Height);
+                        if (playerRect.IntersectsWith(shellWorld))
+                        {
+                            k.Stomp(); // second Stomp on shell calls Kill()
+                            player.Score += 50;
+                        }
+                    }
                     continue;
                 }
 
@@ -226,6 +241,7 @@ namespace supermario
 
                 // Platform collision
                 bool kGrounded = false;
+                bool kWallHit = false;
                 var kRect = k.Bounds;
                 foreach (var plat in platforms)
                 {
@@ -245,7 +261,11 @@ namespace supermario
                         kGrounded = true;
                         break;
                     }
-                    else if (min == ol || min == orr) { k.ReverseDirection(); break; }
+                    else if (min == ol || min == orr)
+                    {
+                        if (!kWallHit) { k.ReverseDirection(); kWallHit = true; }
+                        continue;
+                    }
                 }
                 k.IsGrounded = kGrounded;
 
@@ -279,12 +299,6 @@ namespace supermario
                     k.Stomp();
                     player.Bounce();
                     player.Score += 150;
-                }
-                else if (k.IsShell)
-                {
-                    // Walking into a dormant shell kicks it to death rather than damaging the player.
-                    k.Stomp();
-                    player.Score += 50;
                 }
                 else
                 {
@@ -365,6 +379,7 @@ namespace supermario
 
                 // Platform collision
                 bool feGrounded = false;
+                bool feWallHit = false;
                 var feRect = fe.Bounds;
                 foreach (var plat in platforms)
                 {
@@ -384,7 +399,11 @@ namespace supermario
                         feGrounded = true;
                         break;
                     }
-                    else if (min == ol || min == orr) { fe.ReverseDirection(); break; }
+                    else if (min == ol || min == orr)
+                    {
+                        if (!feWallHit) { fe.ReverseDirection(); feWallHit = true; }
+                        continue;
+                    }
                 }
                 fe.IsGrounded = feGrounded;
 
@@ -497,6 +516,7 @@ namespace supermario
                 if (je.Position.Y > 600) { je.Kill(); continue; }
 
                 bool jeGrounded = false;
+                bool jeWallHit = false;
                 var jeRect = je.Bounds;
                 foreach (var plat in platforms)
                 {
@@ -523,9 +543,29 @@ namespace supermario
                         je.VerticalVelocity = 0;
                         break;
                     }
-                    else if (min == ol || min == orr) { je.ReverseDirection(); break; }
+                    else if (min == ol || min == orr)
+                    {
+                        if (!jeWallHit) { je.ReverseDirection(); jeWallHit = true; }
+                        continue;
+                    }
                 }
                 je.IsGrounded = jeGrounded;
+
+                // An enemy resting exactly on a platform top has bottom == platTop,
+                // which IntersectsWith treats as non-overlapping, so the loop above
+                // would flip IsGrounded off every other frame. That halves the jump
+                // timer cadence (it only ticks while grounded). Re-confirm footing
+                // with a 2px probe just below the feet when not rising.
+                if (!jeGrounded && je.VerticalVelocity >= 0)
+                {
+                    var feet = new Rectangle(je.Position.X, je.Position.Y + je.Visual.Height, je.Visual.Width, 2);
+                    foreach (var plat in platforms)
+                    {
+                        var pr = new Rectangle(plat.Position.X, plat.Position.Y,
+                            plat.PictureBox.Width, plat.PictureBox.Height);
+                        if (feet.IntersectsWith(pr)) { je.IsGrounded = true; break; }
+                    }
+                }
 
                 var jeBounds2 = je.Bounds;
                 foreach (var qb in questionBlocks)
@@ -658,7 +698,11 @@ namespace supermario
                         peGrounded = true;
                         break;
                     }
-                    else if (min == ol || min == orr) { pe.ReverseDirection(); peWallHit = true; break; }
+                    else if (min == ol || min == orr)
+                    {
+                        if (!peWallHit) { pe.ReverseDirection(); peWallHit = true; }
+                        continue;
+                    }
                 }
                 pe.IsGrounded = peGrounded;
 
@@ -683,9 +727,12 @@ namespace supermario
                 // Edge detection – skip if wall collision already reversed direction this frame
                 if (peGrounded && !peWallHit)
                 {
-                    int frontX = pe.Direction > 0 ? pe.Position.X + pe.Visual.Width : pe.Position.X;
+                    const int probeW = 10;
+                    int probeX = pe.Direction > 0
+                        ? pe.Position.X + pe.Visual.Width
+                        : pe.Position.X - probeW;
                     int probeY  = pe.Position.Y + pe.Visual.Height + 4;
-                    var probe   = new Rectangle(frontX - 2, probeY, 8, 6);
+                    var probe   = new Rectangle(probeX, probeY, probeW, 6);
                     bool groundAhead = false;
                     foreach (var plat in platforms)
                     {
@@ -801,6 +848,7 @@ namespace supermario
                     if (fl.Position.Y > 600) { fl.Kill(); continue; }
 
                     bool flGrounded = false;
+                    bool flWallHit = false;
                     var flRect = fl.Bounds;
                     foreach (var plat in platforms)
                     {
@@ -820,7 +868,11 @@ namespace supermario
                             flGrounded = true;
                             break;
                         }
-                        else if (min == ol || min == orr) { fl.ReverseDirection(); break; }
+                        else if (min == ol || min == orr)
+                        {
+                            if (!flWallHit) { fl.ReverseDirection(); flWallHit = true; }
+                            continue;
+                        }
                     }
                     fl.IsGrounded = flGrounded;
 

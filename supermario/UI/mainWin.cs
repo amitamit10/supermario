@@ -71,7 +71,7 @@ namespace supermario
         private const int SCROLL_THRESHOLD = 400;
         private const int LEVEL_PIXEL_WIDTH = 3000;
         private const int FLAGPOLE_X = 2750;
-        private const int CAMERA_MAX = LEVEL_PIXEL_WIDTH - 982;
+        private int CameraMax => Math.Max(0, LEVEL_PIXEL_WIDTH - ClientSize.Width);
         private const int PLAYER_START_X = 100;
         private const int GROUND_TOP_Y = 513;
         private bool isPlayerSuper = false;
@@ -124,11 +124,11 @@ namespace supermario
                 Color.FromArgb(92, 148, 252), Color.FromArgb(178, 218, 255)))
                 g.FillRectangle(sky, 0, 0, W, H);
 
-            if (TextureLoader.TryGetSheet("bg", out var bg))
+            if (TextureLoader.TryGetSheet("bg", out var bg) && bg.Height > 0 && bg.Width > 0)
             {
                 int tileHeight = Math.Max(1, H);
                 int tileWidth = Math.Max(1, bg.Width * tileHeight / bg.Height);
-                int offset = tileWidth == 0 ? 0 : (int)(cameraX * 0.12) % tileWidth;
+                int offset = (int)(cameraX * 0.12) % tileWidth;
                 for (int x = -offset; x < W; x += tileWidth)
                 {
                     g.DrawImage(bg, new Rectangle(x, 0, tileWidth, tileHeight),
@@ -241,13 +241,14 @@ namespace supermario
             player = new Player(GetPlayerStartPosition(), null);
             player.IsGrounded = true;
             player.Health = 3;
+            player.MaxX = LEVEL_PIXEL_WIDTH - picboxplayer.Width;
             player.OnDamageTaken = () => { BecomeNormal(); };
 
             picboxplayer.Location = player.Position;
             picboxplayer.BringToFront();
 
             InitHud();
-            FormClosing += (s, e) => { gameTimer?.Stop(); };
+            FormClosing += (s, e) => { gameTimer?.Stop(); gameTimer?.Dispose(); _stopwatch?.Stop(); };
 
             CreateLongLevel();
 
