@@ -112,7 +112,7 @@ namespace supermario
             int minO = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
 
             if      (minO == overlapTop && player.VerticalVelocity >= 0) { player.LandOn(blockRect.Top, picboxplayer.Height); foundGround = true; }
-            else if (minO == overlapBottom) { player.HitCeiling(blockRect.Bottom); if (!block.IsHit && player.VerticalVelocity < 0) ActivateQuestionBlock(block); }
+            else if (minO == overlapBottom) { bool wasMovingUp = player.VerticalVelocity < 0; player.HitCeiling(blockRect.Bottom); if (!block.IsHit && wasMovingUp) ActivateQuestionBlock(block); }
             else if (minO == overlapTop)    { player.HitCeiling(blockRect.Bottom); }  // upward corner case
             else if (minO == overlapLeft)   { player.BlockHorizontal(blockRect.Left - picboxplayer.Width); }
             else                            { player.BlockHorizontal(blockRect.Right); }

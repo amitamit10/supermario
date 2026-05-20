@@ -10,12 +10,26 @@ namespace supermario
 {
     public sealed class TrainingForm : Form
     {
+        // Panel that double-buffers its own painting. The host Form's DoubleBuffered
+        // flag does not apply to child controls, so without this the simulation
+        // canvas (repainted every tick) flickers badly.
+        private sealed class BufferedPanel : Panel
+        {
+            public BufferedPanel() { DoubleBuffered = true; }
+        }
+
         // ── Layout ───────────────────────────────────────────────────────────────
         private const int DASHBOARD_W = 320;
         private const int AGENT_W     = 36;
         private const int AGENT_H     = 48;
         private const int COIN_BONUS  = 50;   // fitness per coin collected
         private const int COIN_R      = 10;   // coin draw radius
+
+        // The simulation feeds a fixed-size input vector (ComputeInputs) and reads
+        // a fixed number of outputs (Think), so any network shape must match this
+        // contract or Forward / Think will index out of range.
+        private const int NET_INPUTS  = 4;
+        private const int NET_OUTPUTS = 2;
 
         // ── Game canvas ──────────────────────────────────────────────────────────
         private Panel            _canvas;
@@ -117,7 +131,7 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════════
         private void BuildUI()
         {
-            _canvas = new Panel { BackColor = Color.FromArgb(92, 148, 252) };
+            _canvas = new BufferedPanel { BackColor = Color.FromArgb(92, 148, 252) };
             _canvas.Paint += CanvasPaint;
             Controls.Add(_canvas);
 
@@ -260,9 +274,11 @@ namespace supermario
         private void ApplySettings()
         {
             int[] shape = ParseShape(_tbShape.Text);
-            if (shape == null || shape.Length < 2 || shape[0] < 1 || shape[shape.Length - 1] < 1)
+            if (!IsShapeCompatible(shape))
             {
-                MessageBox.Show("Invalid network shape.\nUse comma-separated integers, e.g.  4,6,4,2",
+                MessageBox.Show(
+                    $"Invalid network shape.\nThe first layer must be {NET_INPUTS} (inputs) and the last "
+                    + $"at least {NET_OUTPUTS} (outputs).\nExample:  4,6,4,2",
                     "Shape Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -423,6 +439,15 @@ namespace supermario
                 try
                 {
                     var (net, generation, fitness) = NetworkSerializer.Load(dlg.FileName);
+
+                    if (!IsShapeCompatible(net.Shape))
+                    {
+                        MessageBox.Show(
+                            $"Loaded network is incompatible with this trainer.\nIt must have {NET_INPUTS} "
+                            + $"inputs and at least {NET_OUTPUTS} outputs (shape was {ShapeToString(net.Shape)}).",
+                            "Load failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
 
                     // Update network shape UI to match the loaded file
                     NetParams.NetworkShape = net.Shape;
@@ -621,6 +646,10 @@ namespace supermario
             b.FlatAppearance.BorderSize  = 2;
             return b;
         }
+
+        private static bool IsShapeCompatible(int[] shape)
+            => shape != null && shape.Length >= 2
+               && shape[0] == NET_INPUTS && shape[shape.Length - 1] >= NET_OUTPUTS;
 
         private static string ShapeToString(int[] shape) => string.Join(",", shape);
 
