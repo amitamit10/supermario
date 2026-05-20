@@ -551,6 +551,22 @@ namespace supermario
                 }
                 je.IsGrounded = jeGrounded;
 
+                // An enemy resting exactly on a platform top has bottom == platTop,
+                // which IntersectsWith treats as non-overlapping, so the loop above
+                // would flip IsGrounded off every other frame. That halves the jump
+                // timer cadence (it only ticks while grounded). Re-confirm footing
+                // with a 2px probe just below the feet when not rising.
+                if (!jeGrounded && je.VerticalVelocity >= 0)
+                {
+                    var feet = new Rectangle(je.Position.X, je.Position.Y + je.Visual.Height, je.Visual.Width, 2);
+                    foreach (var plat in platforms)
+                    {
+                        var pr = new Rectangle(plat.Position.X, plat.Position.Y,
+                            plat.PictureBox.Width, plat.PictureBox.Height);
+                        if (feet.IntersectsWith(pr)) { je.IsGrounded = true; break; }
+                    }
+                }
+
                 var jeBounds2 = je.Bounds;
                 foreach (var qb in questionBlocks)
                 {
