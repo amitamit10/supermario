@@ -14,6 +14,7 @@ namespace supermario
 
         private Button _btnStart;
         private Button _btnHowTo;
+        private Button _btnTrain;
         private Button _btnExit;
 
         private static readonly (float relX, int y, int w)[] CLOUDS = {
@@ -37,14 +38,17 @@ namespace supermario
 
             _btnStart = MakeButton("▶   START GAME",  Color.FromArgb(48, 176, 48),  Color.FromArgb(22, 120, 22),  16f);
             _btnHowTo = MakeButton("?   HOW TO PLAY", Color.FromArgb(210, 165, 10), Color.FromArgb(155, 105, 0),  13f);
+            _btnTrain = MakeButton("⚡  TRAIN  AI",    Color.FromArgb(30, 120, 180), Color.FromArgb(15, 70, 130),  13f);
             _btnExit  = MakeButton("✕   EXIT",         Color.FromArgb(185, 38, 28),  Color.FromArgb(130, 18, 10), 13f);
 
             _btnStart.Click += (s, e) => LaunchGame();
             _btnHowTo.Click += (s, e) => { _showHowTo = !_showHowTo; Invalidate(); };
+            _btnTrain.Click += (s, e) => LaunchTrainer();
             _btnExit.Click  += (s, e) => Application.Exit();
 
             Controls.Add(_btnStart);
             Controls.Add(_btnHowTo);
+            Controls.Add(_btnTrain);
             Controls.Add(_btnExit);
 
             Shown      += (s, e) => PositionButtons();
@@ -85,7 +89,10 @@ namespace supermario
             _btnHowTo.Location = new Point(cx - BW_S / 2, midY + BH + GAP);
             _btnHowTo.Size     = new Size(BW_S, BH - 4);
 
-            _btnExit.Location  = new Point(cx - BW_S / 2, midY + (BH + GAP) + (BH - 4) + GAP);
+            _btnTrain.Location = new Point(cx - BW_S / 2, midY + (BH + GAP) + (BH - 4) + GAP);
+            _btnTrain.Size     = new Size(BW_S, BH - 4);
+
+            _btnExit.Location  = new Point(cx - BW_S / 2, midY + (BH + GAP) + 2 * (BH - 4) + 2 * GAP);
             _btnExit.Size      = new Size(BW_S, BH - 4);
         }
 
@@ -107,6 +114,22 @@ namespace supermario
             b.FlatAppearance.MouseOverBackColor = ControlPaint.Light(back, 0.18f);
             b.FlatAppearance.MouseDownBackColor = dark;
             return b;
+        }
+
+        // ── Trainer launch ────────────────────────────────────────────────────
+        private void LaunchTrainer()
+        {
+            _animTimer.Stop();
+            var trainer = new TrainingForm();
+            trainer.FormClosed += (s, e) =>
+            {
+                _cloudOffset = 0f;
+                Show();
+                BringToFront();
+                _animTimer.Start();
+            };
+            trainer.Show();
+            Hide();
         }
 
         // ── Game launch ───────────────────────────────────────────────────────
@@ -185,7 +208,7 @@ namespace supermario
             foreach (var (rx, cy, cw) in CLOUDS)
             {
                 int sx = (int)(rx * (W + 320) - _cloudOffset);
-                while (sx + cw + 50 < 0) sx += W + 370;
+                while (sx + cw + 50 < 0) sx += W + 320;
                 int ch = cw / 2;
                 using (var shadow = new SolidBrush(Color.FromArgb(35, 80, 110, 165)))
                     g.FillEllipse(shadow, sx + 9, cy + 13, cw, ch);

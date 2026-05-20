@@ -185,7 +185,8 @@ namespace supermario
 
                 // Move
                 int newX = m.Position.X + (int)m.VelocityX;
-                if (newX < 0 || newX > 2960) { m.VelocityX = -m.VelocityX; newX = Math.Max(0, Math.Min(2960, newX)); }
+                int mushroomMaxX = LEVEL_PIXEL_WIDTH - m.Visual.Width;
+                if (newX < 0 || newX > mushroomMaxX) { m.VelocityX = -m.VelocityX; newX = Math.Max(0, Math.Min(mushroomMaxX, newX)); }
                 int newY = m.Position.Y + (int)Math.Round(m.VerticalVelocity);
                 m.Position = new Point(newX, newY);
 
