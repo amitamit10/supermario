@@ -361,15 +361,22 @@ namespace supermario
                 int orr = plat.Right - ar.Left;
                 int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                if (min == ot && ot < 20)
+                if (min == ot && ot < 30)
                 {
                     agent.LandOn(plat.Top, AGENT_H);
                     foundGround = true;
                     ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
                 }
-                else if (min == ob)  { agent.HitCeiling(plat.Bottom); }
+                else if (min == ob)
+                {
+                    agent.HitCeiling(plat.Bottom);
+                    ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
+                }
                 else if (min == ol || min == orr)
+                {
                     agent.BlockHorizontal(min == ol ? plat.Left - AGENT_W : plat.Right);
+                    ar = new Rectangle(agent.Position.X, agent.Position.Y, AGENT_W, AGENT_H);
+                }
             }
 
             if (!foundGround) agent.LeaveGround();
