@@ -111,7 +111,7 @@ namespace supermario.ML
 
         public void BlockHorizontal(int edgeX)
         {
-            preciseX           = edgeX;
+            preciseX           = Clamp(edgeX, 0, 2950);
             Position           = new Point((int)Math.Round(preciseX), (int)Math.Round(preciseY));
             HorizontalVelocity = 0;
         }
@@ -138,8 +138,6 @@ namespace supermario.ML
             IList<Rectangle> enemyRects,
             bool isGrounded)
         {
-            const double WORLD_W = 3000.0;
-
             // 1. Gap distance: how far ahead until there is no floor platform below feet.
             // Start probing just past the agent's right edge; cap the start so very wide
             // agents still run the loop.
