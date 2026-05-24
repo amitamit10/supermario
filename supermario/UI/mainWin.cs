@@ -183,6 +183,8 @@ namespace supermario
 
         private void DrawClouds(Graphics g, int W, int H, int offset)
         {
+            var saved = g.SmoothingMode;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
             foreach (var cloud in CLOUDS)
             {
                 int wx = cloud.wx; int cy = cloud.y; int cw = cloud.w;
@@ -204,6 +206,7 @@ namespace supermario
                         g.FillEllipse(b, x + cw / 3 + 4, cy + 4, cw / 5, ch / 4);
                 }
             }
+            g.SmoothingMode = saved;
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -312,9 +315,11 @@ namespace supermario
 
             if (isDying) { isWalking = false; HandleDeathAnimation(FIXED_STEP_MS); picboxplayer.Invalidate(); return; }
 
-            // Pit detection – player fell off the bottom of the world
+            // Pit detection – player fell off the bottom of the world.
+            // Snap to the canvas edge so the death animation jump-up is fully visible.
             if (player.Position.Y > 580)
             {
+                player.Position = new Point(player.Position.X, 580);
                 isDying = true;
                 deathTimer = 0f;
                 return;
