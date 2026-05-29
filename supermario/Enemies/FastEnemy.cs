@@ -51,7 +51,9 @@ namespace supermario
             walkTick++;
             if (walkTick >= 5) { walkTick = 0; walkFrame = (walkFrame + 1) % 2; Visual.Invalidate(); }
             int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
-            if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
+            int maxX = 3000 - Visual.Width;
+            if (newX < 0 || newX > maxX) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
+            if (newX < 0) newX = 0; else if (newX > maxX) newX = maxX;
             Position = new Point(newX, Position.Y);
         }
 
@@ -157,6 +159,7 @@ namespace supermario
         {
             if (w <= 0 || h <= 0) return;
             r = System.Math.Min(r, System.Math.Min(w / 2, h / 2));
+            if (r <= 0) { g.FillRectangle(b, x, y, w, h); return; }
             using (var path = new GraphicsPath())
             {
                 path.AddArc(x, y, r * 2, r * 2, 180, 90);
