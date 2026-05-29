@@ -58,9 +58,17 @@ namespace supermario
                     IsGrounded = false;
                 }
             }
+            else
+            {
+                // Reset cadence whenever airborne (whether from a jump or walking
+                // off a ledge) so we don't jump immediately on the next landing.
+                jumpTick = 0;
+            }
 
             int newX = Position.X + (int)Math.Round(Direction * WALK_SPEED);
-            if (newX < 0 || newX > 3000 - Visual.Width) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
+            int maxX = 3000 - Visual.Width;
+            if (newX < 0 || newX > maxX) { Direction = -Direction; newX = Position.X + (int)Math.Round(Direction * WALK_SPEED); }
+            if (newX < 0) newX = 0; else if (newX > maxX) newX = maxX;
             Position = new Point(newX, Position.Y);
         }
 
@@ -89,18 +97,18 @@ namespace supermario
             if (IsSquished) { DrawSquished(g, w, h); return; }
 
             int lOff = walkFrame == 0 ? 3 : -3;
-            // Spring coil feet
+            // Spring coil feet — left and right feet should alternate phase.
             using (var fc = new Pen(Color.FromArgb(60, 80, 180), 2.5f))
             {
                 for (int s = 0; s < 3; s++)
                 {
-                    int sy = h - 14 + s * 4 + (walkFrame == 0 ? lOff : -lOff);
+                    int sy = h - 14 + s * 4 + lOff;
                     g.DrawLine(fc, 5, sy, 14, sy + 2);
                     g.DrawLine(fc, 14, sy + 2, 5, sy + 4);
                 }
                 for (int s = 0; s < 3; s++)
                 {
-                    int sy = h - 14 + s * 4 + (walkFrame == 0 ? -lOff : lOff);
+                    int sy = h - 14 + s * 4 - lOff;
                     g.DrawLine(fc, w - 14, sy, w - 5, sy + 2);
                     g.DrawLine(fc, w - 5, sy + 2, w - 14, sy + 4);
                 }
