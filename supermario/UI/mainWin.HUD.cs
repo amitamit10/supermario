@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace supermario
@@ -8,50 +7,39 @@ namespace supermario
     partial class mainWin
     {
         // ════════════════════════════════════════════════════════════════════
-        //  PLAYER SPRITE
+        //  ציור השחקן / Player sprite
         // ════════════════════════════════════════════════════════════════════
-        // Cached fallback sprite — Properties.Resources allocates a new Bitmap per access,
-        // so we hold a single instance instead of leaking one Bitmap per paint event.
-        private static Image _fallbackPlayerImage;
-
-        private void DrawPlayerSprite(object sender, PaintEventArgs e)
+        // מציב את תמונת מריו המתאימה למצב (עמידה / הליכה / קפיצה) ולכיוון הפנייה.
+        // הציור עצמו נעשה אוטומטית ע"י ה-PictureBox — אין כאן GDI+.
+        // Picks Mario's image for the current state (idle / walk / jump) and facing
+        // direction. The PictureBox draws it automatically — no GDI+ here.
+        private void UpdatePlayerSprite()
         {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.None;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-
-            int w = picboxplayer.Width;
-            int h = picboxplayer.Height;
-
+            // הבהוב בזמן חוסן זמני / blink while invincible
             if (isInvincible && ((int)(invincibleTimer / 100f) % 2 == 0))
-                return;
-
-            if (!facingRight)
             {
-                g.TranslateTransform(w, 0);
-                g.ScaleTransform(-1, 1);
-            }
-
-            if (TextureLoader.TryGetSheet("player", out var playerSheet))
-            {
-                int frameIndex = 0;
-                if (!player.IsGrounded || player.VerticalVelocity != 0)
-                    frameIndex = 3;
-                else if (isWalking)
-                    frameIndex = (globalTick / 6 % 2 == 0) ? 1 : 2;
-
-                g.DrawFrame(playerSheet, frameIndex, 64, 64, new Rectangle(0, 0, w, h));
+                picboxplayer.Visible = false;
                 return;
             }
+            picboxplayer.Visible = true;
 
-            if (_fallbackPlayerImage == null)
-                _fallbackPlayerImage = Properties.Resources.dcaeqy1_614416a8_3ae1_4448_94b4_e3ecefa3e53a;
-            g.DrawImage(_fallbackPlayerImage, 0, 0, w, h);
+            Image img;
+            if (!player.IsGrounded || player.VerticalVelocity != 0)
+                img = facingRight ? Sprites.MarioJump : Sprites.MarioJumpLeft;          // באוויר / airborne
+            else if (isWalking)
+            {
+                int f = (globalTick / 6) % 2;                                            // שני פריימי הליכה
+                img = facingRight ? Sprites.MarioWalk?[f] : Sprites.MarioWalkLeft?[f];
+            }
+            else
+                img = facingRight ? Sprites.MarioIdle : Sprites.MarioIdleLeft;           // עמידה / idle
+
+            if (img != null && picboxplayer.Image != img) picboxplayer.Image = img;
         }
 
-
         // ════════════════════════════════════════════════════════════════════
-        //  HUD  –  controls created once, text updated each tick
+        //  HUD — נוצר פעם אחת, הטקסט מתעדכן כל פריים
+        //  HUD — controls created once, text updated each tick
         // ════════════════════════════════════════════════════════════════════
         private void InitHud()
         {
@@ -133,6 +121,5 @@ namespace supermario
                 }
             }
         }
-
     }
 }

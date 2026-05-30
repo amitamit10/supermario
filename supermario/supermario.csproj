@@ -53,9 +53,11 @@
     <Compile Include="Core\GameManager.cs" />
     <Compile Include="Core\Player.cs" />
     <Compile Include="Core\GameData.cs" />
-    <Compile Include="Core\TextureLoader.cs" />
+    <Compile Include="Core\Sprites.cs" />
+    <Compile Include="Core\Animator.cs" />
 
     <!-- Enemies -->
+    <Compile Include="Enemies\Enemy.cs" />
     <Compile Include="Enemies\Goomba.cs" />
     <Compile Include="Enemies\Koopa.cs" />
     <Compile Include="Enemies\FastEnemy.cs" />
@@ -131,29 +133,10 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Resources\questionBlock.png" />
-    <Content Include="..\assets\textures\sprite_sheets\blocks_sheet.png">
-      <Link>assets\textures\sprite_sheets\blocks_sheet.png</Link>
-      <TargetPath>assets\textures\sprite_sheets\blocks_sheet.png</TargetPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\assets\textures\sprite_sheets\enemies_sheet.png">
-      <Link>assets\textures\sprite_sheets\enemies_sheet.png</Link>
-      <TargetPath>assets\textures\sprite_sheets\enemies_sheet.png</TargetPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\assets\textures\sprite_sheets\items_sheet.png">
-      <Link>assets\textures\sprite_sheets\items_sheet.png</Link>
-      <TargetPath>assets\textures\sprite_sheets\items_sheet.png</TargetPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\assets\textures\sprite_sheets\player_sheet.png">
-      <Link>assets\textures\sprite_sheets\player_sheet.png</Link>
-      <TargetPath>assets\textures\sprite_sheets\player_sheet.png</TargetPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\assets\textures\sprite_sheets\world_bg.png">
-      <Link>assets\textures\sprite_sheets\world_bg.png</Link>
-      <TargetPath>assets\textures\sprite_sheets\world_bg.png</TargetPath>
+    <!-- כל הספרייטים הבודדים מועתקים לתיקיית הפלט ליד ה-EXE -->
+    <!-- copy every individual sprite to the output folder next to the EXE -->
+    <Content Include="..\assets\textures\sprites\*.png">
+      <Link>assets\textures\sprites\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
