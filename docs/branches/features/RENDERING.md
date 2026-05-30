@@ -1,5 +1,14 @@
 # Feature: Rendering
 
+> ⚠️ **עודכן / UPDATED:** הרינדור פושט. כיום **כל אובייקט הוא `PictureBox` עם תמונה**
+> (`Image` / `BackgroundImage`) — **אין ציור GDI+ ידני** ואין sprite‑sheets/`TextureLoader`.
+> התמונות הן קבצי PNG בודדים תחת `assets/textures/sprites/`, נטענים ע"י `Core/Sprites.cs`,
+> ואנימציה = החלפת `PictureBox.Image` (ראו `Core/Animator.cs`). המסמך שלהלן מתאר את
+> הארכיטקטורה ההיסטורית (sheets + GDI+ fallback) לצורך רקע בלבד. מקור האמת: `CLAUDE.md`.
+>
+> Rendering was simplified: **every object is now a `PictureBox` with an image** — no
+> hand-written GDI+ and no sprite sheets / `TextureLoader`. The text below is historical.
+
 How pixels actually get on screen. Three coexisting rendering paths.
 
 ## Three Paths

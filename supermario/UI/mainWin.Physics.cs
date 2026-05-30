@@ -349,7 +349,7 @@ namespace supermario
             player.MaxX = LEVEL_PIXEL_WIDTH - picboxplayer.Width;
             picboxplayer.Location = player.Position;
             ClearPlatforms(); CreateLongLevel();
-            _stopwatch.Restart(); _lastTickMs = 0; _accumulatedMs = 0;
+            // אין צורך ב-Stopwatch — הטיימר מריץ צעד קבוע בכל טיק / no stopwatch needed
             Text = $"Super Mario – Level {currentLevelNumber}";
             UpdateHud();
             gameManager.StartGame(); gameTimer.Stop(); gameTimer.Start();

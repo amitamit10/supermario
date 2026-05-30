@@ -3,26 +3,29 @@ using System.Drawing;
 
 namespace supermario
 {
+    /// ════════════════════════════════════════════════════════════════════
+    ///  Player — מצב ופיזיקה של השחקן / player state & physics
+    /// --------------------------------------------------------------------
+    ///  פיזיקה פשוטה ובסיסית: תנועה אופקית במהירות קבועה, כבידה קבועה,
+    ///  וקפיצה שמציבה מהירות אנכית. (אין האצה/האטה מדורגת.)
+    ///  Simple, basic physics: constant horizontal speed, constant gravity,
+    ///  and a jump that sets the vertical velocity. (No acceleration ramps.)
+    /// ════════════════════════════════════════════════════════════════════
     public class Player
     {
+        // ── מיקום מדויק (float) כדי שהתנועה תהיה חלקה / sub-pixel position ──
         private Point position;
         private float preciseX;
         private float preciseY;
         private float horizontalVelocity;
-        private bool isJumpHeld = false;
 
-        private const float GroundMoveSpeed = 4.4f;
-        private const float MaxMoveSpeed = 5.6f;
-        private const float GroundAcceleration = 0.75f;
-        private const float AirAcceleration = 0.42f;
-        private const float GroundDeceleration = 0.55f;
-        private const float AirDeceleration = 0.16f;
+        // ── קבועי פיזיקה / physics constants ─────────────────────────────
+        private const float MoveSpeed = 5f;          // מהירות הליכה / walk speed
+        private const float Gravity = 0.6f;          // כבידה לפריים / gravity per frame
+        private const float JumpPower = -13f;        // עוצמת קפיצה (שלילי = מעלה) / jump strength
+        private const float MaxFallSpeed = 15f;      // מהירות נפילה מרבית / terminal fall speed
 
-        private const float Gravity = 0.58f;
-        private const float JumpPower = -13.8f;
-        private const float MaxFallSpeed = 15.5f;
-        private const float JumpReleaseGravityMultiplier = 2.4f;
-
+        // ── מצב גלוי / public state ──────────────────────────────────────
         public int Health { get; set; }
         public int Score { get; set; }
         public bool IsGrounded { get; set; }
@@ -31,19 +34,15 @@ namespace supermario
         public Point Position
         {
             get => position;
-            set
-            {
-                position = value;
-                preciseX = value.X;
-                preciseY = value.Y;
-            }
+            set { position = value; preciseX = value.X; preciseY = value.Y; }
         }
 
         public Point PreviousPosition { get; private set; }
         public float VerticalVelocity { get; private set; }
         public float HorizontalVelocity => horizontalVelocity;
 
-        // Plain Action (not event) so it can be assigned with = to prevent stacking
+        // Action רגיל (לא event) כדי שניתן להציב עם = ולא לערום מאזינים
+        // a plain Action (not an event) so it can be assigned with = without stacking
         public System.Action OnDamageTaken;
 
         public Player(Point startPosition, System.Drawing.Image playerImage)
@@ -59,40 +58,24 @@ namespace supermario
             horizontalVelocity = 0;
         }
 
+        // ════════════════════════════════════════════════════════════════
+        //  תנועה / Movement  (נקרא פעם בכל פריים / called once per frame)
+        // ════════════════════════════════════════════════════════════════
         public void Move(int direction, bool jumpPressed, bool jumpHeld)
         {
             PreviousPosition = Position;
 
-            float targetSpeed = direction * GroundMoveSpeed;
-            float accelRate = IsGrounded ? GroundAcceleration : AirAcceleration;
-            float decelRate = IsGrounded ? GroundDeceleration : AirDeceleration;
-
-            if (direction != 0)
-            {
-                horizontalVelocity = Approach(horizontalVelocity, targetSpeed, accelRate);
-            }
-            else
-            {
-                horizontalVelocity = Approach(horizontalVelocity, 0, decelRate);
-            }
-
-            horizontalVelocity = Clamp(horizontalVelocity, -MaxMoveSpeed, MaxMoveSpeed);
+            // תנועה אופקית במהירות קבועה / constant-speed horizontal movement
+            horizontalVelocity = direction * MoveSpeed;
             preciseX = Clamp(preciseX + horizontalVelocity, 0, MaxX);
 
-            if (jumpPressed && IsGrounded)
-            {
-                Jump();
-            }
+            // קפיצה רק כשעל הקרקע / jump only when grounded
+            if (jumpPressed && IsGrounded) Jump();
 
-            isJumpHeld = jumpHeld;
-
+            // כבידה / gravity
             if (!IsGrounded)
             {
-                float gravityToApply = Gravity;
-                if (!isJumpHeld && VerticalVelocity < 0)
-                    gravityToApply *= JumpReleaseGravityMultiplier;
-
-                VerticalVelocity = Math.Min(VerticalVelocity + gravityToApply, MaxFallSpeed);
+                VerticalVelocity = Math.Min(VerticalVelocity + Gravity, MaxFallSpeed);
                 preciseY += VerticalVelocity;
             }
             else
@@ -106,19 +89,19 @@ namespace supermario
         public void Jump()
         {
             if (!IsGrounded) return;
-
             IsGrounded = false;
             VerticalVelocity = JumpPower;
-            isJumpHeld = true;
         }
 
+        // ════════════════════════════════════════════════════════════════
+        //  תגובות התנגשות / Collision responses
+        // ════════════════════════════════════════════════════════════════
         public void LandOn(int topY, int playerHeight)
         {
             preciseY = topY - playerHeight;
             position = new Point((int)Math.Round(preciseX), (int)Math.Round(preciseY));
             VerticalVelocity = 0;
             IsGrounded = true;
-            isJumpHeld = false;
         }
 
         public void HitCeiling(int bottomY)
@@ -137,18 +120,16 @@ namespace supermario
 
         public void LeaveGround()
         {
-            if (IsGrounded)
-                IsGrounded = false;
+            if (IsGrounded) IsGrounded = false;
         }
 
         public void CollectCoin() { Score += 10; }
 
-        // Called when the player stomps an enemy – gives a short upward bounce
+        // קפיצונת קטנה אחרי דריכה על אויב / small bounce after stomping an enemy
         public void Bounce()
         {
             VerticalVelocity = -7f;
             IsGrounded = false;
-            isJumpHeld = false;
         }
 
         public void TakeDamage(int amount)
@@ -166,16 +147,9 @@ namespace supermario
             VerticalVelocity = 0;
             horizontalVelocity = 0;
             IsGrounded = false;
-            isJumpHeld = false;
         }
 
-        private static float Approach(float value, float target, float amount)
-        {
-            if (value < target) return Math.Min(value + amount, target);
-            if (value > target) return Math.Max(value - amount, target);
-            return value;
-        }
-
+        // הגבלת ערך לטווח / clamp a value to a range
         private static float Clamp(float value, float min, float max)
         {
             if (value < min) return min;
