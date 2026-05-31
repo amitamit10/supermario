@@ -86,8 +86,6 @@ namespace supermario.ML
                 int wi;
                 for (wi = 0; wi < neuron.Weights.Length && wi + 3 < parts.Length; wi++)
                     neuron.Weights[wi] = double.Parse(parts[wi + 3], INV);
-                // Zero out any weights the file did not provide so we don't end up
-                // with a hybrid of stored + random initial values.
                 for (; wi < neuron.Weights.Length; wi++)
                     neuron.Weights[wi] = 0.0;
             }
@@ -106,6 +104,123 @@ namespace supermario.ML
                 return result;
             }
             catch { return null; }
+        }
+
+        // ── JSON save / load (simple manual format, no external library) ──────────
+
+        public static void SaveJson(NeuralNetwork net, int generation, int fitness, string path)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("{");
+            sb.AppendLine("  \"generation\": " + generation + ",");
+            sb.AppendLine("  \"fitness\": " + fitness + ",");
+            sb.AppendLine("  \"shape\": [" + string.Join(", ", net.Shape) + "],");
+            sb.AppendLine("  \"neurons\": [");
+
+            bool firstNeuron = true;
+            for (int li = 1; li < net.Shape.Length; li++)
+            {
+                var layer = net.GetLayer(li);
+                for (int ni = 0; ni < layer.Neurons.Length; ni++)
+                {
+                    var n = layer.Neurons[ni];
+                    if (!firstNeuron) sb.AppendLine(",");
+                    firstNeuron = false;
+
+                    var weights = string.Join(", ", Array.ConvertAll(n.Weights, w => w.ToString("R", INV)));
+                    sb.Append("    {\"layer\": " + li + ", \"neuron\": " + ni
+                        + ", \"bias\": " + n.Bias.ToString("R", INV)
+                        + ", \"weights\": [" + weights + "]}");
+                }
+            }
+            sb.AppendLine();
+            sb.AppendLine("  ]");
+            sb.AppendLine("}");
+
+            File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        }
+
+        public static (NeuralNetwork net, int generation, int fitness) LoadJson(string path)
+        {
+            string text = File.ReadAllText(path, Encoding.UTF8);
+
+            int generation = ParseJsonInt(text, "generation");
+            int fitness    = ParseJsonInt(text, "fitness");
+            int[] shape    = ParseJsonShape(text);
+
+            if (shape == null || shape.Length < 2)
+                throw new InvalidDataException("Missing or invalid shape in JSON.");
+
+            var net = new NeuralNetwork(shape);
+
+            int neuronsStart = text.IndexOf("\"neurons\"", StringComparison.Ordinal);
+            if (neuronsStart < 0) throw new InvalidDataException("No neurons array in JSON.");
+            int arrayStart = text.IndexOf('[', neuronsStart);
+            int arrayEnd   = text.LastIndexOf(']');
+            string neuronsBlock = text.Substring(arrayStart + 1, arrayEnd - arrayStart - 1);
+
+            var neuronObjects = neuronsBlock.Split(new[] { "},{" }, StringSplitOptions.None);
+            foreach (var obj in neuronObjects)
+            {
+                int li = ParseJsonInt(obj, "layer");
+                int ni = ParseJsonInt(obj, "neuron");
+                if (li < 1 || li >= shape.Length) continue;
+
+                var layer = net.GetLayer(li);
+                if (ni < 0 || ni >= layer.Neurons.Length) continue;
+                var neuron = layer.Neurons[ni];
+
+                neuron.Bias = ParseJsonDouble(obj, "bias");
+
+                int wStart = obj.IndexOf("\"weights\"", StringComparison.Ordinal);
+                if (wStart < 0) continue;
+                int wArr = obj.IndexOf('[', wStart);
+                int wEnd = obj.IndexOf(']', wArr);
+                string wBlock = obj.Substring(wArr + 1, wEnd - wArr - 1).Trim();
+                if (wBlock.Length == 0) continue;
+
+                var wParts = wBlock.Split(',');
+                for (int wi = 0; wi < neuron.Weights.Length && wi < wParts.Length; wi++)
+                    neuron.Weights[wi] = double.Parse(wParts[wi].Trim(), INV);
+            }
+
+            return (net, generation, fitness);
+        }
+
+        private static int ParseJsonInt(string json, string key)
+        {
+            string search = "\"" + key + "\"";
+            int idx = json.IndexOf(search, StringComparison.Ordinal);
+            if (idx < 0) return 0;
+            int colon = json.IndexOf(':', idx + search.Length);
+            int start = colon + 1;
+            while (start < json.Length && (json[start] == ' ' || json[start] == '\t')) start++;
+            int end = start;
+            while (end < json.Length && (char.IsDigit(json[end]) || json[end] == '-')) end++;
+            return end > start ? int.Parse(json.Substring(start, end - start), INV) : 0;
+        }
+
+        private static double ParseJsonDouble(string json, string key)
+        {
+            string search = "\"" + key + "\"";
+            int idx = json.IndexOf(search, StringComparison.Ordinal);
+            if (idx < 0) return 0.0;
+            int colon = json.IndexOf(':', idx + search.Length);
+            int start = colon + 1;
+            while (start < json.Length && (json[start] == ' ' || json[start] == '\t')) start++;
+            int end = start;
+            while (end < json.Length && (char.IsDigit(json[end]) || json[end] == '-' || json[end] == '.' || json[end] == 'E' || json[end] == 'e' || json[end] == '+')) end++;
+            return end > start ? double.Parse(json.Substring(start, end - start), INV) : 0.0;
+        }
+
+        private static int[] ParseJsonShape(string json)
+        {
+            int idx = json.IndexOf("\"shape\"", StringComparison.Ordinal);
+            if (idx < 0) return null;
+            int arrStart = json.IndexOf('[', idx);
+            int arrEnd   = json.IndexOf(']', arrStart);
+            if (arrStart < 0 || arrEnd < 0) return null;
+            return ParseInts(json.Substring(arrStart + 1, arrEnd - arrStart - 1));
         }
     }
 }
