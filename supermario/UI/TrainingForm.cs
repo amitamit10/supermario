@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Windows.Forms;
 using supermario.ML;
@@ -37,6 +36,15 @@ namespace supermario
         private int              _cameraX;
         private List<Rectangle>  _platforms = new List<Rectangle>();
         private Rectangle[]      _coinRects;
+
+        // ── תצוגת הסצנה כתמונות (PictureBox) במקום ציור GDI+ ─────────────────────
+        // Scene rendered with PictureBoxes (no GDI+). Platforms/coins are created
+        // once and only repositioned; agents reuse a pool so we never create or
+        // destroy controls per frame (which would stutter the training).
+        private readonly List<PictureBox> _platformViews = new List<PictureBox>();
+        private PictureBox[]              _coinViews;
+        private readonly List<PictureBox> _agentPool = new List<PictureBox>();
+        private int                       _simFrame;   // מונה פריימים לאנימציית הליכה
 
         // ── ML state ─────────────────────────────────────────────────────────────
         private Population _pop;
@@ -114,6 +122,8 @@ namespace supermario
             KeyPreview      = true;
             KeyDown        += (s, e) => { if (e.KeyCode == Keys.Escape) GoBack(); };
 
+            Sprites.LoadAll();          // ודא שהתמונות זמינות גם אם נכנסים ישר לאימון
+
             BuildPlatforms();
             BuildCoins();
             BuildUI();
@@ -132,8 +142,13 @@ namespace supermario
         private void BuildUI()
         {
             _canvas = new BufferedPanel { BackColor = Color.FromArgb(92, 148, 252) };
-            _canvas.Paint += CanvasPaint;
+            if (Sprites.Background != null)
+            {
+                _canvas.BackgroundImage       = Sprites.Background;
+                _canvas.BackgroundImageLayout = ImageLayout.Tile;   // רקע פרוס כאריחים
+            }
             Controls.Add(_canvas);
+            BuildLevelViews();          // יוצר PictureBox לכל פלטפורמה/מטבע (פעם אחת)
 
             var dash = new Panel { BackColor = Color.FromArgb(22, 22, 38) };
             Controls.Add(dash);
@@ -268,7 +283,7 @@ namespace supermario
             _pop      = new Population(SPAWN);
             UpdateDashboard();
             _btnStartPause.Text = "▶  START";
-            _canvas.Invalidate();
+            RenderScene();
         }
 
         private void ApplySettings()
@@ -299,6 +314,7 @@ namespace supermario
         private void SimTick(object sender, EventArgs e)
         {
             if (_pop == null) return;
+            _simFrame++;                 // קצב אנימציית ההליכה של הסוכנים
 
             foreach (var agent in _pop.Agents)
             {
@@ -332,7 +348,7 @@ namespace supermario
             }
 
             UpdateDashboard();
-            _canvas.Invalidate();
+            RenderScene();
         }
 
         private static readonly List<Rectangle> _emptyRects = new List<Rectangle>();
@@ -483,7 +499,7 @@ namespace supermario
 
                     UpdateDashboard();
                     _btnStartPause.Text = "▶  RESUME";
-                    _canvas.Invalidate();
+                    RenderScene();
 
                     MessageBox.Show(
                         $"Loaded gen {generation}, fitness {fitness}.\nPress RESUME to continue training.",
@@ -498,89 +514,105 @@ namespace supermario
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        //  Canvas paint
+        //  תצוגת הסצנה כתמונות / Scene rendering with PictureBoxes
         // ════════════════════════════════════════════════════════════════════════
-        private void CanvasPaint(object sender, PaintEventArgs e)
+        // נוצרים פעם אחת: PictureBox לכל פלטפורמה (אריח לבנה) ולכל מטבע.
+        // Created once: one PictureBox per platform (brick tile) and per coin.
+        private void BuildLevelViews()
         {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            int W = _canvas.Width, H = _canvas.Height;
-
-            // Sky gradient
-            using (var sky = new LinearGradientBrush(Point.Empty, new Point(0, H),
-                Color.FromArgb(92, 148, 252), Color.FromArgb(178, 218, 255)))
-                g.FillRectangle(sky, 0, 0, W, H);
-
-            // Platforms
             foreach (var plat in _platforms)
             {
-                int sx = plat.X - _cameraX;
-                if (sx + plat.Width < 0 || sx > W) continue;
-                using (var b = new SolidBrush(Color.FromArgb(185, 100, 40)))
-                    g.FillRectangle(b, sx, plat.Y, plat.Width, plat.Height);
-                using (var p = new Pen(Color.FromArgb(120, 60, 15), 2f))
-                    g.DrawRectangle(p, sx, plat.Y, plat.Width, plat.Height);
-                using (var top = new SolidBrush(Color.FromArgb(70, 255, 210, 150)))
-                    g.FillRectangle(top, sx, plat.Y, plat.Width, 4);
+                var pb = new PictureBox
+                {
+                    BackColor = Color.FromArgb(185, 100, 40),   // גיבוי אם אין תמונה
+                    Size      = new Size(plat.Width, plat.Height),
+                    Location  = new Point(plat.X - _cameraX, plat.Y),
+                };
+                if (Sprites.Brick != null)
+                {
+                    pb.BackgroundImage       = Sprites.Brick;
+                    pb.BackgroundImageLayout = ImageLayout.Tile;
+                }
+                _canvas.Controls.Add(pb);
+                _platformViews.Add(pb);
             }
 
-            // Coins (always visible; each agent tracks its own collected set)
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            foreach (var cr in _coinRects)
+            _coinViews = new PictureBox[_coinRects.Length];
+            for (int i = 0; i < _coinRects.Length; i++)
             {
-                int sx = cr.X - _cameraX;
-                if (sx + cr.Width < 0 || sx > W) continue;
-                using (var lg = new LinearGradientBrush(
-                    new Point(sx, cr.Y), new Point(sx + cr.Width, cr.Y + cr.Height),
-                    Color.FromArgb(255, 230, 40), Color.FromArgb(200, 155, 0)))
-                    g.FillEllipse(lg, sx, cr.Y, cr.Width, cr.Height);
-                using (var sh = new SolidBrush(Color.FromArgb(100, 255, 255, 180)))
-                    g.FillEllipse(sh, sx + 2, cr.Y + 2, cr.Width / 3, cr.Height / 3);
-                using (var pen = new Pen(Color.FromArgb(180, 130, 0), 1.2f))
-                    g.DrawEllipse(pen, sx, cr.Y, cr.Width, cr.Height);
-            }
-
-            // Agents
-            if (_pop == null) return;
-            var bestAgent = _pop.BestAgent();
-            g.SmoothingMode = SmoothingMode.None;
-            foreach (var agent in _pop.Agents)
-            {
-                if (!agent.IsAlive) continue;
-                int sx = agent.Position.X - _cameraX;
-                if (sx + AGENT_W < 0 || sx > W) continue;
-                DrawLuigiAgent(g, sx, agent.Position.Y, agent == bestAgent);
+                var cr = _coinRects[i];
+                var pb = new PictureBox
+                {
+                    BackColor = Color.Transparent,
+                    SizeMode  = PictureBoxSizeMode.StretchImage,
+                    Size      = new Size(cr.Width, cr.Height),
+                    Location  = new Point(cr.X - _cameraX, cr.Y),
+                    Image     = Sprites.Coin != null ? Sprites.Coin[0] : null,
+                };
+                _canvas.Controls.Add(pb);
+                _coinViews[i] = pb;
             }
         }
 
-        private static void DrawLuigiAgent(Graphics g, int x, int y, bool isBest)
+        // מגדיל את מאגר ה-PictureBox של הסוכנים לפי הצורך (יצירה חד-פעמית).
+        // Grow the agent PictureBox pool on demand (created once, never per frame).
+        private void EnsureAgentPool(int needed)
         {
-            int alpha = isBest ? 255 : 130;
-            // Hat
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 30, 140, 30)))
-            { g.FillRectangle(b, x + 1, y + 2, 22, 5); g.FillRectangle(b, x + 5, y - 4, 14, 8); }
-            // Face
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 240, 190, 140)))
-                g.FillEllipse(b, x + 4, y + 6, 14, 11);
-            // Mustache
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 60, 30, 5)))
-            { g.FillEllipse(b, x + 4, y + 13, 6, 4); g.FillEllipse(b, x + 11, y + 13, 6, 4); }
-            // Overalls (white)
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 200, 210, 200)))
-                g.FillRectangle(b, x + 2, y + 17, 18, 10);
-            // Shirt (green)
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 30, 140, 30)))
-            { g.FillRectangle(b, x, y + 17, 4, 7); g.FillRectangle(b, x + 18, y + 17, 4, 7); }
-            // Legs
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 200, 210, 200)))
-            { g.FillRectangle(b, x + 3, y + 27, 7, 7); g.FillRectangle(b, x + 12, y + 27, 7, 7); }
-            // Shoes
-            using (var b = new SolidBrush(Color.FromArgb(alpha, 75, 42, 8)))
-            { g.FillRectangle(b, x + 1, y + 33, 10, 4); g.FillRectangle(b, x + 11, y + 33, 10, 4); }
-            // Gold ring for best
-            if (isBest)
-                using (var p = new Pen(Color.FromArgb(255, 255, 200, 0), 2f))
-                    g.DrawRectangle(p, x - 2, y - 6, AGENT_W + 4, AGENT_H + 6);
+            while (_agentPool.Count < needed)
+            {
+                var pb = new PictureBox
+                {
+                    BackColor = Color.Transparent,
+                    SizeMode  = PictureBoxSizeMode.StretchImage,
+                    Size      = new Size(AGENT_W, AGENT_H),
+                    Visible   = false,
+                };
+                _canvas.Controls.Add(pb);
+                pb.BringToFront();            // סוכנים מעל פלטפורמות/מטבעות
+                _agentPool.Add(pb);
+            }
+        }
+
+        // ממקם מחדש את כל התמונות לפי המצלמה ומצב הסוכנים. נקרא כל פריים במקום ציור.
+        // Repositions every view from the camera & agent state. Called each frame
+        // instead of painting. Off-screen views are hidden so they aren't drawn.
+        private void RenderScene()
+        {
+            int W = _canvas.Width;
+
+            for (int i = 0; i < _platformViews.Count; i++)
+                _platformViews[i].Left = _platforms[i].X - _cameraX;
+
+            if (_coinViews != null)
+                for (int i = 0; i < _coinViews.Length; i++)
+                {
+                    int sx = _coinRects[i].X - _cameraX;
+                    _coinViews[i].Left    = sx;
+                    _coinViews[i].Visible = sx + _coinRects[i].Width >= 0 && sx <= W;
+                }
+
+            if (_pop == null) return;
+
+            EnsureAgentPool(_pop.Agents.Count);
+            var best     = _pop.BestAgent();
+            int frame    = (_simFrame / 6) % 2;                       // אנימציית הליכה
+            var luigiImg = Sprites.LuigiWalk != null ? Sprites.LuigiWalk[frame] : null;
+
+            for (int i = 0; i < _agentPool.Count; i++)
+            {
+                var pb = _agentPool[i];
+                if (i >= _pop.Agents.Count) { pb.Visible = false; continue; }
+
+                var agent = _pop.Agents[i];
+                int sx    = agent.Position.X - _cameraX;
+                if (!agent.IsAlive || sx + AGENT_W < 0 || sx > W) { pb.Visible = false; continue; }
+
+                pb.Image    = luigiImg;
+                // המוביל מודגש בהילה זהובה מאחוריו / leader highlighted with a gold halo
+                pb.BackColor = agent == best ? Color.FromArgb(90, 255, 205, 0) : Color.Transparent;
+                pb.Location  = new Point(sx, agent.Position.Y);
+                pb.Visible   = true;
+            }
         }
 
         // ════════════════════════════════════════════════════════════════════════
