@@ -26,7 +26,8 @@ supermario/
 │   ├── GameData.cs           Coin / Mushroom / QuestionBlock (נתונים בלבד)
 │   └── GameManager.cs        דגל "המשחק רץ" / running flag
 ├── Enemies/
-│   ├── Enemy.cs              מחלקת בסיס משותפת / shared base class
+│   ├── Enemy.cs              בסיס + עוזרי פיזיקה משותפים / base + shared physics helpers
+│   ├── SquishableEnemy.cs    בסיס‑ביניים לאויבים הנמעכים / squish base (Goomba/Fast/Patrol/Jumper)
 │   └── Goomba/Koopa/FastEnemy/JumpingEnemy/PlatformPatrolEnemy/FlyingEnemy.cs
 ├── World/GameObjectS.cs      עטיפת פלטפורמה/צינור / platform & pipe wrapper
 ├── UI/
@@ -92,3 +93,6 @@ cannot be a static PNG.
 ## עוד תיעוד / More docs
 תיעוד מעמיק לפי נושאים תחת `docs/branches/` (ARCHITECTURE, ENEMIES, RENDERING,
 ASSET_PIPELINE, PLAYER, WORLD, HUD_AND_MENU, LUIGI_AI ועוד).
+
+מפת דרכים לפישוט הקוד (כפילות/קוד מת שכדאי לצמצם): `docs/SIMPLIFICATION.md`.
+Code-simplification roadmap (duplication / dead code worth trimming): `docs/SIMPLIFICATION.md`.
