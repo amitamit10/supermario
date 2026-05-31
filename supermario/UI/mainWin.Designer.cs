@@ -19,10 +19,8 @@
                 gameTimer?.Dispose();
                 _hudLabel?.Font?.Dispose();
                 _scoreLabel?.Font?.Dispose();
-                if (_heartLabels != null)
-                {
-                    foreach (var lbl in _heartLabels) lbl?.Font?.Dispose();
-                }
+                // הלבבות הם PictureBox (ללא Font); הטופס משחרר אותם אוטומטית.
+                // hearts are PictureBoxes (no Font); the form disposes them automatically.
             }
             base.Dispose(disposing);
         }

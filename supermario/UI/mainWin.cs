@@ -93,7 +93,7 @@ namespace supermario
         // HUD
         private Label _hudLabel;
         private Label _scoreLabel;
-        private readonly Label[] _heartLabels = new Label[3];
+        private readonly PictureBox[] _hearts = new PictureBox[3];   // לבבות כתמונות / hearts as images
         private int _lastHudHealth = -1;
         private bool _lastHudSuper = false;
         private int _lastHudLevel = -1;

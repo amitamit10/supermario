@@ -30,7 +30,7 @@ namespace supermario
             picboxplayer.BringToFront();
             _hudLabel?.BringToFront();
             _scoreLabel?.BringToFront();
-            foreach (var lbl in _heartLabels) lbl?.BringToFront();
+            foreach (var heart in _hearts) heart?.BringToFront();
         }
 
         private void CreateBrickGround()

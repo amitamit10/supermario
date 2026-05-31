@@ -23,6 +23,10 @@ namespace supermario
         public static Image MarioIdleLeft, MarioJumpLeft;
         public static Image[] MarioWalkLeft;             // pre-flipped copies
 
+        // ── לואיג'י / Luigi (סוכני מסך האימון — מריו בירוק) ──────────────
+        public static Image LuigiIdle, LuigiJump;
+        public static Image[] LuigiWalk;                 // [0], [1] — אנימציית הליכה
+
         // ── אויבים / Enemies (כל אחד: שני פריימי הליכה) ──────────────────
         public static Image[] Goomba, Koopa, Fast, Jumper, Patrol, Flyer;
         public static Image KoopaShell;                  // קליפת קואפה
@@ -35,6 +39,9 @@ namespace supermario
         // ── בלוקים ועולם / Blocks & world ────────────────────────────────
         public static Image[] Question;                  // [0], [1] הבהוב
         public static Image EmptyBlock, Brick, Pipe, Flag, Background;
+
+        // ── HUD ──────────────────────────────────────────────────────────
+        public static Image HeartFull, HeartEmpty;       // לבבות חיים / life hearts
 
         private static bool _loaded;
 
@@ -58,6 +65,11 @@ namespace supermario
             MarioJumpLeft = FlipX(MarioJump);
             MarioWalkLeft = new[] { FlipX(MarioWalk[0]), FlipX(MarioWalk[1]) };
 
+            // לואיג'י (סוכני האימון) / Luigi (training agents)
+            LuigiIdle = Load(dir, "luigi_idle");
+            LuigiJump = Load(dir, "luigi_jump");
+            LuigiWalk = new[] { Load(dir, "luigi_walk1"), Load(dir, "luigi_walk2") };
+
             // אויבים / enemies
             Goomba = new[] { Load(dir, "goomba_1"), Load(dir, "goomba_2") };
             Koopa  = new[] { Load(dir, "koopa_1"),  Load(dir, "koopa_2") };
@@ -79,6 +91,10 @@ namespace supermario
             Pipe = Load(dir, "pipe");
             Flag = Load(dir, "flag");
             Background = Load(dir, "world_bg");
+
+            // HUD
+            HeartFull  = Load(dir, "heart_full");
+            HeartEmpty = Load(dir, "heart_empty");
         }
 
         // ════════════════════════════════════════════════════════════════

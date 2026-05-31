@@ -10,13 +10,18 @@
 
 | קובץ / file | תוכן / contents |
 |---|---|
-| `mario_idle/walk1/walk2/jump.png` | פריימי השחקן / player frames |
+| `mario_idle/walk1/walk2/jump.png` | פריימי השחקן (2 פריימי הליכה) / player frames |
+| `luigi_idle/walk1/walk2/jump.png` | סוכני מסך האימון (מריו בירוק) / Luigi AI agents |
 | `goomba_1/2`, `koopa_1/2`, `koopa_shell` | גומבה / קואפה / קליפה |
-| `fast_1/2`, `jumper_1/2`, `patrol_1/2`, `flyer_1/2` | 4 סוגי האויבים הנוספים (וריאציות צבע) |
+| `fast_1/2`, `jumper_1/2`, `patrol_1/2`, `flyer_1/2` | 4 האויבים הנוספים — **כל אחד עיצוב ייחודי** (חיפושית/קפיץ/אנטנה/כנפיים) |
 | `squished` | אויב מעוך (גנרי) / generic squished enemy |
 | `coin_1/2/3`, `mushroom` | פריטים / items |
 | `question_1/2`, `empty_block`, `brick`, `pipe`, `flag` | בלוקים ועולם / blocks & world |
 | `world_bg` | רקע פרוס / tiled background |
+| `heart_full`, `heart_empty` | לבבות חיים ל‑HUD / HUD life hearts |
+
+לכל דמות/אויב שני פריימי הליכה (`*_1/*_2`) שמתחלפים אוטומטית כדי להיראות "הולכים".
+Each character/enemy has two walk frames that auto-alternate so it looks like it's moving.
 
 ## 2. כיצד הקוד משתמש בהם / How the code uses them
 אין `Graphics`/`Paint`/חיתוך sheet. הכול דרך תמונות:
@@ -47,3 +52,11 @@ pb.BackgroundImageLayout = ImageLayout.Tile;
 - אין קוד GDI+ במשחק (אין מכחולים, נתיבים, חיתוך מלבנים).
 - "מראה" נקבע ע"י קבצי תמונה, לא ע"י קוד — קל להחליף ולהציג.
 - כל אובייקט מתנהג אותו דבר: PictureBox עם תמונה.
+
+## 5. מסך האימון וה‑HUD / Training screen & HUD
+- **מסך האימון** (`UI/TrainingForm.cs`) הומר גם הוא לתמונות: רקע/פלטפורמות/מטבעות הם `PictureBox`
+  שנוצרים פעם אחת, וסוכני לואיג'י משתמשים ב**מאגר** `PictureBox` משוכפל (`RenderScene()`),
+  כדי לא ליצור/למחוק פקדים בכל פריים.
+- **לבבות ה‑HUD** הם `PictureBox` (`Sprites.HeartFull/HeartEmpty`).
+- ★ **החריג היחיד שנשאר עם GDI+**: `ML/NeuralNetworkControl.cs` — תרשים חי של הרשת
+  (קווים/צמתים שצבעם משתנה כל פריים). תרשים דינמי כזה אי‑אפשר להמיר ל‑PNG סטטי.
