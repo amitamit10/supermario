@@ -246,159 +246,46 @@ namespace supermario
 
         private void UpdateJumpingEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = jumpingEnemies.Count - 1; i >= 0; i--)
             {
                 var je = jumpingEnemies[i];
 
-                if (!je.IsAlive)
-                {
-                    Controls.Remove(je.Visual);
-                    je.Visual.Dispose();
-                    jumpingEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                if (je.Position.Y > 620)
-                {
-                    Controls.Remove(je.Visual);
-                    je.Visual.Dispose();
-                    jumpingEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!je.IsAlive)                     { RemoveEnemy(jumpingEnemies, i); continue; }
+                if (je.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(jumpingEnemies, i); continue; }
 
                 if (je.IsSquished)
                 {
                     if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
-                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+                    SyncToScreen(je);
                     continue;
                 }
 
-                // Gravity
-                if (!je.IsGrounded)
-                {
-                    je.VerticalVelocity += 0.6f;
-                    if (je.VerticalVelocity > 15f) je.VerticalVelocity = 15f;
-                    je.Position = new Point(je.Position.X, je.Position.Y + (int)Math.Round(je.VerticalVelocity));
-                }
+                je.ApplyGravity();
+                if (je.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(jumpingEnemies, i); continue; }
 
-                if (je.Position.Y > 600)
-                {
-                    Controls.Remove(je.Visual);
-                    je.Visual.Dispose();
-                    jumpingEnemies.RemoveAt(i);
-                    continue;
-                }
+                // הקופץ יכול לחבוט בתקרה (allowCeiling). בדיקת רגליים נוספת מאשרת עמידה
+                // על קצה פלטפורמה ומונעת הבהוב IsGrounded שמחצי את קצב הקפיצה.
+                // The jumper can bonk ceilings (allowCeiling). An extra feet probe confirms
+                // footing on a platform edge, stopping IsGrounded flicker that halves the jump rate.
+                bool grounded = je.ResolvePlatformCollisions(platRects, allowCeiling: true, out _);
+                if (!grounded && je.VerticalVelocity >= 0 && je.HasGroundBeneath(platRects)) grounded = true;
+                je.IsGrounded = grounded;
 
-                bool jeGrounded = false;
-                bool jeWallHit = false;
-                var jeRect = je.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
-                    if (!jeRect.IntersectsWith(pr)) continue;
-
-                    int ot = jeRect.Bottom - pr.Top, ob = pr.Bottom - jeRect.Top;
-                    int ol = jeRect.Right - pr.Left, orr = pr.Right - jeRect.Left;
-                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                    if (min == ot && ot < 30)
-                    {
-                        je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
-                        je.VerticalVelocity = 0;
-                        jeGrounded = true;
-                        break;
-                    }
-                    else if (min == ob && ob < 20 && je.VerticalVelocity < 0)
-                    {
-                        // Ceiling hit while jumping upward
-                        je.Position = new Point(je.Position.X, pr.Bottom);
-                        je.VerticalVelocity = 0;
-                        break;
-                    }
-                    else if (min == ob && je.VerticalVelocity >= 0)
-                    {
-                        // Fell past the platform in one frame – snap up.
-                        je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
-                        je.VerticalVelocity = 0;
-                        jeGrounded = true;
-                        break;
-                    }
-                    else if (min == ol || min == orr)
-                    {
-                        if (!jeWallHit)
-                        {
-                            if (min == ol)
-                                je.Position = new Point(pr.Left - je.Visual.Width, je.Position.Y);
-                            else
-                                je.Position = new Point(pr.Right, je.Position.Y);
-                            je.ReverseDirection();
-                            jeWallHit = true;
-                            jeRect = je.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                je.IsGrounded = jeGrounded;
-
-                // An enemy resting exactly on a platform top has bottom == platTop,
-                // which IntersectsWith treats as non-overlapping, so the loop above
-                // would flip IsGrounded off every other frame. That halves the jump
-                // timer cadence (it only ticks while grounded). Re-confirm footing
-                // with a 2px probe just below the feet when not rising.
-                if (!jeGrounded && je.VerticalVelocity >= 0)
-                {
-                    var feet = new Rectangle(je.Position.X, je.Position.Y + je.Visual.Height, je.Visual.Width, 2);
-                    foreach (var plat in platforms)
-                    {
-                        var pr = new Rectangle(plat.Position.X, plat.Position.Y,
-                            plat.PictureBox.Width, plat.PictureBox.Height);
-                        if (feet.IntersectsWith(pr)) { je.IsGrounded = true; break; }
-                    }
-                }
-
-                var jeBounds2 = je.Bounds;
-                foreach (var qb in questionBlocks)
-                {
-                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                    if (!jeBounds2.IntersectsWith(br)) continue;
-                    int qot = jeBounds2.Bottom - br.Top;
-                    int qob = br.Bottom - jeBounds2.Top;
-                    int qol = jeBounds2.Right - br.Left;
-                    int qorr = br.Right - jeBounds2.Left;
-                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                    if (qmin == qob && qob < 20 && je.VerticalVelocity < 0)
-                    { je.Position = new Point(je.Position.X, br.Bottom); je.VerticalVelocity = 0; break; }
-                    if ((qmin == qol || qmin == qorr) && qmin < qot)
-                    { je.ReverseDirection(); break; }
-                }
+                je.ResolveBlockCollisions(blockRects, allowCeiling: true);
 
                 je.Update();
-                je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+                SyncToScreen(je);
 
                 if (isDying) continue;
-                var jeWorld = new Rectangle(je.Position.X, je.Position.Y, je.Visual.Width, je.Visual.Height);
-                if (!playerRect.IntersectsWith(jeWorld)) continue;
+                if (!playerRect.IntersectsWith(je.Bounds)) continue;
 
-                int pBottom = player.Position.Y + picboxplayer.Height;
-                bool falling = pBottom - je.Position.Y < 24;
-                bool above   = player.Position.Y < je.Position.Y + je.Visual.Height / 2;
-
-                if (falling && above && player.VerticalVelocity >= 0)
-                {
-                    je.Squish();
-                    player.Bounce();
-                    player.Score += 150;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(je)) { je.Squish(); player.Bounce(); player.Score += 150; }
+                else                  { HitByEnemy(); }
             }
         }
 

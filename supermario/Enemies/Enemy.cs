@@ -189,5 +189,17 @@ namespace supermario
                 { ReverseDirection(); break; }
             }
         }
+
+        // בדיקת קרקע מתחת לרגליים (פס 2px) — מאשרת עמידה כשהאויב יושב בדיוק על קצה
+        // פלטפורמה (ש-IntersectsWith לא סופר כחפיפה). משמש את JumpingEnemy.
+        // 2px probe just below the feet — confirms footing when the enemy rests exactly
+        // on a platform top (which IntersectsWith treats as non-overlapping). Used by JumpingEnemy.
+        public bool HasGroundBeneath(IEnumerable<Rectangle> platformRects)
+        {
+            var feet = new Rectangle(Position.X, Position.Y + Visual.Height, Visual.Width, 2);
+            foreach (var pr in platformRects)
+                if (feet.IntersectsWith(pr)) return true;
+            return false;
+        }
     }
 }
