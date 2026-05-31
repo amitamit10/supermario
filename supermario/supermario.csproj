@@ -79,6 +79,7 @@
     <Compile Include="UI\mainWin.LevelBuilder.cs" />
     <Compile Include="UI\mainWin.Collectibles.cs" />
     <Compile Include="UI\mainWin.EnemyUpdates.cs" />
+    <Compile Include="UI\mainWin.EnemyPhysics.cs" />
     <Compile Include="UI\mainWin.HUD.cs" />
     <Compile Include="UI\mainWin.Physics.cs" />
 
