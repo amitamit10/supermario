@@ -5,25 +5,12 @@ namespace supermario
     // ── PlatformPatrolEnemy — סייר כתום שמסתובב בקצה פלטפורמה ─────────────
     //  orange patroller; turns around at ledge edges (the edge check lives in
     //  mainWin.EnemyUpdates). מהירות וצורה כמו Goomba.
-    class PlatformPatrolEnemy : Enemy
+    class PlatformPatrolEnemy : SquishableEnemy
     {
-        public bool IsSquished { get; private set; }
-
-        private float squishTimer;
-        private const float SQUISH_DURATION = 500f;
-
         public static readonly Size NormalSize   = new Size(48, 50);
         public static readonly Size SquishedSize = new Size(58, 16);
 
-        public PlatformPatrolEnemy(Point start) : base(start, NormalSize, Sprites.Patrol, 1.5f, 10) { }
-
-        public void Squish()
-        {
-            if (!IsAlive || IsSquished) return;
-            IsSquished = true;
-            ShowFlattened(Sprites.Squished, SquishedSize, NormalSize);
-        }
-
-        public bool UpdateSquish(long stepMs) { squishTimer += stepMs; return squishTimer >= SQUISH_DURATION; }
+        public PlatformPatrolEnemy(Point start)
+            : base(start, NormalSize, Sprites.Patrol, 1.5f, 10, SquishedSize, 500f) { }
     }
 }

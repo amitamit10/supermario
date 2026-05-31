@@ -2,27 +2,14 @@ using System.Drawing;
 
 namespace supermario
 {
-    // ── FastEnemy — גומבה אדומה ומהירה / fast red walker ─────────────────
-    //  כמו Goomba אך כפול מהירות. / like Goomba but twice as fast.
-    class FastEnemy : Enemy
+    // ── FastEnemy — חיפושית אדומה ומהירה / fast red beetle ───────────────
+    //  כמו Goomba אך מהירה בהרבה. / like Goomba but much faster.
+    class FastEnemy : SquishableEnemy
     {
-        public bool IsSquished { get; private set; }
-
-        private float squishTimer;
-        private const float SQUISH_DURATION = 500f;
-
         public static readonly Size NormalSize   = new Size(46, 48);
         public static readonly Size SquishedSize = new Size(56, 16);
 
-        public FastEnemy(Point start) : base(start, NormalSize, Sprites.Fast, 3.2f, 5) { }
-
-        public void Squish()
-        {
-            if (!IsAlive || IsSquished) return;
-            IsSquished = true;
-            ShowFlattened(Sprites.Squished, SquishedSize, NormalSize);
-        }
-
-        public bool UpdateSquish(long stepMs) { squishTimer += stepMs; return squishTimer >= SQUISH_DURATION; }
+        public FastEnemy(Point start)
+            : base(start, NormalSize, Sprites.Fast, 3.2f, 5, SquishedSize, 500f) { }
     }
 }
