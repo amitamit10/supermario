@@ -53,6 +53,17 @@ something looks, edit the PNG via the Python script — not the code.
 - מטבעות/בלוקים: `mainWin.UpdateAnimatedSprites()` מחליף תמונות.
 - קרקע/פלטפורמות: `BackgroundImage` + `BackgroundImageLayout = Tile`.
 - רקע: `BackgroundImage` של הטופס (פרוס).
+- HUD: לבבות החיים הם `PictureBox` (`Sprites.HeartFull/HeartEmpty`); הניקוד/רמה נשארים טקסט.
+- **מסך האימון (`TrainingForm`) גם הוא תמונות**: רקע/פלטפורמות/מטבעות וסוכני לואיג'י הם
+  `PictureBox` (הסוכנים ממאגר משוכפל). ראה `RenderScene()`.
+
+★ **החריג היחיד ל‑GDI+**: `ML/NeuralNetworkControl.cs` — *תרשים נתונים חי* של הרשת
+(קווים/צמתים שצבעם משתנה כל פריים). תרשים דינמי כזה אי‑אפשר להפוך ל‑PNG, ולכן הוא נשאר GDI+.
+
+**Hearts** are `PictureBox`es; the **AI training screen also uses images** (background,
+platforms, coins, Luigi agents via a pooled set of `PictureBox`es — see `RenderScene()`).
+The **only** remaining GDI+ is `ML/NeuralNetworkControl.cs`, a live data chart that
+cannot be a static PNG.
 
 ## צינור הנכסים / Asset pipeline
 1. עורכים את הספרייט (פיקסל‑ארט כ‑ASCII) ב‑`generate_spritesheets.py`.
@@ -60,13 +71,21 @@ something looks, edit the PNG via the Python script — not the code.
 3. ה‑`.csproj` מעתיק את כל `assets/textures/sprites/*.png` לתיקיית הפלט ליד ה‑EXE.
 4. `Sprites.LoadAll()` טוען אותם פעם אחת בהרצה.
 
+**מוסכמות עיצוב הספרייטים / sprite design rules:**
+- כל סוג אויב הוא **עיצוב ייחודי** (לא רק שינוי צבע): גומבה(פטרייה), קואפה(צב),
+  fast(חיפושית אדומה), jumper(כחול עם רגלי קפיץ), patrol(כתום עם אנטנה), flyer(קואפה עם כנפיים).
+- לכל דמות הולכת **שני פריימי הליכה** (`*_1/*_2`, ולשחקן `*_walk1/walk2`) עם רגליים/כנפיים
+  מתחלפות — הקוד מחליף ביניהם אוטומטית כך שייראה שהיא זזה. שני פריימי זוג חייבים אותו גובה.
+- ספרייטים חדשים בשלב זה: `luigi_idle/walk1/walk2/jump`, `heart_full`, `heart_empty`.
+
 ## מוסכמות / Conventions
 - הערות: **עברית** לכותרות/הסברים, **אנגלית** להערות טכניות קצרות.
 - כל קובץ מחולק ל"פרקים" עם כותרות באנר (`// ═══ ... ═══`).
 - פיזיקה ולולאת משחק **פשוטות בכוונה** (טיימר 16ms, מהירות/כבידה קבועות).
 
 ## מה לא לגעת / Do NOT touch
-- `ML/` ו‑`UI/TrainingForm.cs` — מערכת ה‑AI; עצמאית ולא תלויה בגרפיקת המשחק.
+- `ML/` — **לוגיקת** ה‑AI (רשת/אבולוציה); עצמאית ולא תלויה בגרפיקת המשחק.
+  (התצוגה ב‑`TrainingForm` כן הומרה לתמונות, אבל אין לגעת בלוגיקת הסוכן/האבולוציה.)
 - `UI/*.Designer.cs` — קוד שנוצר אוטומטית.
 - `UI/mainWin.LevelData.cs` — נתוני הרמות.
 

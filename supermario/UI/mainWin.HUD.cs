@@ -71,18 +71,19 @@ namespace supermario
             Controls.Add(_scoreLabel);
             _scoreLabel.BringToFront();
 
+            // לבבות — PictureBox עם תמונת לב (מלא/ריק). אין ציור GDI+ / hearts as images
             for (int i = 0; i < 3; i++)
             {
-                _heartLabels[i] = new Label
+                _hearts[i] = new PictureBox
                 {
-                    Name = "heartLabel",
-                    Font = new Font("Arial", 20, FontStyle.Bold),
-                    AutoSize = true,
-                    Location = new Point(180 + i * 36, 6),
+                    Name = "heart",
+                    Size = new Size(30, 28),
+                    Location = new Point(180 + i * 34, 8),
+                    SizeMode = PictureBoxSizeMode.StretchImage,
                     BackColor = Color.Transparent,
                 };
-                Controls.Add(_heartLabels[i]);
-                _heartLabels[i].BringToFront();
+                Controls.Add(_hearts[i]);
+                _hearts[i].BringToFront();
             }
 
             UpdateHud();
@@ -112,12 +113,9 @@ namespace supermario
                 _lastHudHealth = player.Health;
                 for (int i = 0; i < 3; i++)
                 {
-                    if (_heartLabels[i] == null) continue;
+                    if (_hearts[i] == null) continue;
                     bool filled = i < player.Health;
-                    _heartLabels[i].Text = filled ? "❤" : "♡";
-                    _heartLabels[i].ForeColor = filled
-                        ? Color.FromArgb(255, 60, 80)
-                        : Color.FromArgb(140, 100, 110);
+                    _hearts[i].Image = filled ? Sprites.HeartFull : Sprites.HeartEmpty;
                 }
             }
         }

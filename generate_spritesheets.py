@@ -10,8 +10,10 @@ This script renders every game object as a single PNG into
 assets/textures/sprites/. The C# code just loads each image and puts
 it into a PictureBox (no hand-written GDI+ drawing).
 
-הספרייטים מצוירים כ"פיקסל ארט" באמצעות מפת תווים (כל תו = צבע),
-ומוגדלים פי SCALE כדי שייראו חדים.
+עקרונות עיצוב / design principles:
+- כל אויב בעל צללית ייחודית משלו (לא רק שינוי צבע).
+- לכל דמות הולכת יש שני פריימים (walk1/walk2) עם רגליים/כנפיים מתחלפות
+  כדי שייראה שהיא זזה. הקוד מחליף ביניהם אוטומטית.
 ====================================================================
 """
 
@@ -28,6 +30,9 @@ except ImportError:
 # ════════════════════════════════════════════════════════════════════
 #  פלטת הצבעים  /  Colour palette  (תו -> RGBA)
 # ════════════════════════════════════════════════════════════════════
+# הצבעים המקוריים נשמרים כדי לא לשנות ספרייטים קיימים; נוספו רק צבעים חדשים
+# (אפור לקפיץ/אנטנה, ורוד ללב, ירוק-כהה לכנף). / original colours preserved;
+# only new colours added (greys, heart pink, wing dark-green).
 COLORS = {
     'T': (0, 0, 0, 0),          # שקוף / transparent
     'B': (0, 0, 0, 255),        # שחור / black
@@ -43,7 +48,7 @@ COLORS = {
     'C': (92, 148, 252, 255),   # תכלת שמיים / sky blue
     'P': (252, 152, 56, 255),   # אפרסק / peach
     'E': (200, 76, 12, 255),    # אדום לבנה / brick red
-    # גוונים לאויבים הצבעוניים / shades for the recoloured enemies
+    # גוונים לאויבים הצבעוניים / shades for the coloured enemies
     'r': (220, 70, 40, 255),    # אדום בהיר (Fast)
     'x': (150, 35, 20, 255),    # אדום כהה  (Fast)
     'j': (80, 100, 210, 255),   # כחול בהיר (Jumping)
@@ -52,13 +57,21 @@ COLORS = {
     'v': (170, 80, 10, 255),    # כתום כהה  (Patrol)
     'd': (15, 85, 15, 255),     # ירוק כהה (צינור/קליפה)
     'w': (140, 220, 140, 255),  # ירוק בהיר (הדגשה)
+    # ── צבעים חדשים לשלב זה / new colours ──
+    'g': (24, 120, 40, 255),    # ירוק-כהה לדגם הכנף/שריון / wing & shell pattern
+    'a': (180, 180, 190, 255),  # אפור בהיר — קפיץ/אנטנה / light grey (spring/antenna)
+    'm': (100, 100, 110, 255),  # אפור כהה — גבעול אנטנה / dark grey (antenna stalk)
+    'h': (235, 70, 90, 255),    # ורוד-אדום ללב מלא / heart red
+    'n': (120, 40, 50, 255),    # אדום כהה למתאר לב ריק / heart outline
 }
 
 SCALE = 4
 OUTDIR = "assets/textures/sprites"
 
 # ════════════════════════════════════════════════════════════════════
-#  פריימים של השחקן (16x16)  /  Player frames
+#  השחקנים — מריו ולואיג'י (16x16)  /  Players
+#  הגוף נשמר כמקור; רק הרגליים (שורות 14–15) מתחלפות כדי שייראה שהוא הולך.
+#  Body kept as the original; only the legs (rows 14–15) swap so it walks.
 # ════════════════════════════════════════════════════════════════════
 mario_idle = [
     "TTTTTRRRRRTTTTTT", "TTTTRRRRRRRRRTTT", "TTTTDDSDSSSTTTTT", "TTTDSDDSSDSSTTTT",
@@ -66,69 +79,159 @@ mario_idle = [
     "TTTRRRUUURRRTTTT", "TTRRRRUUUURRRRTT", "TTSSYRUYURYSSTTT", "TTSSSOUUOUUSSTTT",
     "TTTSSUUUUUUSTTTT", "TTTTUUUUUUUTTTTT", "TTTDDDTTTDDTTTTT", "TTDDDDTTTDDDTTTT",
 ]
-mario_walk1 = [
-    "TTTTTRRRRRTTTTTT", "TTTTRRRRRRRRRTTT", "TTTTDDSDSSSTTTTT", "TTTDSDDSSDSSTTTT",
-    "TTTDSDSSDSSSSTTT", "TTTDDSSSSDDDDTTT", "TTTTTTSSSSSTTTTT", "TTTTRRUUUUTTTTTT",
-    "TTTRRRUUUUURRTTT", "TTRRRRUUUUURRRTT", "TTSSYRUYUUUUSSTT", "TTSSSOUUUUUSSTTT",
-    "TTTSSUUUUUUTTTTT", "TTTTTUUUUTTTTTTT", "TTTDDDTTDDTTTTTT", "TTDDDDTTTDDDTTTT",
-]
-mario_walk2 = [
-    "TTTTTRRRRRTTTTTT", "TTTTRRRRRRRRRTTT", "TTTTDDSDSSSTTTTT", "TTTDSDDSSDSSTTTT",
-    "TTTDSDSSDSSSSTTT", "TTTDDSSSSDDDDTTT", "TTTTTTSSSSSTTTTT", "TTTTTRRUUURRTTTT",
-    "TTTTRRRUUURRRTTT", "TTTRRRRUUUURRRRT", "TTTSSYRUYURYSSST", "TTTSSSOUUOUUSSST",
-    "TTTTSSUUUUUUSTTT", "TTTTTUUUUUUUTTTT", "TTTTTDDTTTDDDTTT", "TTTTDDDTTTDDDDTT",
-]
 mario_jump = [
     "TTTTTRRRRRTTTTTT", "TTTTRRRRRRRRRTTT", "TTTTDDSDSSSTTTTT", "TTTDSDDSSDSSTTTT",
     "TTTDSDSSDSSSSTTT", "TTTDDSSSSDDDDTTT", "TTTTTTSSSSSTTTTT", "TTTTRRRUUTTTTTTT",
     "TTRRRRRUUURRRTTT", "TRRRRRRUUUURRRTT", "TTSSYRUYUYURSSTT", "TTSSSOUUOUUUSSTT",
     "TTTSSUUUUUUUSTTT", "TTTTUUUUUUUTTTTT", "TTTDDDTTTDDDTTTT", "TTDDDDTTTDDDDTTT",
 ]
+# גוף משותף (שורות 0–13) לפריימי ההליכה / shared body for the walk frames
+_mario_body = mario_idle[:14]
+# רגלי הליכה: רגל אחת בולטת קדימה ומתחלפת בין הפריימים / a clear alternating stride
+_legs_walk1 = ["TTDDDDTTTDDDTTTT", "TDDDDDTTTDDDDTTT"]   # רגל שמאל בולטת קדימה
+_legs_walk2 = ["TTTDDDTTTDDDDTTT", "TTDDDDTTTDDDDDTT"]   # רגל ימין בולטת קדימה
+mario_walk1 = _mario_body + _legs_walk1
+mario_walk2 = _mario_body + _legs_walk2
+
+
+def to_luigi(frame):
+    """לואיג'י = מריו בירוק: כובע/חולצה אדומים -> ירוקים / Luigi is green Mario."""
+    return [row.replace('R', 'G') for row in frame]
+
+
+luigi_idle  = to_luigi(mario_idle)
+luigi_jump  = to_luigi(mario_jump)
+luigi_walk1 = to_luigi(mario_walk1)
+luigi_walk2 = to_luigi(mario_walk2)
 
 # ════════════════════════════════════════════════════════════════════
-#  פריימים של אויבים (16x24)  /  Enemy frames
+#  אויבים  /  Enemies
+#  Goomba/Koopa נשמרים כמקור; Fast/Jumper/Patrol/Flyer קיבלו עיצוב ייחודי.
 # ════════════════════════════════════════════════════════════════════
+# ── Goomba — פטרייה חומה קלאסית (מקור) / classic goomba (original) ───
 goomba_1 = [
     "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTDDDDTTTTTT", "TTTTDDLLLLDDTTTT",
     "TTDDLLLLLLLLDDTT", "TDLLBBLLLLBBLLDT", "TDLWWBLLLLBWWLDT", "TDLWWLLLLLLWWLDT",
     "TDLLLLDDDDLLLLDT", "TDLLLLLLLLLLLLDT", "TTDDLLLLLLLLDDTT", "TTTTDDDDDDDDTTTT",
     "TTTTTSDDDSSTTTTT", "TTTTSSDDDSSSTTTT", "TTTBBBDDDBBBTTTT", "TBBBBBTTTBBBBBTT",
-    "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
-    "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
 ]
 goomba_2 = [
     "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTDDDDTTTTTT", "TTTTDDLLLLDDTTTT",
     "TTDDLLLLLLLLDDTT", "TDLLBBLLLLBBLLDT", "TDLWWBLLLLBWWLDT", "TDLWWLLLLLLWWLDT",
     "TDLLLLDDDDLLLLDT", "TDLLLLLLLLLLLLDT", "TTDDLLLLLLLLDDTT", "TTTTDDDDDDDDTTTT",
     "TTTTTSDDDSSTTTTT", "TTTTSSDDDSSSTTTT", "TTBBBDDDDDDBBTTT", "TBBBBBBTTTBBBTTT",
-    "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
-    "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
 ]
+# ── Koopa — צב ירוק (מקור) / green koopa (original) ──────────────────
 koopa_1 = [
     "TTTTTGGGGGTTTTTT", "TTTGGYYYYYGGTTTT", "TTGYYYBBBYYYGTTT", "TGYYYWWWWBYYYGTT",
     "TGYYYYWWWWYYYGTT", "TTGYYYYYYYYYGTTT", "TTTGGYYYYYGGTTTT", "TTTTGGBBBGGTTTTT",
     "TTTGGGDDDDGGGTTT", "TTGGGGDDDGGGGGTT", "TGGGGDDDDDDGGGGT", "TGGYGGDDDDGGYGGT",
     "TGGYGGDDDDGGYGGT", "TGGYYGDDDDGYYGGT", "TTGGYYDDDDYYGGTT", "TTTGGYDDDDYGGTTT",
     "TTTTGGGGGGGGTTTT", "TTTTGGGGGGGGTTTT", "TTTTTGGTTGGTTTTT", "TTTTTGGTTGGTTTTT",
-    "TTTLLLLTTLLLLTTT", "TTLLLLLLTLLLLLLT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
+    "TTTLLLLTTLLLLTTT", "TTLLLLLLTLLLLLLT",
 ]
 koopa_2 = [
     "TTTTTGGGGGTTTTTT", "TTTGGYYYYYGGTTTT", "TTGYYYBBBYYYGTTT", "TGYYYWWWWBYYYGTT",
     "TGYYYYWWWWYYYGTT", "TTGYYYYYYYYYGTTT", "TTTGGYYYYYGGTTTT", "TTTTGGBBBGGTTTTT",
     "TTTGGGDDDDGGGTTT", "TTGGGGDDDGGGGGTT", "TGGGGDDDDDDGGGGT", "TGGYGGDDDDGGYGGT",
     "TGGYGGDDDDGGYGGT", "TGGYYGDDDDGYYGGT", "TTGGYYDDDDYYGGTT", "TTTGGYDDDDYGGTTT",
-    "TTTTGGGGGGGGTTTT", "TTTTGGGGGGGGTTTT", "TTTTTGGTTGGTTTTT", "TTTLLLLTTLLLLTTT",
-    "TTLLLLLLTLLLLLLT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
+    "TTTTGGGGGGGGTTTT", "TTTTGGGGGGGGTTTT", "TTTTTGGTTGGTTTTT", "TTTTTGGTTGGTTTTT",
+    "TTTTLLLLLLLLTTTT", "TTTLLLLLLLLLLTTT",
 ]
-# קליפת קואפה (16x12) / koopa shell
+# קליפת קואפה (מקור) / koopa shell (original)
 koopa_shell = [
     "TTTTGGGGGGGGTTTT", "TTGGGGGGGGGGGGTT", "TGGGGddddGGGGGGT", "GGGddGGGGddGGGGG",
     "GGdGGGGGGGGddGGG", "GGdGGGGGGGGddGGG", "GGGddGGGGddGGGGG", "TGGGGddddGGGGGGT",
-    "TTGGGGGGGGGGGGTT", "TTTTGGGGGGGGTTTT", "TTTTTTTTTTTTTTTT", "TTTTTTTTTTTTTTTT",
+    "TTGGGGGGGGGGGGTT", "TTTTGGGGGGGGTTTT",
+]
+
+# ── FastEnemy — חיפושית אדומה מהירה עם אנטנות / fast red beetle ──────
+_beetle_body = [
+    "TTTTTxxxxxxTTTTT",  # כיפת שריון כהה / dark shell dome
+    "TTTxxrrrrrrxxTTT",
+    "TTxrrrrrrrrrrxTT",
+    "TxrrWWrrrrWWrrxT",  # נקודות לבנות / white spots
+    "xrrrrrrrrrrrrrrx",
+    "xrrBBrrrrrrBBrrx",  # עיניים / eyes
+    "xrrrrrrrrrrrrrrx",
+    "TxrrrrxxxxrrrrxT",  # תפר השריון / shell seam
+    "TTxxrrrrrrrrxxTT",
+    "TTTxxxxxxxxxxTTT",
+]
+fast_1 = ["TTTBTTTTTTTTBTTT", "TTTTBTTTTTTBTTTT"] + _beetle_body + ["TTBBTTBBBBTTBBTT"]
+fast_2 = ["TTBTTTTTTTTTTBTT", "TTTBTTTTTTTTBTTT"] + _beetle_body + ["TBBTTTBBBBTTTBBT"]
+
+# ── JumpingEnemy — קופץ כחול עם רגלי קפיץ / blue spring-legged jumper ─
+_jumper_body = [
+    "TTTTTjjjjjjTTTTT",  # ראש עגול / round head
+    "TTTjjjjjjjjjjTTT",
+    "TTjjjjjjjjjjjjTT",
+    "TjjWWWjjjjWWWjjT",  # עיניים גדולות / big eyes
+    "TjjWBWjjjjWBWjjT",  # אישונים / pupils
+    "TjjWWWjjjjWWWjjT",
+    "TjjjjjjjjjjjjjjT",
+    "TjjjjjkkkkjjjjjT",  # פה / mouth
+    "TTjjjjjjjjjjjjTT",
+    "TTTkkkkkkkkkkTTT",  # בסיס הגוף / body base
+]
+jumper_1 = _jumper_body + [
+    "TTTaTTTTTTTTaTTT", "TTTTaTTTTTTaTTTT", "TTTaTTTTTTTTaTTT", "TTaaTTTTTTTTaaTT",
+]
+jumper_2 = _jumper_body + [
+    "TTTaaTTTTTTaaTTT", "TTaaTTTTTTTTaaTT", "TTTaaTTTTTTaaTTT", "TTaaaTTTTTTaaaTT",
+]
+
+# ── PlatformPatrolEnemy — סייר כתום עם אנטנה / orange patroller w/ antenna ─
+_patrol_body = [
+    "TTTTTTTaaTTTTTTT",  # כדור האנטנה / antenna ball
+    "TTTTTTTmmTTTTTTT",  # גבעול האנטנה / antenna stalk
+    "TTTTTooooooTTTTT",
+    "TTTToooooooooTTT",
+    "TTToooooooooooTT",
+    "TToWWooooooWWoTT",  # עיניים / eyes
+    "TToWBooooooBWoTT",  # אישונים / pupils
+    "TTooooooooooooTT",
+    "TTooovvvvvvooTTT",  # פה נחוש / determined mouth
+    "TTToooooooooTTTT",
+    "TTTTvvvvvvvvTTTT",  # בסיס / base
+]
+patrol_1 = _patrol_body + ["TTToooTTToooTTTT", "TTvvvvTTTvvvvTTT"]
+patrol_2 = _patrol_body + ["TTTToooTToooTTTT", "TTTvvvvTvvvvTTTT"]
+
+# ── FlyingEnemy — קואפה מעופפת עם כנפיים / winged parakoopa ──────────
+_flyer_core = [
+    "TTTTTTGGGGGTTTTT",  # ראש / head
+    "TTTTTGGGGGGGTTTT",
+    "TTTTTGWBGGBWGTTT",  # עיניים / eyes
+    "TTTTTGGGGGGGTTTT",
+    "TTTTGGYYYYYYGTTT",  # שריון / shell
+    "TTTGGYwggggwYGTT",
+    "TTTGGYgggggwYGTT",
+    "TTTTGGYYYYYYGTTT",
+    "TTTTTGGGTTGGGTTT",  # רגליים / feet
+]
+# כנפיים: פריים1 מורמות, פריים2 מונמכות / wings up vs down
+flyer_1 = [
+    "TWWTTTTTTTTTTWWT",
+    "WWWWTTGGGGGTWWWW",
+    "TWWWTGGGGGGGTWWW",
+] + ["TT" + r[2:14] + "TT" for r in _flyer_core[1:]]
+flyer_2 = [
+    "TTTTTTGGGGGTTTTT",
+    "TTTTTGGGGGGGTTTT",
+] + _flyer_core[2:] + [
+    "TWWWTTTTTTTTWWWT",
+    "WWWWTTTTTTTTWWWW",
+]
+
+# אויב מעוך (גנרי לכל הסוגים, מקור) / generic squished enemy (original)
+squished = [
+    "TTTTTTTTTTTTTTTT", "TTTTDDDDDDDDTTTT", "TTDDLLLLLLLLDDTT", "TDLLWLLLLLLWLLDT",
+    "TDLLLLLLLLLLLLDT", "TTDDLLLLLLLLDDTT", "TTTTDDDDDDDDTTTT",
 ]
 
 # ════════════════════════════════════════════════════════════════════
-#  פריטים ובלוקים (16x16)  /  Items & blocks
+#  פריטים ובלוקים (16x16, מקור)  /  Items & blocks (original)
 # ════════════════════════════════════════════════════════════════════
 coin_1 = [
     "TTTTTTYYYYTTTTTT", "TTTTYYYYYYYYTTTT", "TTTYYTTYYTTYYTTT", "TTYYTTTYYTTTYYTT",
@@ -178,23 +281,31 @@ brick = [
     "EEEEEEEEEEEEEEEE", "ELLLLLLEELLLLLLE", "ELLLLLLEELLLLLLE", "ELLLLLLEELLLLLLE",
     "EEEEEEEEEEEEEEEE", "LLLEELLLLLLEELLL", "LLLEELLLLLLEELLL", "EEEEEEEEEEEEEEEE",
 ]
-# צינור (16x16) / pipe — נמתח לגובה הצינור / stretched to the pipe height
 pipe = [
     "dddddddddddddddd", "dwwGGGGGGGGGGGGd", "dGGGGGGGGGGGGGGd", "dddddddddddddddd",
     "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd",
     "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd",
     "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd", "dGwGGGGGGGGGGGGd", "dddddddddddddddd",
 ]
-# אויב מעוך (16x8) — תמונה גנרית לכל האויבים / generic squished sprite
-squished = [
-    "TTTTTTTTTTTTTTTT", "TTTTDDDDDDDDTTTT", "TTDDLLLLLLLLDDTT", "TDLLWLLLLLLWLLDT",
-    "TDLLLLLLLLLLLLDT", "TTDDLLLLLLLLDDTT", "TTTTDDDDDDDDTTTT", "TTTTTTTTTTTTTTTT",
+
+# ── לבבות ל-HUD (חדש) / HUD hearts (new) ─────────────────────────────
+heart_full = [
+    "TTTTTTTTTTTTTTTT", "TTThhhTTTThhhTTT", "TThhhhhTThhhhhTT", "ThhhhhhhhhhhhhhT",
+    "hhhhhhhhhhhhhhhh", "hhhhhhhhhhhhhhhh", "hhhhhhhhhhhhhhhh", "ThhhhhhhhhhhhhhT",
+    "TThhhhhhhhhhhhTT", "TTThhhhhhhhhhTTT", "TTTThhhhhhhhTTTT", "TTTTThhhhhhTTTTT",
+    "TTTTTThhhhTTTTTT", "TTTTTTThhTTTTTTT",
+]
+heart_empty = [
+    "TTTTTTTTTTTTTTTT", "TTTnnnTTTTnnnTTT", "TTnTTTnTTnTTTnTT", "TnTTTTTnnTTTTTnT",
+    "nTTTTTTTTTTTTTTn", "nTTTTTTTTTTTTTTn", "nTTTTTTTTTTTTTTn", "TnTTTTTTTTTTTTnT",
+    "TTnTTTTTTTTTTnTT", "TTTnTTTTTTTTnTTT", "TTTTnTTTTTTnTTTT", "TTTTTnTTTTnTTTTT",
+    "TTTTTTnTTnTTTTTT", "TTTTTTTnnTTTTTTT",
 ]
 
 # ════════════════════════════════════════════════════════════════════
-#  רקע (64x32)  /  Background tile
+#  רקע פרוס (64x32, מקור)  /  Tiled background (original)
 # ════════════════════════════════════════════════════════════════════
-bg = [
+world_bg = [
     "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
     "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
     "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
@@ -233,24 +344,39 @@ bg = [
 # ════════════════════════════════════════════════════════════════════
 #  פונקציות עזר  /  Helpers
 # ════════════════════════════════════════════════════════════════════
-def recolor(frame, mapping):
-    """מחזיר עותק של הפריים עם החלפת תווי צבע לפי המפה / recolour a frame."""
-    return ["".join(mapping.get(ch, ch) for ch in row) for row in frame]
+def _check(frame, name):
+    """מוודא שכל שורה היא בדיוק 16 תווים / assert every row is exactly 16 chars."""
+    for i, row in enumerate(frame):
+        if len(row) != 16:
+            raise ValueError(f"{name}: row {i} has {len(row)} chars (expected 16): {row!r}")
 
 
 def save_sprite(frame, name):
-    """שומר פריים יחיד כקובץ PNG מוגדל פי SCALE / save one frame as a PNG."""
+    """שומר פריים 16-רחב כקובץ PNG מוגדל פי SCALE / save a 16-wide frame as PNG."""
+    _check(frame, name)
     # מורידים שורות שקופות בתחתית כדי שהדמות תשב בתחתית התיבה ולא "תרחף"
     # strip trailing transparent rows so the sprite sits at the bottom of its box
     frame = list(frame)
     while len(frame) > 1 and all(ch == "T" for ch in frame[-1]):
         frame = frame[:-1]
+    _render(frame, 16, name)
+
+
+def save_wide(frame, name):
+    """שומר פריים ברוחב משתנה (רקע 64) — מרפד שורות קצרות בשקוף / variable-width frame."""
+    frame = list(frame)
+    while len(frame) > 1 and all(ch == "T" for ch in frame[-1]):
+        frame = frame[:-1]
+    _render(frame, max(len(row) for row in frame), name)
+
+
+def _render(frame, w, name):
+    """מצייר את הפריים ל-PNG מוגדל פי SCALE / rasterise a frame to a scaled PNG."""
     h = len(frame)
-    w = max(len(row) for row in frame)   # רוחב = השורה הארוכה ביותר / width = longest row
     img = Image.new("RGBA", (w * SCALE, h * SCALE), (0, 0, 0, 0))
     for y in range(h):
         for x in range(w):
-            ch = frame[y][x] if x < len(frame[y]) else "T"   # שורה קצרה -> שקוף / pad short rows
+            ch    = frame[y][x] if x < len(frame[y]) else "T"   # שורה קצרה -> שקוף
             color = COLORS.get(ch, (0, 0, 0, 0))
             for sy in range(SCALE):
                 for sx in range(SCALE):
@@ -280,27 +406,30 @@ def save_flagpole(name):
 # ════════════════════════════════════════════════════════════════════
 os.makedirs(OUTDIR, exist_ok=True)
 
-# שחקן / player
+# שחקנים / players
 save_sprite(mario_idle,  "mario_idle")
 save_sprite(mario_walk1, "mario_walk1")
 save_sprite(mario_walk2, "mario_walk2")
 save_sprite(mario_jump,  "mario_jump")
+save_sprite(luigi_idle,  "luigi_idle")
+save_sprite(luigi_walk1, "luigi_walk1")
+save_sprite(luigi_walk2, "luigi_walk2")
+save_sprite(luigi_jump,  "luigi_jump")
 
-# אויבים / enemies
+# אויבים (כל אחד עיצוב ייחודי) / enemies (each a unique design)
 save_sprite(goomba_1, "goomba_1")
 save_sprite(goomba_2, "goomba_2")
 save_sprite(koopa_1, "koopa_1")
 save_sprite(koopa_2, "koopa_2")
 save_sprite(koopa_shell, "koopa_shell")
-# וריאציות צבע על Goomba/Koopa / colour variants
-save_sprite(recolor(goomba_1, {"L": "r", "D": "x"}), "fast_1")     # אדום / red
-save_sprite(recolor(goomba_2, {"L": "r", "D": "x"}), "fast_2")
-save_sprite(recolor(goomba_1, {"L": "j", "D": "k"}), "jumper_1")   # כחול / blue
-save_sprite(recolor(goomba_2, {"L": "j", "D": "k"}), "jumper_2")
-save_sprite(recolor(goomba_1, {"L": "o", "D": "v"}), "patrol_1")   # כתום / orange
-save_sprite(recolor(goomba_2, {"L": "o", "D": "v"}), "patrol_2")
-save_sprite(koopa_1, "flyer_1")                                    # ירוק (קואפה מעופפת) / green
-save_sprite(koopa_2, "flyer_2")
+save_sprite(fast_1, "fast_1")
+save_sprite(fast_2, "fast_2")
+save_sprite(jumper_1, "jumper_1")
+save_sprite(jumper_2, "jumper_2")
+save_sprite(patrol_1, "patrol_1")
+save_sprite(patrol_2, "patrol_2")
+save_sprite(flyer_1, "flyer_1")
+save_sprite(flyer_2, "flyer_2")
 save_sprite(squished, "squished")
 
 # פריטים / items
@@ -316,6 +445,10 @@ save_sprite(empty_block, "empty_block")
 save_sprite(brick, "brick")
 save_sprite(pipe, "pipe")
 save_flagpole("flag")
-save_sprite(bg, "world_bg")
+save_wide(world_bg, "world_bg")
+
+# HUD
+save_sprite(heart_full, "heart_full")
+save_sprite(heart_empty, "heart_empty")
 
 print("\nכל הספרייטים נוצרו בהצלחה! / All sprites generated successfully.")
