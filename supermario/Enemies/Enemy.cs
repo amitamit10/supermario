@@ -201,5 +201,19 @@ namespace supermario
                 if (feet.IntersectsWith(pr)) return true;
             return false;
         }
+
+        // בודק אם אין קרקע ממש לפני הרגליים (לכיוון התנועה) — לפטרול שמסתובב בקצה מדף.
+        // Checks for missing ground just ahead of the feet (in the move direction) —
+        // used by the patrol enemy to turn around at a platform edge.
+        public bool IsAtLedgeEdge(IEnumerable<Rectangle> platformRects)
+        {
+            const int probeW = 10;
+            int probeX = Direction > 0 ? Position.X + Visual.Width : Position.X - probeW;
+            int probeY = Position.Y + Visual.Height + 4;
+            var probe  = new Rectangle(probeX, probeY, probeW, 6);
+            foreach (var pr in platformRects)
+                if (probe.IntersectsWith(pr)) return false;   // יש קרקע לפנים / ground ahead
+            return true;                                       // קצה מדף / at an edge
+        }
     }
 }
