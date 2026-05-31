@@ -8,6 +8,13 @@
 > simplification opportunities ranked by impact. Goal: fewer lines, less
 > duplication, easier to present — **without changing behavior**.
 
+## סטטוס / Status  (עודכן / updated 2026-05-31)
+- ✅ **בוצע / Done:** כל הניצחונות המהירים (חלק א'); ריפקטור `EnemyUpdates.cs`
+  (1055→464 שורות) ע"י עוזרים משותפים ב-`Enemy` + `mainWin.EnemyPhysics.cs`;
+  איחוד מחלקות האויב תחת `SquishableEnemy`. סה"כ בקוד המשחק: ~5227→4814 שורות.
+- ⬜ **נותר / Remaining (אופציונלי):** הפריטים תחת "אופציונלי / קוסמטי" למטה
+  (GameData/Player initializers, Bounds כפול, בדיקות null). השפעה קטנה.
+
 ## כללי עבודה / Ground rules
 - **אסור לגעת:** `ML/` (לוגיקת הרשת/אבולוציה), `UI/*.Designer.cs`, `UI/mainWin.LevelData.cs`.
 - אחרי כל שינוי: לבנות ב‑Visual Studio ולוודא שהמשחק והאימון רצים **זהה** (אי‑אפשר לבנות על לינוקס).
