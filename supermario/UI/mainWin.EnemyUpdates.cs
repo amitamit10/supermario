@@ -404,135 +404,50 @@ namespace supermario
 
         private void UpdateFlyingEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = flyingEnemies.Count - 1; i >= 0; i--)
             {
                 var fl = flyingEnemies[i];
 
-                if (!fl.IsAlive)
-                {
-                    Controls.Remove(fl.Visual);
-                    fl.Visual.Dispose();
-                    flyingEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!fl.IsAlive)                     { RemoveEnemy(flyingEnemies, i); continue; }
+                if (fl.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(flyingEnemies, i); continue; }
 
-                if (fl.Position.Y > 620)
-                {
-                    Controls.Remove(fl.Visual);
-                    fl.Visual.Dispose();
-                    flyingEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                // Squished enemies need no physics; tick timer and skip
                 if (fl.IsSquished)
                 {
                     if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
-                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    SyncToScreen(fl);
                     continue;
                 }
 
                 if (fl.HasWings)
                 {
-                    // Sine-wave flight – Update() manages both axes
+                    // תעופה בגל סינוס — Update() מנהל את שני הצירים / sine flight; Update() drives both axes
                     fl.Update();
-                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    SyncToScreen(fl);
                 }
                 else
                 {
-                    // Wings stripped – apply gravity and platform collision
-                    if (!fl.IsGrounded)
-                    {
-                        fl.VerticalVelocity += 0.6f;
-                        if (fl.VerticalVelocity > 15f) fl.VerticalVelocity = 15f;
-                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)Math.Round(fl.VerticalVelocity));
-                    }
+                    // כנפיים הוסרו — כבידה והתנגשויות כמו אויב רגיל / wings stripped — gravity + collisions
+                    fl.ApplyGravity();
+                    if (fl.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(flyingEnemies, i); continue; }
 
-                    if (fl.Position.Y > 600)
-                    {
-                        Controls.Remove(fl.Visual);
-                        fl.Visual.Dispose();
-                        flyingEnemies.RemoveAt(i);
-                        continue;
-                    }
-
-                    bool flGrounded = false;
-                    bool flWallHit = false;
-                    var flRect = fl.Bounds;
-                    foreach (var plat in platforms)
-                    {
-                        var pr = new Rectangle(
-                            plat.Position.X, plat.Position.Y,
-                            plat.PictureBox.Width, plat.PictureBox.Height);
-                        if (!flRect.IntersectsWith(pr)) continue;
-
-                        int ot = flRect.Bottom - pr.Top, ob = pr.Bottom - flRect.Top;
-                        int ol = flRect.Right - pr.Left, orr = pr.Right - flRect.Left;
-                        int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                        if (min == ot && ot < 30)
-                        {
-                            fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
-                            fl.VerticalVelocity = 0;
-                            flGrounded = true;
-                            break;
-                        }
-                        else if (min == ob && fl.VerticalVelocity >= 0)
-                        {
-                            fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
-                            fl.VerticalVelocity = 0;
-                            flGrounded = true;
-                            break;
-                        }
-                        else if (min == ol || min == orr)
-                        {
-                            if (!flWallHit)
-                            {
-                                if (min == ol)
-                                    fl.Position = new Point(pr.Left - fl.Visual.Width, fl.Position.Y);
-                                else
-                                    fl.Position = new Point(pr.Right, fl.Position.Y);
-                                fl.ReverseDirection();
-                                flWallHit = true;
-                                flRect = fl.Bounds;
-                            }
-                            continue;
-                        }
-                    }
-                    fl.IsGrounded = flGrounded;
-
-                    // Question block wall collision (no-wings mode)
-                    var flBounds2 = fl.Bounds;
-                    foreach (var qb in questionBlocks)
-                    {
-                        var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                        if (!flBounds2.IntersectsWith(br)) continue;
-                        int qot = flBounds2.Bottom - br.Top;
-                        int qob = br.Bottom - flBounds2.Top;
-                        int qol = flBounds2.Right - br.Left;
-                        int qorr = br.Right - flBounds2.Left;
-                        int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                        if ((qmin == qol || qmin == qorr) && qmin < qot)
-                        { fl.ReverseDirection(); break; }
-                    }
+                    fl.IsGrounded = fl.ResolvePlatformCollisions(platRects, allowCeiling: false, out _);
+                    fl.ResolveBlockCollisions(blockRects, allowCeiling: false);
 
                     fl.Update();
-                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    SyncToScreen(fl);
                 }
 
                 if (isDying) continue;
-                var flWorld = new Rectangle(fl.Position.X, fl.Position.Y, fl.Visual.Width, fl.Visual.Height);
-                if (!playerRect.IntersectsWith(flWorld)) continue;
+                if (!playerRect.IntersectsWith(fl.Bounds)) continue;
 
-                int pBot3 = player.Position.Y + picboxplayer.Height;
-                bool fall3 = pBot3 - fl.Position.Y < 24;
-                bool abv3  = player.Position.Y < fl.Position.Y + fl.Visual.Height / 2;
-
-                if (fall3 && abv3 && player.VerticalVelocity >= 0)
+                // דריכה: ניקוד תלוי אם עוד היו כנפיים — לתפוס לפני Stomp() שמסיר אותן.
+                // Stomp: score depends on whether it still had wings — capture before Stomp() strips them.
+                if (PlayerStomps(fl))
                 {
                     bool hadWings = fl.HasWings;
                     fl.Stomp();
