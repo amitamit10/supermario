@@ -222,13 +222,14 @@ namespace supermario
 
                     var sec = pickFrom[levelRandom.Next(pickFrom.Length)];
 
-                    // Avoid repeating same section type two consecutive times.
-                    // Retry from the SAME pool so the difficulty curve is preserved.
-                    int tries = 0;
-                    while (tries < 3 && Array.IndexOf(ALL_SECTIONS, sec) == prevSectionIdx)
+                    // Avoid repeating the same section type two consecutive times.
+                    // Retry with a generous cap so we don't infinite-loop if a pool is
+                    // ever edited to contain duplicate references (all pools today have
+                    // distinct entries, but defense-in-depth).
+                    if (pickFrom.Length > 1)
                     {
-                        sec = pickFrom[levelRandom.Next(pickFrom.Length)];
-                        tries++;
+                        for (int t = 0; t < 16 && Array.IndexOf(ALL_SECTIONS, sec) == prevSectionIdx; t++)
+                            sec = pickFrom[levelRandom.Next(pickFrom.Length)];
                     }
                     prevSectionIdx = Array.IndexOf(ALL_SECTIONS, sec);
 
@@ -242,10 +243,13 @@ namespace supermario
                             kept++;
                         }
                     }
-                    // Only advance xOff if at least one platform from this section was kept;
-                    // otherwise we'd leave an unjumpable empty gap of 130+ px.
+                    // Always advance xOff so the next section doesn't pile on top of
+                    // this one. If no platform survived the y-window, advance by a
+                    // sensible default gap rather than leaving xOff in place.
                     if (sec.Length > 0 && kept > 0)
                         xOff += sec.Max(p => p.X + p.Width) + 130;
+                    else
+                        xOff += 200;
                 }
 
                 extra++;

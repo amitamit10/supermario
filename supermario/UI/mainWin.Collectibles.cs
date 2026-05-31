@@ -105,8 +105,9 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void SpawnMushroom(Point blockWorldPos)
         {
-            // Mushroom appears just above the question block and moves right
-            var spawnPos = new Point(blockWorldPos.X + 8, blockWorldPos.Y - 36);
+            // Mushroom emerges sitting on top of the question block (its visual is 34
+            // tall) and walks off the edge under gravity.
+            var spawnPos = new Point(blockWorldPos.X + 8, blockWorldPos.Y - 34);
             var pb = new PictureBox
             {
                 Size = new Size(34, 34),
@@ -159,13 +160,20 @@ namespace supermario
                 int newY = m.Position.Y + (int)Math.Round(m.VerticalVelocity);
                 m.Position = new Point(newX, newY);
 
-                // Platform collisions
+                // Platform collisions – also treat question blocks as solid floors so a
+                // mushroom emerging from a Q-block can rest on it before walking off.
                 bool onGround = false;
                 var mRect = new Rectangle(m.Position.X, m.Position.Y, m.Visual.Width, m.Visual.Height);
+                var surfaces = new List<Rectangle>(platforms.Count + questionBlocks.Count);
                 foreach (var plat in platforms)
+                    surfaces.Add(new Rectangle(plat.Position.X, plat.Position.Y,
+                        plat.PictureBox.Width, plat.PictureBox.Height));
+                foreach (var qb in questionBlocks)
+                    surfaces.Add(new Rectangle(qb.Position.X, qb.Position.Y,
+                        qb.Visual.Width, qb.Visual.Height));
+
+                foreach (var pr in surfaces)
                 {
-                    var pr = new Rectangle(plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
                     if (!mRect.IntersectsWith(pr)) continue;
 
                     int ot = mRect.Bottom - pr.Top;
@@ -174,19 +182,28 @@ namespace supermario
                     int orr = pr.Right - mRect.Left;
                     int minO = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
 
-                    if (minO == ot && ot < 22)
+                    if (minO == ot && m.VerticalVelocity >= 0)
                     {
                         m.Position = new Point(m.Position.X, pr.Top - m.Visual.Height);
                         m.VerticalVelocity = 0;
                         onGround = true;
-                        break; // resolved – stop checking other platforms this frame
+                        mRect = new Rectangle(m.Position.X, m.Position.Y, m.Visual.Width, m.Visual.Height);
                     }
-                    else if (minO == ol || minO == orr)
+                    else if (minO == ol)
                     {
-                        m.VelocityX = -m.VelocityX;
-                        break; // direction reversed – stop to avoid double-flip on corners
+                        // Push out of the wall AND flip direction to avoid jitter.
+                        m.Position = new Point(pr.Left - m.Visual.Width, m.Position.Y);
+                        m.VelocityX = -Math.Abs(m.VelocityX);
+                        mRect = new Rectangle(m.Position.X, m.Position.Y, m.Visual.Width, m.Visual.Height);
+                    }
+                    else if (minO == orr)
+                    {
+                        m.Position = new Point(pr.Right, m.Position.Y);
+                        m.VelocityX = Math.Abs(m.VelocityX);
+                        mRect = new Rectangle(m.Position.X, m.Position.Y, m.Visual.Width, m.Visual.Height);
                     }
                 }
+
                 m.IsGrounded = onGround;
 
                 // Sync screen position

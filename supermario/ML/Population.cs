@@ -59,6 +59,12 @@ namespace supermario.ML
                 int bi;
                 do { bi = NetParams.randomNum.Next(survivors.Count); } while (bi == ai && survivors.Count > 1);
 
+                // `tilt` is biased toward parent A (always >= 0.2). Pass the fitter
+                // survivor as A so selection pressure flows toward better genes
+                // instead of being neutralised by random index ordering.
+                // survivors is sorted descending, so the lower index is fitter.
+                if (bi < ai) { int t = ai; ai = bi; bi = t; }
+
                 double tilt = NetParams.randomNum.NextDouble() * 0.6 + 0.2;   // 0.2 – 0.8
                 var brain   = NeuralNetwork.CrossOver(survivors[ai].Brain, survivors[bi].Brain, tilt);
 

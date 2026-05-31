@@ -82,11 +82,13 @@ namespace supermario.ML
             // Track fitness = rightmost point ever reached
             if (Position.X > Fitness) Fitness = Position.X;
 
-            // Stuck detection: if no progress in 120 frames, kill agent
+            // Stuck detection: if forward progress over the last window is below this
+            // threshold, kill the agent. The previous 8 px / 120 frames allowed agents
+            // crawling at <2% of full speed to survive forever, slowing training.
             stuckTimer++;
             if (stuckTimer >= 120)
             {
-                if (Math.Abs(Position.X - lastX) < 8) IsAlive = false;
+                if (Position.X - lastX < 60) IsAlive = false;
                 lastX      = Position.X;
                 stuckTimer = 0;
             }
