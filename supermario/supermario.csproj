@@ -58,6 +58,7 @@
 
     <!-- Enemies -->
     <Compile Include="Enemies\Enemy.cs" />
+    <Compile Include="Enemies\SquishableEnemy.cs" />
     <Compile Include="Enemies\Goomba.cs" />
     <Compile Include="Enemies\Koopa.cs" />
     <Compile Include="Enemies\FastEnemy.cs" />
