@@ -318,157 +318,60 @@ namespace supermario
 
         private void UpdatePatrolEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = patrolEnemies.Count - 1; i >= 0; i--)
             {
                 var pe = patrolEnemies[i];
 
-                if (!pe.IsAlive)
-                {
-                    Controls.Remove(pe.Visual);
-                    pe.Visual.Dispose();
-                    patrolEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                if (pe.Position.Y > 620)
-                {
-                    Controls.Remove(pe.Visual);
-                    pe.Visual.Dispose();
-                    patrolEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!pe.IsAlive)                     { RemoveEnemy(patrolEnemies, i); continue; }
+                if (pe.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(patrolEnemies, i); continue; }
 
                 if (pe.IsSquished)
                 {
                     if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
-                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+                    SyncToScreen(pe);
                     continue;
                 }
 
-                // Gravity
-                if (!pe.IsGrounded)
+                pe.ApplyGravity();
+                if (pe.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(patrolEnemies, i); continue; }
+
+                bool wallHit;
+                bool grounded = pe.ResolvePlatformCollisions(platRects, allowCeiling: false, out wallHit);
+                pe.IsGrounded = grounded;
+
+                // בלוקי-שאלה: לולאה ייחודית לפטרול — מגודרת ב-wallHit ומעדכנת אותו (שלא כמו העוזר הגנרי).
+                // Question blocks: patrol-specific loop — gated by wallHit and updates it (unlike the generic helper).
+                if (!wallHit)
                 {
-                    pe.VerticalVelocity += 0.6f;
-                    if (pe.VerticalVelocity > 15f) pe.VerticalVelocity = 15f;
-                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)Math.Round(pe.VerticalVelocity));
-                }
-
-                if (pe.Position.Y > 600)
-                {
-                    Controls.Remove(pe.Visual);
-                    pe.Visual.Dispose();
-                    patrolEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                bool peGrounded = false;
-                bool peWallHit = false;
-                var peRect = pe.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
-                    if (!peRect.IntersectsWith(pr)) continue;
-
-                    int ot = peRect.Bottom - pr.Top, ob = pr.Bottom - peRect.Top;
-                    int ol = peRect.Right - pr.Left, orr = pr.Right - peRect.Left;
-                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                    if (min == ot && ot < 30)
+                    var b = pe.Bounds;
+                    foreach (var br in blockRects)
                     {
-                        pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
-                        pe.VerticalVelocity = 0;
-                        peGrounded = true;
-                        break;
-                    }
-                    else if (min == ob && pe.VerticalVelocity >= 0)
-                    {
-                        pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
-                        pe.VerticalVelocity = 0;
-                        peGrounded = true;
-                        break;
-                    }
-                    else if (min == ol || min == orr)
-                    {
-                        if (!peWallHit)
-                        {
-                            if (min == ol)
-                                pe.Position = new Point(pr.Left - pe.Visual.Width, pe.Position.Y);
-                            else
-                                pe.Position = new Point(pr.Right, pe.Position.Y);
-                            pe.ReverseDirection();
-                            peWallHit = true;
-                            peRect = pe.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                pe.IsGrounded = peGrounded;
-
-                // Question block wall collision for patrol enemies
-                if (!peWallHit)
-                {
-                    var peBounds2 = pe.Bounds;
-                    foreach (var qb in questionBlocks)
-                    {
-                        var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                        if (!peBounds2.IntersectsWith(br)) continue;
-                        int qot = peBounds2.Bottom - br.Top;
-                        int qob = br.Bottom - peBounds2.Top;
-                        int qol = peBounds2.Right - br.Left;
-                        int qorr = br.Right - peBounds2.Left;
+                        if (!b.IntersectsWith(br)) continue;
+                        int qot = b.Bottom - br.Top, qob = br.Bottom - b.Top;
+                        int qol = b.Right - br.Left, qorr = br.Right - b.Left;
                         int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
                         if ((qmin == qol || qmin == qorr) && qmin < qot)
-                        { pe.ReverseDirection(); peWallHit = true; break; }
+                        { pe.ReverseDirection(); wallHit = true; break; }
                     }
                 }
 
-                // Edge detection – skip if wall collision already reversed direction this frame
-                if (peGrounded && !peWallHit)
-                {
-                    const int probeW = 10;
-                    int probeX = pe.Direction > 0
-                        ? pe.Position.X + pe.Visual.Width
-                        : pe.Position.X - probeW;
-                    int probeY  = pe.Position.Y + pe.Visual.Height + 4;
-                    var probe   = new Rectangle(probeX, probeY, probeW, 6);
-                    bool groundAhead = false;
-                    foreach (var plat in platforms)
-                    {
-                        var pr = new Rectangle(
-                            plat.Position.X, plat.Position.Y,
-                            plat.PictureBox.Width, plat.PictureBox.Height);
-                        if (probe.IntersectsWith(pr)) { groundAhead = true; break; }
-                    }
-                    if (!groundAhead) pe.ReverseDirection();
-                }
+                // זיהוי קצה מדף — מדלגים אם פגיעת קיר כבר הפכה כיוון השנייה.
+                // Ledge-edge turn — skipped if a wall hit already reversed direction this frame.
+                if (grounded && !wallHit && pe.IsAtLedgeEdge(platRects)) pe.ReverseDirection();
 
                 pe.Update();
-                pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+                SyncToScreen(pe);
 
                 if (isDying) continue;
-                var peWorld = new Rectangle(pe.Position.X, pe.Position.Y, pe.Visual.Width, pe.Visual.Height);
-                if (!playerRect.IntersectsWith(peWorld)) continue;
+                if (!playerRect.IntersectsWith(pe.Bounds)) continue;
 
-                int pBot2 = player.Position.Y + picboxplayer.Height;
-                bool fall2 = pBot2 - pe.Position.Y < 24;
-                bool abv2  = player.Position.Y < pe.Position.Y + pe.Visual.Height / 2;
-
-                if (fall2 && abv2 && player.VerticalVelocity >= 0)
-                {
-                    pe.Squish();
-                    player.Bounce();
-                    player.Score += 175;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(pe)) { pe.Squish(); player.Bounce(); player.Score += 175; }
+                else                  { HitByEnemy(); }
             }
         }
 
