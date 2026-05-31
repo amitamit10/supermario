@@ -61,8 +61,8 @@ namespace supermario
                 g.ApplyGravity();
                 if (g.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(goombas, i); continue; }
 
-                g.IsGrounded = g.ResolvePlatformCollisions(platRects, allowCeiling: false, out _);
-                g.ResolveBlockCollisions(blockRects, allowCeiling: false);
+                g.IsGrounded = g.ResolvePlatformCollisions(platRects, out _);
+                g.ResolveBlockCollisions(blockRects);
 
                 g.Update();
                 SyncToScreen(g);
@@ -138,8 +138,8 @@ namespace supermario
                 k.ApplyGravity();
                 if (k.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(koopas, i); continue; }
 
-                k.IsGrounded = k.ResolvePlatformCollisions(platRects, allowCeiling: false, out _);
-                k.ResolveBlockCollisions(blockRects, allowCeiling: false);
+                k.IsGrounded = k.ResolvePlatformCollisions(platRects, out _);
+                k.ResolveBlockCollisions(blockRects);
 
                 k.Update();
                 SyncToScreen(k);
@@ -203,8 +203,8 @@ namespace supermario
                 fe.ApplyGravity();
                 if (fe.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(fastEnemies, i); continue; }
 
-                fe.IsGrounded = fe.ResolvePlatformCollisions(platRects, allowCeiling: false, out _);
-                fe.ResolveBlockCollisions(blockRects, allowCeiling: false);
+                fe.IsGrounded = fe.ResolvePlatformCollisions(platRects, out _);
+                fe.ResolveBlockCollisions(blockRects);
 
                 fe.Update();
                 SyncToScreen(fe);
@@ -272,7 +272,7 @@ namespace supermario
                 // על קצה פלטפורמה ומונעת הבהוב IsGrounded שמחצי את קצב הקפיצה.
                 // The jumper can bonk ceilings (allowCeiling). An extra feet probe confirms
                 // footing on a platform edge, stopping IsGrounded flicker that halves the jump rate.
-                bool grounded = je.ResolvePlatformCollisions(platRects, allowCeiling: true, out _);
+                bool grounded = je.ResolvePlatformCollisions(platRects, out _, allowCeiling: true);
                 if (!grounded && je.VerticalVelocity >= 0 && je.HasGroundBeneath(platRects)) grounded = true;
                 je.IsGrounded = grounded;
 
@@ -341,7 +341,7 @@ namespace supermario
                 if (pe.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(patrolEnemies, i); continue; }
 
                 bool wallHit;
-                bool grounded = pe.ResolvePlatformCollisions(platRects, allowCeiling: false, out wallHit);
+                bool grounded = pe.ResolvePlatformCollisions(platRects, out wallHit);
                 pe.IsGrounded = grounded;
 
                 // בלוקי-שאלה: לולאה ייחודית לפטרול — מגודרת ב-wallHit ומעדכנת אותו (שלא כמו העוזר הגנרי).
@@ -435,8 +435,8 @@ namespace supermario
                     fl.ApplyGravity();
                     if (fl.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(flyingEnemies, i); continue; }
 
-                    fl.IsGrounded = fl.ResolvePlatformCollisions(platRects, allowCeiling: false, out _);
-                    fl.ResolveBlockCollisions(blockRects, allowCeiling: false);
+                    fl.IsGrounded = fl.ResolvePlatformCollisions(platRects, out _);
+                    fl.ResolveBlockCollisions(blockRects);
 
                     fl.Update();
                     SyncToScreen(fl);

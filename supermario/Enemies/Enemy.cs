@@ -135,7 +135,7 @@ namespace supermario
         // והיפוך כיוון בפגיעת קיר. מחזיר האם נחת; wallHit מדווח על פגיעת צד.
         // Platform collision: land on top, optional ceiling (Jumper only), reverse on wall.
         // Returns whether it landed; wallHit reports a side hit.
-        public bool ResolvePlatformCollisions(IEnumerable<Rectangle> platformRects, bool allowCeiling, out bool wallHit)
+        public bool ResolvePlatformCollisions(IEnumerable<Rectangle> platformRects, out bool wallHit, bool allowCeiling = false)
         {
             bool grounded = false;
             wallHit = false;
@@ -176,7 +176,7 @@ namespace supermario
 
         // התנגשות עם בלוקי-שאלה (כקירות): היפוך כיוון בפגיעת צד; תקרה אופציונלית (Jumper).
         // Question-block (wall) collision: reverse on a side hit; optional ceiling (Jumper).
-        public void ResolveBlockCollisions(IEnumerable<Rectangle> blockRects, bool allowCeiling)
+        public void ResolveBlockCollisions(IEnumerable<Rectangle> blockRects, bool allowCeiling = false)
         {
             var b = Bounds;
             foreach (var br in blockRects)
