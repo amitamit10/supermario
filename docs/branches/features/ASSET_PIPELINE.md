@@ -1,5 +1,13 @@
 # Feature: Asset Pipeline
 
+> ⚠️ **עודכן / UPDATED:** `generate_spritesheets.py` כיום מייצר **תמונות PNG בודדות** לכל
+> ספרייט לתוך `assets/textures/sprites/` (ולא אטלסים ב‑`sprite_sheets/`). המשחק טוען אותן
+> דרך `Core/Sprites.cs` ומציב אותן ב‑`PictureBox.Image` — אין יותר `TextureLoader`/חיתוך sheet.
+> המסמך שלהלן מתאר את צינור ה‑sheets ההיסטורי לרקע בלבד. מקור האמת: `CLAUDE.md`.
+>
+> `generate_spritesheets.py` now emits **individual PNGs** per sprite into
+> `assets/textures/sprites/`; the game loads them via `Core/Sprites.cs`. The text below is historical.
+
 The repository ships **two Python scripts** that procedurally generate the game's pixel art and the sprite sheets that pack it. They live at the repository root and are run offline by developers; the game does not depend on Python at runtime.
 
 ## Scripts

@@ -38,144 +38,42 @@ namespace supermario
 
         private void UpdateGoombas()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = goombas.Count - 1; i >= 0; i--)
             {
-                var goomba = goombas[i];
+                var g = goombas[i];
 
-                if (!goomba.IsAlive)
+                if (!g.IsAlive)                     { RemoveEnemy(goombas, i); continue; }
+                if (g.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(goombas, i); continue; }
+
+                // אויב מעוך: רק סופר זמן עד היעלמות / squished: just tick the timer
+                if (g.IsSquished)
                 {
-                    Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();
-                    goombas.RemoveAt(i);
+                    if (g.UpdateSquish(FIXED_STEP_MS)) g.Kill();
+                    SyncToScreen(g);
                     continue;
                 }
 
-                if (goomba.Position.Y > 620)
-                {
-                    Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();
-                    goombas.RemoveAt(i);
-                    continue;
-                }
+                g.ApplyGravity();
+                if (g.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(goombas, i); continue; }
 
-                // Squished enemies don't need gravity or platform checks; handle and skip early
-                if (goomba.IsSquished)
-                {
-                    if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
-                    goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
-                    continue;
-                }
+                g.IsGrounded = g.ResolvePlatformCollisions(platRects, out _);
+                g.ResolveBlockCollisions(blockRects);
 
-                if (!goomba.IsGrounded)
-                {
-                    goomba.VerticalVelocity += 0.6f;
-                    if (goomba.VerticalVelocity > 15f) goomba.VerticalVelocity = 15f;
-                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)Math.Round(goomba.VerticalVelocity));
-                }
+                g.Update();
+                SyncToScreen(g);
 
-                if (goomba.Position.Y > 600)
-                {
-                    Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();
-                    goombas.RemoveAt(i);
-                    continue;
-                }
-
-                bool gGrounded = false;
-                bool gWallHit = false;
-                var gRect = goomba.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X,
-                        plat.Position.Y,
-                        plat.PictureBox.Width,
-                        plat.PictureBox.Height);
-
-                    if (!gRect.IntersectsWith(pr)) continue;
-
-                    int overlapTop    = gRect.Bottom - pr.Top;
-                    int overlapBottom = pr.Bottom - gRect.Top;
-                    int overlapLeft   = gRect.Right - pr.Left;
-                    int overlapRight  = pr.Right - gRect.Left;
-                    int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
-
-                    if (minOverlap == overlapTop && overlapTop < 30)
-                    {
-                        goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
-                        goomba.VerticalVelocity = 0;
-                        gGrounded = true;
-                        break;
-                    }
-                    else if (minOverlap == overlapBottom && goomba.VerticalVelocity >= 0)
-                    {
-                        // Descended past the platform top in a single frame – snap up to land
-                        // instead of silently falling through.
-                        goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
-                        goomba.VerticalVelocity = 0;
-                        gGrounded = true;
-                        break;
-                    }
-                    else if (minOverlap == overlapLeft || minOverlap == overlapRight)
-                    {
-                        // Wall hit; push out of the wall and reverse so we don't sit
-                        // embedded for several frames jittering against the platform.
-                        if (!gWallHit)
-                        {
-                            if (minOverlap == overlapLeft)
-                                goomba.Position = new Point(pr.Left - goomba.Visual.Width, goomba.Position.Y);
-                            else
-                                goomba.Position = new Point(pr.Right, goomba.Position.Y);
-                            goomba.ReverseDirection();
-                            gWallHit = true;
-                            gRect = goomba.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                goomba.IsGrounded = gGrounded;
-
-                // Question block wall collision
-                var gBounds2 = goomba.Bounds;
-                foreach (var qb in questionBlocks)
-                {
-                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                    if (!gBounds2.IntersectsWith(br)) continue;
-                    int qot = gBounds2.Bottom - br.Top;
-                    int qob = br.Bottom - gBounds2.Top;
-                    int qol = gBounds2.Right - br.Left;
-                    int qorr = br.Right - gBounds2.Left;
-                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                    if ((qmin == qol || qmin == qorr) && qmin < qot)
-                    { goomba.ReverseDirection(); break; }
-                }
-
-                goomba.Update();
-                goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
-
+                // התנגשות עם השחקן: דריכה מלמעלה מועכת; אחרת השחקן נפגע.
+                // Player collision: a stomp from above squishes; otherwise the player is hurt.
                 if (isDying) continue;
-                var gWorldRect = new Rectangle(goomba.Position.X, goomba.Position.Y, goomba.Visual.Width, goomba.Visual.Height);
-                if (!playerRect.IntersectsWith(gWorldRect)) continue;
+                if (!playerRect.IntersectsWith(g.Bounds)) continue;
 
-                int playerBottom = player.Position.Y + picboxplayer.Height;
-                int goombaTop    = goomba.Position.Y;
-                bool fallingDown = playerBottom - goombaTop < 24;
-                bool playerAbove = player.Position.Y < goomba.Position.Y + goomba.Visual.Height / 2;
-
-                if (fallingDown && playerAbove && player.VerticalVelocity >= 0)
-                {
-                    goomba.Squish();
-                    player.Bounce();
-                    player.Score += 100;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(g)) { g.Squish(); player.Bounce(); player.Score += 100; }
+                else                 { HitByEnemy(); }
             }
         }
 
@@ -209,147 +107,48 @@ namespace supermario
 
         private void UpdateKoopas()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = koopas.Count - 1; i >= 0; i--)
             {
                 var k = koopas[i];
 
-                if (!k.IsAlive)
-                {
-                    Controls.Remove(k.Visual);
-                    k.Visual.Dispose();
-                    koopas.RemoveAt(i);
-                    continue;
-                }
+                if (!k.IsAlive)                     { RemoveEnemy(koopas, i); continue; }
+                if (k.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(koopas, i); continue; }
 
-                if (k.Position.Y > 620)
-                {
-                    Controls.Remove(k.Visual);
-                    k.Visual.Dispose();
-                    koopas.RemoveAt(i);
-                    continue;
-                }
-
-                // Shell state: no gravity needed, just tick timer and skip physics.
-                // Walking-into-shell kicks it for points; bypass the rest of the physics
-                // path so player-collision is handled here, not by the dead branch below.
+                // מצב קליפה: ללא פיזיקה — רק טיימר; הליכה לתוך הקליפה בועטת בה לנקודות.
+                // טיפול בהתנגשות השחקן כאן (לא בענף ה"מת") כי הקליפה היא מצב חי.
+                // Shell state: no physics, just the timer; walking into it kicks it for points.
+                // Player collision handled here (not the dead branch) since the shell is alive.
                 if (k.IsShell)
                 {
                     if (k.UpdateShell(FIXED_STEP_MS)) k.Kill();
-                    k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
-
-                    if (!isDying)
+                    SyncToScreen(k);
+                    if (!isDying && playerRect.IntersectsWith(k.Bounds))
                     {
-                        var shellWorld = new Rectangle(k.Position.X, k.Position.Y, k.Visual.Width, k.Visual.Height);
-                        if (playerRect.IntersectsWith(shellWorld))
-                        {
-                            k.Stomp(); // second Stomp on shell calls Kill()
-                            player.Score += 50;
-                        }
+                        k.Stomp();              // דריכה שנייה על הקליפה הורגת / second stomp kills
+                        player.Score += 50;
                     }
                     continue;
                 }
 
-                // Gravity
-                if (!k.IsGrounded)
-                {
-                    k.VerticalVelocity += 0.6f;
-                    if (k.VerticalVelocity > 15f) k.VerticalVelocity = 15f;
-                    k.Position = new Point(k.Position.X, k.Position.Y + (int)Math.Round(k.VerticalVelocity));
-                }
+                k.ApplyGravity();
+                if (k.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(koopas, i); continue; }
 
-                if (k.Position.Y > 600)
-                {
-                    Controls.Remove(k.Visual);
-                    k.Visual.Dispose();
-                    koopas.RemoveAt(i);
-                    continue;
-                }
-
-                // Platform collision
-                bool kGrounded = false;
-                bool kWallHit = false;
-                var kRect = k.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
-                    if (!kRect.IntersectsWith(pr)) continue;
-
-                    int ot = kRect.Bottom - pr.Top, ob = pr.Bottom - kRect.Top;
-                    int ol = kRect.Right - pr.Left, orr = pr.Right - kRect.Left;
-                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                    if (min == ot && ot < 30)
-                    {
-                        k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
-                        k.VerticalVelocity = 0;
-                        kGrounded = true;
-                        break;
-                    }
-                    else if (min == ob && k.VerticalVelocity >= 0)
-                    {
-                        k.Position = new Point(k.Position.X, pr.Top - k.Visual.Height);
-                        k.VerticalVelocity = 0;
-                        kGrounded = true;
-                        break;
-                    }
-                    else if (min == ol || min == orr)
-                    {
-                        if (!kWallHit)
-                        {
-                            if (min == ol)
-                                k.Position = new Point(pr.Left - k.Visual.Width, k.Position.Y);
-                            else
-                                k.Position = new Point(pr.Right, k.Position.Y);
-                            k.ReverseDirection();
-                            kWallHit = true;
-                            kRect = k.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                k.IsGrounded = kGrounded;
-
-                var kBounds2 = k.Bounds;
-                foreach (var qb in questionBlocks)
-                {
-                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                    if (!kBounds2.IntersectsWith(br)) continue;
-                    int qot = kBounds2.Bottom - br.Top;
-                    int qob = br.Bottom - kBounds2.Top;
-                    int qol = kBounds2.Right - br.Left;
-                    int qorr = br.Right - kBounds2.Left;
-                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                    if ((qmin == qol || qmin == qorr) && qmin < qot)
-                    { k.ReverseDirection(); break; }
-                }
+                k.IsGrounded = k.ResolvePlatformCollisions(platRects, out _);
+                k.ResolveBlockCollisions(blockRects);
 
                 k.Update();
-                k.Visual.Location = new Point(k.Position.X - cameraX, k.Position.Y);
+                SyncToScreen(k);
 
                 if (isDying) continue;
-                var kWorld = new Rectangle(k.Position.X, k.Position.Y, k.Visual.Width, k.Visual.Height);
-                if (!playerRect.IntersectsWith(kWorld)) continue;
+                if (!playerRect.IntersectsWith(k.Bounds)) continue;
 
-                int pBottom = player.Position.Y + picboxplayer.Height;
-                bool falling = pBottom - k.Position.Y < 24;
-                bool above   = player.Position.Y < k.Position.Y + k.Visual.Height / 2;
-
-                if (falling && above && player.VerticalVelocity >= 0)
-                {
-                    k.Stomp();
-                    player.Bounce();
-                    player.Score += 150;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(k)) { k.Stomp(); player.Bounce(); player.Score += 150; }
+                else                 { HitByEnemy(); }
             }
         }
 
@@ -382,134 +181,39 @@ namespace supermario
 
         private void UpdateFastEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = fastEnemies.Count - 1; i >= 0; i--)
             {
                 var fe = fastEnemies[i];
 
-                if (!fe.IsAlive)
-                {
-                    Controls.Remove(fe.Visual);
-                    fe.Visual.Dispose();
-                    fastEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                if (fe.Position.Y > 620)
-                {
-                    Controls.Remove(fe.Visual);
-                    fe.Visual.Dispose();
-                    fastEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!fe.IsAlive)                     { RemoveEnemy(fastEnemies, i); continue; }
+                if (fe.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(fastEnemies, i); continue; }
 
                 if (fe.IsSquished)
                 {
                     if (fe.UpdateSquish(FIXED_STEP_MS)) fe.Kill();
-                    fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
+                    SyncToScreen(fe);
                     continue;
                 }
 
-                // Gravity
-                if (!fe.IsGrounded)
-                {
-                    fe.VerticalVelocity += 0.6f;
-                    if (fe.VerticalVelocity > 15f) fe.VerticalVelocity = 15f;
-                    fe.Position = new Point(fe.Position.X, fe.Position.Y + (int)Math.Round(fe.VerticalVelocity));
-                }
+                fe.ApplyGravity();
+                if (fe.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(fastEnemies, i); continue; }
 
-                if (fe.Position.Y > 600)
-                {
-                    Controls.Remove(fe.Visual);
-                    fe.Visual.Dispose();
-                    fastEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                // Platform collision
-                bool feGrounded = false;
-                bool feWallHit = false;
-                var feRect = fe.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
-                    if (!feRect.IntersectsWith(pr)) continue;
-
-                    int ot = feRect.Bottom - pr.Top, ob = pr.Bottom - feRect.Top;
-                    int ol = feRect.Right - pr.Left, orr = pr.Right - feRect.Left;
-                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                    if (min == ot && ot < 30)
-                    {
-                        fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
-                        fe.VerticalVelocity = 0;
-                        feGrounded = true;
-                        break;
-                    }
-                    else if (min == ob && fe.VerticalVelocity >= 0)
-                    {
-                        fe.Position = new Point(fe.Position.X, pr.Top - fe.Visual.Height);
-                        fe.VerticalVelocity = 0;
-                        feGrounded = true;
-                        break;
-                    }
-                    else if (min == ol || min == orr)
-                    {
-                        if (!feWallHit)
-                        {
-                            if (min == ol)
-                                fe.Position = new Point(pr.Left - fe.Visual.Width, fe.Position.Y);
-                            else
-                                fe.Position = new Point(pr.Right, fe.Position.Y);
-                            fe.ReverseDirection();
-                            feWallHit = true;
-                            feRect = fe.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                fe.IsGrounded = feGrounded;
-
-                var feBounds2 = fe.Bounds;
-                foreach (var qb in questionBlocks)
-                {
-                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                    if (!feBounds2.IntersectsWith(br)) continue;
-                    int qot = feBounds2.Bottom - br.Top;
-                    int qob = br.Bottom - feBounds2.Top;
-                    int qol = feBounds2.Right - br.Left;
-                    int qorr = br.Right - feBounds2.Left;
-                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                    if ((qmin == qol || qmin == qorr) && qmin < qot)
-                    { fe.ReverseDirection(); break; }
-                }
+                fe.IsGrounded = fe.ResolvePlatformCollisions(platRects, out _);
+                fe.ResolveBlockCollisions(blockRects);
 
                 fe.Update();
-                fe.Visual.Location = new Point(fe.Position.X - cameraX, fe.Position.Y);
+                SyncToScreen(fe);
 
                 if (isDying) continue;
-                var feWorld = new Rectangle(fe.Position.X, fe.Position.Y, fe.Visual.Width, fe.Visual.Height);
-                if (!playerRect.IntersectsWith(feWorld)) continue;
+                if (!playerRect.IntersectsWith(fe.Bounds)) continue;
 
-                int pBot = player.Position.Y + picboxplayer.Height;
-                bool fall = pBot - fe.Position.Y < 24;
-                bool abv  = player.Position.Y < fe.Position.Y + fe.Visual.Height / 2;
-
-                if (fall && abv && player.VerticalVelocity >= 0)
-                {
-                    fe.Squish();
-                    player.Bounce();
-                    player.Score += 200;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(fe)) { fe.Squish(); player.Bounce(); player.Score += 200; }
+                else                  { HitByEnemy(); }
             }
         }
 
@@ -542,159 +246,46 @@ namespace supermario
 
         private void UpdateJumpingEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = jumpingEnemies.Count - 1; i >= 0; i--)
             {
                 var je = jumpingEnemies[i];
 
-                if (!je.IsAlive)
-                {
-                    Controls.Remove(je.Visual);
-                    je.Visual.Dispose();
-                    jumpingEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                if (je.Position.Y > 620)
-                {
-                    Controls.Remove(je.Visual);
-                    je.Visual.Dispose();
-                    jumpingEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!je.IsAlive)                     { RemoveEnemy(jumpingEnemies, i); continue; }
+                if (je.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(jumpingEnemies, i); continue; }
 
                 if (je.IsSquished)
                 {
                     if (je.UpdateSquish(FIXED_STEP_MS)) je.Kill();
-                    je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+                    SyncToScreen(je);
                     continue;
                 }
 
-                // Gravity
-                if (!je.IsGrounded)
-                {
-                    je.VerticalVelocity += 0.6f;
-                    if (je.VerticalVelocity > 15f) je.VerticalVelocity = 15f;
-                    je.Position = new Point(je.Position.X, je.Position.Y + (int)Math.Round(je.VerticalVelocity));
-                }
+                je.ApplyGravity();
+                if (je.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(jumpingEnemies, i); continue; }
 
-                if (je.Position.Y > 600)
-                {
-                    Controls.Remove(je.Visual);
-                    je.Visual.Dispose();
-                    jumpingEnemies.RemoveAt(i);
-                    continue;
-                }
+                // הקופץ יכול לחבוט בתקרה (allowCeiling). בדיקת רגליים נוספת מאשרת עמידה
+                // על קצה פלטפורמה ומונעת הבהוב IsGrounded שמחצי את קצב הקפיצה.
+                // The jumper can bonk ceilings (allowCeiling). An extra feet probe confirms
+                // footing on a platform edge, stopping IsGrounded flicker that halves the jump rate.
+                bool grounded = je.ResolvePlatformCollisions(platRects, out _, allowCeiling: true);
+                if (!grounded && je.VerticalVelocity >= 0 && je.HasGroundBeneath(platRects)) grounded = true;
+                je.IsGrounded = grounded;
 
-                bool jeGrounded = false;
-                bool jeWallHit = false;
-                var jeRect = je.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
-                    if (!jeRect.IntersectsWith(pr)) continue;
-
-                    int ot = jeRect.Bottom - pr.Top, ob = pr.Bottom - jeRect.Top;
-                    int ol = jeRect.Right - pr.Left, orr = pr.Right - jeRect.Left;
-                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                    if (min == ot && ot < 30)
-                    {
-                        je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
-                        je.VerticalVelocity = 0;
-                        jeGrounded = true;
-                        break;
-                    }
-                    else if (min == ob && ob < 20 && je.VerticalVelocity < 0)
-                    {
-                        // Ceiling hit while jumping upward
-                        je.Position = new Point(je.Position.X, pr.Bottom);
-                        je.VerticalVelocity = 0;
-                        break;
-                    }
-                    else if (min == ob && je.VerticalVelocity >= 0)
-                    {
-                        // Fell past the platform in one frame – snap up.
-                        je.Position = new Point(je.Position.X, pr.Top - je.Visual.Height);
-                        je.VerticalVelocity = 0;
-                        jeGrounded = true;
-                        break;
-                    }
-                    else if (min == ol || min == orr)
-                    {
-                        if (!jeWallHit)
-                        {
-                            if (min == ol)
-                                je.Position = new Point(pr.Left - je.Visual.Width, je.Position.Y);
-                            else
-                                je.Position = new Point(pr.Right, je.Position.Y);
-                            je.ReverseDirection();
-                            jeWallHit = true;
-                            jeRect = je.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                je.IsGrounded = jeGrounded;
-
-                // An enemy resting exactly on a platform top has bottom == platTop,
-                // which IntersectsWith treats as non-overlapping, so the loop above
-                // would flip IsGrounded off every other frame. That halves the jump
-                // timer cadence (it only ticks while grounded). Re-confirm footing
-                // with a 2px probe just below the feet when not rising.
-                if (!jeGrounded && je.VerticalVelocity >= 0)
-                {
-                    var feet = new Rectangle(je.Position.X, je.Position.Y + je.Visual.Height, je.Visual.Width, 2);
-                    foreach (var plat in platforms)
-                    {
-                        var pr = new Rectangle(plat.Position.X, plat.Position.Y,
-                            plat.PictureBox.Width, plat.PictureBox.Height);
-                        if (feet.IntersectsWith(pr)) { je.IsGrounded = true; break; }
-                    }
-                }
-
-                var jeBounds2 = je.Bounds;
-                foreach (var qb in questionBlocks)
-                {
-                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                    if (!jeBounds2.IntersectsWith(br)) continue;
-                    int qot = jeBounds2.Bottom - br.Top;
-                    int qob = br.Bottom - jeBounds2.Top;
-                    int qol = jeBounds2.Right - br.Left;
-                    int qorr = br.Right - jeBounds2.Left;
-                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                    if (qmin == qob && qob < 20 && je.VerticalVelocity < 0)
-                    { je.Position = new Point(je.Position.X, br.Bottom); je.VerticalVelocity = 0; break; }
-                    if ((qmin == qol || qmin == qorr) && qmin < qot)
-                    { je.ReverseDirection(); break; }
-                }
+                je.ResolveBlockCollisions(blockRects, allowCeiling: true);
 
                 je.Update();
-                je.Visual.Location = new Point(je.Position.X - cameraX, je.Position.Y);
+                SyncToScreen(je);
 
                 if (isDying) continue;
-                var jeWorld = new Rectangle(je.Position.X, je.Position.Y, je.Visual.Width, je.Visual.Height);
-                if (!playerRect.IntersectsWith(jeWorld)) continue;
+                if (!playerRect.IntersectsWith(je.Bounds)) continue;
 
-                int pBottom = player.Position.Y + picboxplayer.Height;
-                bool falling = pBottom - je.Position.Y < 24;
-                bool above   = player.Position.Y < je.Position.Y + je.Visual.Height / 2;
-
-                if (falling && above && player.VerticalVelocity >= 0)
-                {
-                    je.Squish();
-                    player.Bounce();
-                    player.Score += 150;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(je)) { je.Squish(); player.Bounce(); player.Score += 150; }
+                else                  { HitByEnemy(); }
             }
         }
 
@@ -727,157 +318,60 @@ namespace supermario
 
         private void UpdatePatrolEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = patrolEnemies.Count - 1; i >= 0; i--)
             {
                 var pe = patrolEnemies[i];
 
-                if (!pe.IsAlive)
-                {
-                    Controls.Remove(pe.Visual);
-                    pe.Visual.Dispose();
-                    patrolEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                if (pe.Position.Y > 620)
-                {
-                    Controls.Remove(pe.Visual);
-                    pe.Visual.Dispose();
-                    patrolEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!pe.IsAlive)                     { RemoveEnemy(patrolEnemies, i); continue; }
+                if (pe.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(patrolEnemies, i); continue; }
 
                 if (pe.IsSquished)
                 {
                     if (pe.UpdateSquish(FIXED_STEP_MS)) pe.Kill();
-                    pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+                    SyncToScreen(pe);
                     continue;
                 }
 
-                // Gravity
-                if (!pe.IsGrounded)
+                pe.ApplyGravity();
+                if (pe.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(patrolEnemies, i); continue; }
+
+                bool wallHit;
+                bool grounded = pe.ResolvePlatformCollisions(platRects, out wallHit);
+                pe.IsGrounded = grounded;
+
+                // בלוקי-שאלה: לולאה ייחודית לפטרול — מגודרת ב-wallHit ומעדכנת אותו (שלא כמו העוזר הגנרי).
+                // Question blocks: patrol-specific loop — gated by wallHit and updates it (unlike the generic helper).
+                if (!wallHit)
                 {
-                    pe.VerticalVelocity += 0.6f;
-                    if (pe.VerticalVelocity > 15f) pe.VerticalVelocity = 15f;
-                    pe.Position = new Point(pe.Position.X, pe.Position.Y + (int)Math.Round(pe.VerticalVelocity));
-                }
-
-                if (pe.Position.Y > 600)
-                {
-                    Controls.Remove(pe.Visual);
-                    pe.Visual.Dispose();
-                    patrolEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                bool peGrounded = false;
-                bool peWallHit = false;
-                var peRect = pe.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X, plat.Position.Y,
-                        plat.PictureBox.Width, plat.PictureBox.Height);
-                    if (!peRect.IntersectsWith(pr)) continue;
-
-                    int ot = peRect.Bottom - pr.Top, ob = pr.Bottom - peRect.Top;
-                    int ol = peRect.Right - pr.Left, orr = pr.Right - peRect.Left;
-                    int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                    if (min == ot && ot < 30)
+                    var b = pe.Bounds;
+                    foreach (var br in blockRects)
                     {
-                        pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
-                        pe.VerticalVelocity = 0;
-                        peGrounded = true;
-                        break;
-                    }
-                    else if (min == ob && pe.VerticalVelocity >= 0)
-                    {
-                        pe.Position = new Point(pe.Position.X, pr.Top - pe.Visual.Height);
-                        pe.VerticalVelocity = 0;
-                        peGrounded = true;
-                        break;
-                    }
-                    else if (min == ol || min == orr)
-                    {
-                        if (!peWallHit)
-                        {
-                            if (min == ol)
-                                pe.Position = new Point(pr.Left - pe.Visual.Width, pe.Position.Y);
-                            else
-                                pe.Position = new Point(pr.Right, pe.Position.Y);
-                            pe.ReverseDirection();
-                            peWallHit = true;
-                            peRect = pe.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                pe.IsGrounded = peGrounded;
-
-                // Question block wall collision for patrol enemies
-                if (!peWallHit)
-                {
-                    var peBounds2 = pe.Bounds;
-                    foreach (var qb in questionBlocks)
-                    {
-                        var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                        if (!peBounds2.IntersectsWith(br)) continue;
-                        int qot = peBounds2.Bottom - br.Top;
-                        int qob = br.Bottom - peBounds2.Top;
-                        int qol = peBounds2.Right - br.Left;
-                        int qorr = br.Right - peBounds2.Left;
+                        if (!b.IntersectsWith(br)) continue;
+                        int qot = b.Bottom - br.Top, qob = br.Bottom - b.Top;
+                        int qol = b.Right - br.Left, qorr = br.Right - b.Left;
                         int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
                         if ((qmin == qol || qmin == qorr) && qmin < qot)
-                        { pe.ReverseDirection(); peWallHit = true; break; }
+                        { pe.ReverseDirection(); wallHit = true; break; }
                     }
                 }
 
-                // Edge detection – skip if wall collision already reversed direction this frame
-                if (peGrounded && !peWallHit)
-                {
-                    const int probeW = 10;
-                    int probeX = pe.Direction > 0
-                        ? pe.Position.X + pe.Visual.Width
-                        : pe.Position.X - probeW;
-                    int probeY  = pe.Position.Y + pe.Visual.Height + 4;
-                    var probe   = new Rectangle(probeX, probeY, probeW, 6);
-                    bool groundAhead = false;
-                    foreach (var plat in platforms)
-                    {
-                        var pr = new Rectangle(
-                            plat.Position.X, plat.Position.Y,
-                            plat.PictureBox.Width, plat.PictureBox.Height);
-                        if (probe.IntersectsWith(pr)) { groundAhead = true; break; }
-                    }
-                    if (!groundAhead) pe.ReverseDirection();
-                }
+                // זיהוי קצה מדף — מדלגים אם פגיעת קיר כבר הפכה כיוון השנייה.
+                // Ledge-edge turn — skipped if a wall hit already reversed direction this frame.
+                if (grounded && !wallHit && pe.IsAtLedgeEdge(platRects)) pe.ReverseDirection();
 
                 pe.Update();
-                pe.Visual.Location = new Point(pe.Position.X - cameraX, pe.Position.Y);
+                SyncToScreen(pe);
 
                 if (isDying) continue;
-                var peWorld = new Rectangle(pe.Position.X, pe.Position.Y, pe.Visual.Width, pe.Visual.Height);
-                if (!playerRect.IntersectsWith(peWorld)) continue;
+                if (!playerRect.IntersectsWith(pe.Bounds)) continue;
 
-                int pBot2 = player.Position.Y + picboxplayer.Height;
-                bool fall2 = pBot2 - pe.Position.Y < 24;
-                bool abv2  = player.Position.Y < pe.Position.Y + pe.Visual.Height / 2;
-
-                if (fall2 && abv2 && player.VerticalVelocity >= 0)
-                {
-                    pe.Squish();
-                    player.Bounce();
-                    player.Score += 175;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(pe)) { pe.Squish(); player.Bounce(); player.Score += 175; }
+                else                  { HitByEnemy(); }
             }
         }
 
@@ -910,135 +404,50 @@ namespace supermario
 
         private void UpdateFlyingEnemies()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = flyingEnemies.Count - 1; i >= 0; i--)
             {
                 var fl = flyingEnemies[i];
 
-                if (!fl.IsAlive)
-                {
-                    Controls.Remove(fl.Visual);
-                    fl.Visual.Dispose();
-                    flyingEnemies.RemoveAt(i);
-                    continue;
-                }
+                if (!fl.IsAlive)                     { RemoveEnemy(flyingEnemies, i); continue; }
+                if (fl.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(flyingEnemies, i); continue; }
 
-                if (fl.Position.Y > 620)
-                {
-                    Controls.Remove(fl.Visual);
-                    fl.Visual.Dispose();
-                    flyingEnemies.RemoveAt(i);
-                    continue;
-                }
-
-                // Squished enemies need no physics; tick timer and skip
                 if (fl.IsSquished)
                 {
                     if (fl.UpdateSquish(FIXED_STEP_MS)) fl.Kill();
-                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    SyncToScreen(fl);
                     continue;
                 }
 
                 if (fl.HasWings)
                 {
-                    // Sine-wave flight – Update() manages both axes
+                    // תעופה בגל סינוס — Update() מנהל את שני הצירים / sine flight; Update() drives both axes
                     fl.Update();
-                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    SyncToScreen(fl);
                 }
                 else
                 {
-                    // Wings stripped – apply gravity and platform collision
-                    if (!fl.IsGrounded)
-                    {
-                        fl.VerticalVelocity += 0.6f;
-                        if (fl.VerticalVelocity > 15f) fl.VerticalVelocity = 15f;
-                        fl.Position = new Point(fl.Position.X, fl.Position.Y + (int)Math.Round(fl.VerticalVelocity));
-                    }
+                    // כנפיים הוסרו — כבידה והתנגשויות כמו אויב רגיל / wings stripped — gravity + collisions
+                    fl.ApplyGravity();
+                    if (fl.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(flyingEnemies, i); continue; }
 
-                    if (fl.Position.Y > 600)
-                    {
-                        Controls.Remove(fl.Visual);
-                        fl.Visual.Dispose();
-                        flyingEnemies.RemoveAt(i);
-                        continue;
-                    }
-
-                    bool flGrounded = false;
-                    bool flWallHit = false;
-                    var flRect = fl.Bounds;
-                    foreach (var plat in platforms)
-                    {
-                        var pr = new Rectangle(
-                            plat.Position.X, plat.Position.Y,
-                            plat.PictureBox.Width, plat.PictureBox.Height);
-                        if (!flRect.IntersectsWith(pr)) continue;
-
-                        int ot = flRect.Bottom - pr.Top, ob = pr.Bottom - flRect.Top;
-                        int ol = flRect.Right - pr.Left, orr = pr.Right - flRect.Left;
-                        int min = Math.Min(Math.Min(ot, ob), Math.Min(ol, orr));
-
-                        if (min == ot && ot < 30)
-                        {
-                            fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
-                            fl.VerticalVelocity = 0;
-                            flGrounded = true;
-                            break;
-                        }
-                        else if (min == ob && fl.VerticalVelocity >= 0)
-                        {
-                            fl.Position = new Point(fl.Position.X, pr.Top - fl.Visual.Height);
-                            fl.VerticalVelocity = 0;
-                            flGrounded = true;
-                            break;
-                        }
-                        else if (min == ol || min == orr)
-                        {
-                            if (!flWallHit)
-                            {
-                                if (min == ol)
-                                    fl.Position = new Point(pr.Left - fl.Visual.Width, fl.Position.Y);
-                                else
-                                    fl.Position = new Point(pr.Right, fl.Position.Y);
-                                fl.ReverseDirection();
-                                flWallHit = true;
-                                flRect = fl.Bounds;
-                            }
-                            continue;
-                        }
-                    }
-                    fl.IsGrounded = flGrounded;
-
-                    // Question block wall collision (no-wings mode)
-                    var flBounds2 = fl.Bounds;
-                    foreach (var qb in questionBlocks)
-                    {
-                        var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                        if (!flBounds2.IntersectsWith(br)) continue;
-                        int qot = flBounds2.Bottom - br.Top;
-                        int qob = br.Bottom - flBounds2.Top;
-                        int qol = flBounds2.Right - br.Left;
-                        int qorr = br.Right - flBounds2.Left;
-                        int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                        if ((qmin == qol || qmin == qorr) && qmin < qot)
-                        { fl.ReverseDirection(); break; }
-                    }
+                    fl.IsGrounded = fl.ResolvePlatformCollisions(platRects, out _);
+                    fl.ResolveBlockCollisions(blockRects);
 
                     fl.Update();
-                    fl.Visual.Location = new Point(fl.Position.X - cameraX, fl.Position.Y);
+                    SyncToScreen(fl);
                 }
 
                 if (isDying) continue;
-                var flWorld = new Rectangle(fl.Position.X, fl.Position.Y, fl.Visual.Width, fl.Visual.Height);
-                if (!playerRect.IntersectsWith(flWorld)) continue;
+                if (!playerRect.IntersectsWith(fl.Bounds)) continue;
 
-                int pBot3 = player.Position.Y + picboxplayer.Height;
-                bool fall3 = pBot3 - fl.Position.Y < 24;
-                bool abv3  = player.Position.Y < fl.Position.Y + fl.Visual.Height / 2;
-
-                if (fall3 && abv3 && player.VerticalVelocity >= 0)
+                // דריכה: ניקוד תלוי אם עוד היו כנפיים — לתפוס לפני Stomp() שמסיר אותן.
+                // Stomp: score depends on whether it still had wings — capture before Stomp() strips them.
+                if (PlayerStomps(fl))
                 {
                     bool hadWings = fl.HasWings;
                     fl.Stomp();

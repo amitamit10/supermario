@@ -30,7 +30,7 @@ namespace supermario
             picboxplayer.BringToFront();
             _hudLabel?.BringToFront();
             _scoreLabel?.BringToFront();
-            foreach (var lbl in _heartLabels) lbl?.BringToFront();
+            foreach (var heart in _hearts) heart?.BringToFront();
         }
 
         private void CreateBrickGround()
@@ -41,44 +41,15 @@ namespace supermario
                 Location = new Point(0, GROUND_TOP_Y),
                 BackColor = Color.FromArgb(185, 100, 40),
             };
-            ground.Paint += DrawGroundBrick;
+            ground.BackgroundImage = Sprites.Brick;            // לבנים פרוסות / tiled bricks
+            ground.BackgroundImageLayout = ImageLayout.Tile;
             Controls.Add(ground);
             ground.SendToBack();
             platforms.Add(new GameObjectS(ground, ground.Location, "ground"));
         }
 
-        private static void DrawGroundBrick(object sender, PaintEventArgs e)
-        {
-            var pb = (PictureBox)sender;
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.None;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            int w = pb.Width, h = pb.Height;
-
-            if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
-            {
-                g.DrawTiledFrame(blocksSheet, 3, 64, 64, new Rectangle(0, 0, w, h), 40, 40);
-                return;
-            }
-
-            using (var fill = new SolidBrush(Color.FromArgb(185, 100, 40)))
-                g.FillRectangle(fill, 0, 0, w, h);
-            using (var mortar = new Pen(Color.FromArgb(120, 60, 15), 2f))
-            {
-                for (int x = 0; x < w; x += 40)
-                {
-                    g.DrawLine(mortar, x, 0, x, h);
-                    g.DrawLine(mortar, x + 20, h / 2, x + 20, h);
-                }
-                g.DrawLine(mortar, 0, h / 2, w, h / 2);
-            }
-            using (var hi1 = new SolidBrush(Color.FromArgb(70, 255, 210, 150)))
-                g.FillRectangle(hi1, 0, 0, w, 3);
-            using (var hi2 = new SolidBrush(Color.FromArgb(40, 255, 210, 150)))
-                g.FillRectangle(hi2, 0, 0, 2, h);
-            using (var border = new Pen(Color.FromArgb(90, 40, 5), 1f))
-                g.DrawRectangle(border, 0, 0, w - 1, h - 1);
-        }
+        // הקרקע מצוירת ע"י BackgroundImage פרוס (Sprites.Brick) — אין ציור GDI+.
+        // The ground is drawn by a tiled BackgroundImage — no GDI+ drawing.
 
         private void AddPlatform(int x, int y, int w, int h)
         {
@@ -88,44 +59,15 @@ namespace supermario
                 Location = new Point(x, y),
                 BackColor = Color.FromArgb(210, 140, 65),
             };
-            p.Paint += DrawPlatformTile;
+            p.BackgroundImage = Sprites.Brick;                 // לבנים פרוסות / tiled bricks
+            p.BackgroundImageLayout = ImageLayout.Tile;
             Controls.Add(p);
             p.SendToBack();
             platforms.Add(new GameObjectS(p, p.Location, "platform"));
         }
 
-        private static void DrawPlatformTile(object sender, PaintEventArgs e)
-        {
-            var pb = (PictureBox)sender;
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.None;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            int w = pb.Width, h = pb.Height;
-
-            if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
-            {
-                g.DrawTiledFrame(blocksSheet, 3, 64, 64, new Rectangle(0, 0, w, h), 40, 40);
-                return;
-            }
-
-            using (var fill = new SolidBrush(Color.FromArgb(210, 140, 65)))
-                g.FillRectangle(fill, 0, 0, w, h);
-            int bw = 40, bh = 20;
-            using (var mortar = new Pen(Color.FromArgb(150, 85, 25), 1.5f))
-            {
-                for (int by = 0; by < h; by += bh)
-                {
-                    g.DrawLine(mortar, 0, by, w, by);
-                    int offset = ((by / bh) % 2 == 0) ? 0 : bw / 2;
-                    for (int bx = offset; bx < w + bw; bx += bw)
-                        g.DrawLine(mortar, bx, by, bx, Math.Min(by + bh, h));
-                }
-            }
-            using (var hi = new SolidBrush(Color.FromArgb(80, 255, 220, 160)))
-                g.FillRectangle(hi, 0, 0, w, 4);
-            using (var border = new Pen(Color.FromArgb(110, 60, 10), 2f))
-                g.DrawRectangle(border, 1, 1, w - 2, h - 2);
-        }
+        // פלטפורמות מצוירות ע"י BackgroundImage פרוס (Sprites.Brick) — אין ציור GDI+.
+        // Platforms are drawn by a tiled BackgroundImage — no GDI+ drawing.
 
         // ════════════════════════════════════════════════════════════════════
         //  PIPES
@@ -155,44 +97,15 @@ namespace supermario
                 Location = new Point(x, y),
                 BackColor = Color.Transparent,
             };
-            p.Paint += DrawPipeTile;
+            p.SizeMode = PictureBoxSizeMode.StretchImage;
+            p.Image = Sprites.Pipe;
             Controls.Add(p);
             p.SendToBack();
             platforms.Add(new GameObjectS(p, p.Location, "pipe"));
         }
 
-        private static void DrawPipeTile(object sender, PaintEventArgs e)
-        {
-            var pb = (PictureBox)sender;
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            int w = pb.Width, h = pb.Height;
-
-            // ── Pipe body (slightly inset from rim) ──────────────────────────
-            int bx = 8, bw2 = w - 16;
-            using (var body = new LinearGradientBrush(
-                new Point(bx, 0), new Point(bx + bw2, 0),
-                Color.FromArgb(40, 160, 40), Color.FromArgb(15, 85, 15)))
-                g.FillRectangle(body, bx, 22, bw2, h - 22);
-            // Body highlight stripe
-            using (var hi = new SolidBrush(Color.FromArgb(70, 140, 220, 140)))
-                g.FillRectangle(hi, bx + 2, 24, 10, h - 26);
-            // Body border
-            using (var bd = new Pen(Color.FromArgb(10, 60, 10), 2f))
-                g.DrawRectangle(bd, bx, 22, bw2 - 1, h - 23);
-
-            // ── Pipe rim / head (full width, first 22 px) ────────────────────
-            using (var rim = new LinearGradientBrush(
-                new Point(0, 0), new Point(w, 0),
-                Color.FromArgb(70, 185, 55), Color.FromArgb(20, 100, 15)))
-                g.FillRectangle(rim, 0, 0, w, 22);
-            // Rim top highlight
-            using (var rh = new SolidBrush(Color.FromArgb(90, 160, 230, 160)))
-                g.FillRectangle(rh, 3, 3, 18, 8);
-            // Rim border
-            using (var rb = new Pen(Color.FromArgb(10, 60, 10), 2f))
-                g.DrawRectangle(rb, 0, 0, w - 1, 21);
-        }
+        // הצינור מצויר כתמונה (Sprites.Pipe) הנמתחת לגודל התיבה — אין ציור GDI+.
+        // The pipe is drawn as a stretched image — no GDI+ drawing.
 
         private void AddFinishFlagpole()
         {
@@ -202,42 +115,15 @@ namespace supermario
                 Location = new Point(2750, 313),
                 BackColor = Color.Transparent,
             };
-            flag.Paint += DrawFlagpole;
+            flag.SizeMode = PictureBoxSizeMode.StretchImage;
+            flag.Image = Sprites.Flag;
             Controls.Add(flag);
             flag.SendToBack();
             platforms.Add(new GameObjectS(flag, flag.Location, "finish"));
         }
 
-        private void DrawFlagpole(object sender, PaintEventArgs e)
-        {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            int h = 200;
-            using (var lg = new LinearGradientBrush(new Point(30, 0), new Point(46, 0),
-                Color.FromArgb(200, 200, 210), Color.FromArgb(90, 90, 110)))
-                g.FillRectangle(lg, 34, 0, 12, h);
-            using (var poleSheen = new SolidBrush(Color.FromArgb(80, 255, 255, 255)))
-                g.FillRectangle(poleSheen, 36, 0, 3, h);
-            using (var ball = new SolidBrush(Color.FromArgb(255, 210, 30)))
-                g.FillEllipse(ball, 26, 0, 28, 28);
-            using (var ballSheen = new SolidBrush(Color.FromArgb(180, 255, 255, 150)))
-                g.FillEllipse(ballSheen, 30, 3, 10, 10);
-            var flagPts = new PointF[] { new PointF(46, 18), new PointF(46, 70), new PointF(78, 44) };
-            using (var flagGreen = new SolidBrush(Color.FromArgb(60, 180, 60)))
-                g.FillPolygon(flagGreen, flagPts);
-            using (var flagSheen = new SolidBrush(Color.FromArgb(80, 255, 80, 80)))
-                g.FillPolygon(flagSheen, new PointF[] { new PointF(48, 20), new PointF(58, 30), new PointF(50, 38) });
-            using (var base1 = new SolidBrush(Color.FromArgb(80, 80, 90)))
-                g.FillRectangle(base1, 14, h - 30, 50, 30);
-            using (var base2 = new SolidBrush(Color.FromArgb(110, 110, 125)))
-                g.FillRectangle(base2, 14, h - 30, 50, 8);
-            using (var borderPen = new Pen(Color.FromArgb(50, 50, 60), 2f))
-                g.DrawRectangle(borderPen, 14, h - 30, 50, 30);
-            using (var f = new Font("Courier New", 7f, FontStyle.Bold))
-            using (var b = new SolidBrush(Color.White))
-            using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                g.DrawString("GOAL", f, b, new RectangleF(14, h - 22, 50, 14), sf);
-        }
+        // עמוד הדגל מצויר כתמונה (Sprites.Flag) הנמתחת לגודל התיבה — אין ציור GDI+.
+        // The goal flagpole is drawn as a stretched image — no GDI+ drawing.
 
         // ════════════════════════════════════════════════════════════════════
         //  QUESTION BLOCKS
@@ -272,58 +158,13 @@ namespace supermario
 
                 var block = new QuestionBlock(box.Location, box, null, def.Type);
 
-                box.Paint += (s, pe) =>
-                {
-                    var g = pe.Graphics;
-                    g.SmoothingMode = SmoothingMode.None;
-                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
-                    int bw = box.Width, bh = box.Height;
-
-                    if (TextureLoader.TryGetSheet("blocks", out var blocksSheet))
-                    {
-                        int frameIndex = block.IsHit ? 2 : (globalTick / 7 % 2);
-                        g.DrawFrame(blocksSheet, frameIndex, 64, 64, new Rectangle(0, 0, bw, bh));
-                        return;
-                    }
-
-                    if (block.IsHit)
-                    {
-                        using (var fill = new SolidBrush(Color.FromArgb(181, 116, 56)))
-                            g.FillRectangle(fill, 0, 0, bw, bh);
-                        using (var mortar = new Pen(Color.FromArgb(100, 60, 20), 2f))
-                        {
-                            g.DrawLine(mortar, 0, bh / 2, bw, bh / 2);
-                            g.DrawLine(mortar, bw / 4, 0, bw / 4, bh / 2);
-                            g.DrawLine(mortar, 3 * bw / 4, bh / 2, 3 * bw / 4, bh);
-                        }
-                        using (var border = new Pen(Color.FromArgb(80, 40, 10), 3f))
-                            g.DrawRectangle(border, 1, 1, bw - 3, bh - 3);
-                    }
-                    else
-                    {
-                        Color[] palette = {
-                            Color.FromArgb(255, 210,   0), Color.FromArgb(255, 230,  60),
-                            Color.FromArgb(255, 255, 100), Color.FromArgb(255, 230,  60),
-                            Color.FromArgb(255, 210,   0), Color.FromArgb(220, 160,   0),
-                        };
-                        using (var fill = new SolidBrush(palette[questionAnimFrame % 6]))
-                            g.FillRectangle(fill, 0, 0, bw, bh);
-                        using (var shine = new SolidBrush(Color.FromArgb(100, 255, 255, 200)))
-                            g.FillRectangle(shine, 3, 3, bw - 6, 6);
-                        using (var border = new Pen(Color.FromArgb(140, 80, 0), 3f))
-                            g.DrawRectangle(border, 1, 1, bw - 3, bh - 3);
-                        int qOff = (questionAnimFrame % 2 == 0) ? 0 : -2;
-                        string sym = block.PowerUpInside == PowerUpType.Coin ? "C" : "?";
-                        using (var qFont = new Font("Arial", 22, FontStyle.Bold))
-                        using (var qBrush = new SolidBrush(Color.FromArgb(100, 50, 0)))
-                        using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
-                            g.DrawString(sym, qFont, qBrush, new RectangleF(0, qOff, bw, bh), sf);
-                    }
-                };
+                // בלוק השאלה מצויר כתמונה; ההבהוב והמעבר ל"ריק" ב-UpdateAnimatedSprites.
+                // The question block is drawn as an image; its blink / "hit" swap happens in UpdateAnimatedSprites.
+                box.SizeMode = PictureBoxSizeMode.StretchImage;
+                box.Image = (Sprites.Question != null && Sprites.Question.Length > 0) ? Sprites.Question[0] : null;
 
                 Controls.Add(box);
                 box.SendToBack();
-                animatedBlocks.Add(box);
                 questionBlocks.Add(block);
             }
         }
@@ -332,7 +173,7 @@ namespace supermario
         {
             foreach (var b in questionBlocks)
             {
-                if (b.Visual != null) { animatedBlocks.Remove(b.Visual); Controls.Remove(b.Visual); b.Visual.Dispose(); }
+                if (b.Visual != null) { Controls.Remove(b.Visual); b.Visual.Dispose(); }
                 if (b.QuestionLabel != null) { Controls.Remove(b.QuestionLabel); b.QuestionLabel.Dispose(); }
             }
             questionBlocks.Clear();

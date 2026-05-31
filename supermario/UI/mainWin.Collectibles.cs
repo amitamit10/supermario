@@ -50,49 +50,16 @@ namespace supermario
                     Location = new Point(pos.X - cameraX, pos.Y),  // screen position
                     BackColor = Color.Transparent,
                 };
-                pb.Paint += DrawCoinSprite;
+                pb.SizeMode = PictureBoxSizeMode.StretchImage;
+                pb.Image = (Sprites.Coin != null && Sprites.Coin.Length > 0) ? Sprites.Coin[0] : null;
                 Controls.Add(pb);
                 pb.SendToBack();
-                animatedBlocks.Add(pb);
                 coins.Add(new Coin(pos, pb));
             }
         }
 
-        private void DrawCoinSprite(object sender, PaintEventArgs e)
-        {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.None;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            var pb = (PictureBox)sender;
-            int w = pb.Width, h = pb.Height;
-
-            if (TextureLoader.TryGetSheet("items", out var itemsSheet))
-            {
-                int frameIndex = globalTick / 7 % 4;
-                g.DrawFrame(itemsSheet, frameIndex, 64, 64, new Rectangle(0, 0, w, h));
-                return;
-            }
-
-            // Animate coin by squishing horizontally
-            float squeeze = 1f - 0.6f * Math.Abs((float)Math.Sin(coinAnimFrame * Math.PI / 4.0));
-            int cw = Math.Max(4, (int)(w * squeeze));
-            int cx = (w - cw) / 2;
-
-            using (var lg = new LinearGradientBrush(
-                new Point(cx, 0), new Point(cx + cw, h),
-                Color.FromArgb(255, 230, 40), Color.FromArgb(200, 155, 0)))
-                g.FillEllipse(lg, cx, 1, cw, h - 2);
-
-            // Sheen
-            if (cw > 6)
-            {
-                using (var sh = new SolidBrush(Color.FromArgb(120, 255, 255, 180)))
-                    g.FillEllipse(sh, cx + 2, 3, cw / 3, h / 3);
-            }
-
-            using (var border = new Pen(Color.FromArgb(180, 130, 0), 1.5f))
-                g.DrawEllipse(border, cx, 1, cw, h - 2);
-        }
+        // המטבע מצויר כתמונה (PictureBox.Image); האנימציה מתבצעת ב-UpdateAnimatedSprites.
+        // The coin is drawn as an image; its spin animation happens in UpdateAnimatedSprites.
 
         private void UpdateCoins()
         {
@@ -109,7 +76,6 @@ namespace supermario
 
                 // Collected
                 coin.IsCollected = true;
-                animatedBlocks.Remove(coin.Visual);
                 Controls.Remove(coin.Visual);
                 coin.Visual.Dispose();
                 coinCount++;
@@ -124,7 +90,6 @@ namespace supermario
             {
                 if (c.Visual != null)
                 {
-                    animatedBlocks.Remove(c.Visual);
                     Controls.Remove(c.Visual);
                     c.Visual.Dispose();
                 }
@@ -146,7 +111,8 @@ namespace supermario
                 Location = new Point(spawnPos.X - cameraX, spawnPos.Y),
                 BackColor = Color.Transparent,
             };
-            pb.Paint += DrawMushroomSprite;
+            pb.SizeMode = PictureBoxSizeMode.StretchImage;
+            pb.Image = Sprites.Mushroom;
             Controls.Add(pb);
             pb.BringToFront();
 
@@ -165,7 +131,7 @@ namespace supermario
                 var m = spawnedMushrooms[i];
                 if (m.IsCollected) { spawnedMushrooms.RemoveAt(i); continue; }
 
-                if (m.Position.Y > 580)
+                if (m.Position.Y > PIT_DEATH_Y)
                 {
                     Controls.Remove(m.Visual);
                     m.Visual.Dispose();
@@ -254,46 +220,8 @@ namespace supermario
             }
         }
 
-        private void DrawMushroomSprite(object sender, PaintEventArgs e)
-        {
-            var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.None;
-            g.InterpolationMode = InterpolationMode.NearestNeighbor;
-            var pb = (PictureBox)sender;
-            int w = pb.Width, h = pb.Height;
-
-            if (TextureLoader.TryGetSheet("items", out var itemsSheet))
-            {
-                g.DrawFrame(itemsSheet, 4, 64, 64, new Rectangle(0, 0, w, h));
-                return;
-            }
-
-            // Stem / base (cream)
-            using (var stem = new SolidBrush(Color.FromArgb(245, 230, 190)))
-                g.FillEllipse(stem, 4, h / 2, w - 8, h / 2);
-
-            // Cap (red with white spots)
-            using (var cap = new LinearGradientBrush(
-                new Point(0, 0), new Point(0, h / 2 + 4),
-                Color.FromArgb(230, 50, 30), Color.FromArgb(170, 25, 10)))
-                g.FillEllipse(cap, 0, 0, w, h / 2 + 8);
-
-            // White spots
-            using (var spot = new SolidBrush(Color.White))
-            {
-                g.FillEllipse(spot, 4,  5,  8, 8);
-                g.FillEllipse(spot, w - 12, 5, 8, 8);
-                g.FillEllipse(spot, w / 2 - 4, 2, 8, 8);
-            }
-            // Cap sheen
-            using (var sh = new SolidBrush(Color.FromArgb(60, 255, 200, 200)))
-                g.FillEllipse(sh, 3, 3, w / 3, h / 4);
-
-            // Face – two small eyes
-            int eyeY = h / 2 + 3;
-            g.FillEllipse(Brushes.Black, w / 2 - 7, eyeY, 5, 5);
-            g.FillEllipse(Brushes.Black, w / 2 + 2, eyeY, 5, 5);
-        }
+        // הפטריה מצוירת כתמונה (PictureBox.Image) — אין כאן ציור GDI+.
+        // The mushroom is drawn as an image — no GDI+ here.
 
     }
 }

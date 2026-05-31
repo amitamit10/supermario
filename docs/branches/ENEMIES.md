@@ -2,6 +2,13 @@
 
 Six enemy types are wired into the game by the time master reaches its current tip. All six live in `supermario/Enemies/*.cs` (one file per class) after the reorganisation in commit `4ccef7e`.
 
+> **עדכון מבני (post-refactor) / Structural update:** האויבים מצוירים כתמונות (`Visual.Image`), לא ב‑GDI+.
+> הפיזיקה המשותפת (כבידה/התנגשויות) חולצה לעוזרים על `Enemy` (`ApplyGravity`, `ResolvePlatformCollisions`,
+> `ResolveBlockCollisions`, `HasGroundBeneath`, `IsAtLedgeEdge`) ולעוזרי‑UI ב‑`mainWin.EnemyPhysics.cs`,
+> כך שכל לולאות `UpdateXxx` קצרות. לוגיקת הדריכה המשותפת ל‑Goomba/Fast/Patrol/Jumper יושבת ב‑`SquishableEnemy : Enemy`;
+> Koopa (קליפה) ו‑FlyingEnemy (כנפיים) יורשים ישירות מ‑`Enemy`. הדיאגרמות שלמטה מתעדות התנהגות (נקודות/AI) ועדיין נכונות;
+> פרטי API שבהן (כגון `DrawSprite(Graphics)`/`IEnemy`) קדמו למעבר לתמונות ואינם תואמים את הקוד הנוכחי.
+
 ## Catalogue
 
 ```mermaid

@@ -5,6 +5,20 @@ using System.Windows.Forms;
 
 namespace supermario.ML
 {
+    // ════════════════════════════════════════════════════════════════════════
+    //  ויזואליזציה של הרשת הנוירונית / Neural-network visualiser
+    // ------------------------------------------------------------------------
+    //  זהו החריג היחיד למודל "כל אובייקט הוא תמונה" של המשחק: כאן מציירים
+    //  *תרשים נתונים חי* — קווי משקלים וצמתים שצבעם משתנה בכל פריים לפי
+    //  ערכי ההפעלה (activations) והמשקלים של הרשת הטובה ביותר. אי-אפשר
+    //  להחליף תרשים דינמי כזה בתמונת PNG סטטית, ולכן הוא נשאר GDI+.
+    //
+    //  This is the ONLY exception to the game's "every object is an image"
+    //  rule: it renders a *live data chart* — weight lines and nodes whose
+    //  colours change every frame from the best network's activations and
+    //  weights. A dynamic chart like this cannot be a static PNG, so it stays
+    //  GDI+ on purpose.
+    // ════════════════════════════════════════════════════════════════════════
     // Read-only visualiser: draws the network topology with activation colours.
     public class NeuralNetworkControl : UserControl
     {
