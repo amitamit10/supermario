@@ -50,7 +50,6 @@ namespace supermario
         private int questionAnimFrame = 0;
         private int _animStepCount = 0;
         private int coinAnimFrame = 0;
-        private List<PictureBox> animatedBlocks = new List<PictureBox>();
 
         // כיוון השחקן / player facing
         private bool facingRight = true;
@@ -79,6 +78,10 @@ namespace supermario
         private const float DEATH_ANIMATION_DURATION = 2000f;
         private float maxFallStartY = 0;
         private bool wasGroundedLastFrame = true;
+        // ספי נפילה מהעולם / fall-off-the-world thresholds
+        private const int PIT_DEATH_Y     = 580;   // השחקן/פטריה מתחת לסף = מוות/הסרה / player & mushroom fall-off
+        private const int ENEMY_DESPAWN_Y = 620;   // אויב מתחת לסף (לפני כבידה) מוסר / enemy removed (pre-gravity)
+        private const int ENEMY_FELL_Y    = 600;   // בדיקת נפילת אויב אחרי כבידה / enemy fall check (post-gravity)
         // מעל סף זה נפילה עולה חיים. קפיצה מלאה מגיעה ל~164px והירידה ברמה 1 היא 120px,
         // לכן הסף גבוה מכל ירידה מכוונת כדי לא להעניש משחק רגיל.
         private const float FALL_DAMAGE_THRESHOLD = 220f;
@@ -212,9 +215,9 @@ namespace supermario
             }
 
             // נפילה לתהום / fell into a pit
-            if (player.Position.Y > 580)
+            if (player.Position.Y > PIT_DEATH_Y)
             {
-                player.Position = new Point(player.Position.X, 580);
+                player.Position = new Point(player.Position.X, PIT_DEATH_Y);
                 isDying = true;
                 deathTimer = 0f;
                 return;
@@ -227,7 +230,7 @@ namespace supermario
             // זיהוי לחיצת קפיצה (לא להחזיק) / edge-detect the jump key
             bool jumpEdge = jump && !_prevJump;
             _prevJump = jump;
-            player.Move(dir, jumpEdge, jump);
+            player.Move(dir, jumpEdge);
             CheckPlatformCollisions();
             isWalking = dir != 0 && player.IsGrounded;
             HandleFallDamage();

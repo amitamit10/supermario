@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -379,23 +380,27 @@ namespace supermario
 
         private void ClearPlatforms()
         {
-            foreach (var p in platforms) { Controls.Remove(p.PictureBox); p.PictureBox.Dispose(); }
-            platforms.Clear();
-            foreach (var g in goombas) { Controls.Remove(g.Visual); g.Visual.Dispose(); }
-            goombas.Clear();
-            foreach (var k in koopas) { Controls.Remove(k.Visual); k.Visual.Dispose(); }
-            koopas.Clear();
-            foreach (var fe in fastEnemies) { Controls.Remove(fe.Visual); fe.Visual.Dispose(); }
-            fastEnemies.Clear();
-            foreach (var je in jumpingEnemies) { Controls.Remove(je.Visual); je.Visual.Dispose(); }
-            jumpingEnemies.Clear();
-            foreach (var pe in patrolEnemies) { Controls.Remove(pe.Visual); pe.Visual.Dispose(); }
-            patrolEnemies.Clear();
-            foreach (var fl in flyingEnemies) { Controls.Remove(fl.Visual); fl.Visual.Dispose(); }
-            flyingEnemies.Clear();
+            ClearVisuals(platforms,      p => p.PictureBox);
+            ClearVisuals(goombas,        e => e.Visual);
+            ClearVisuals(koopas,         e => e.Visual);
+            ClearVisuals(fastEnemies,    e => e.Visual);
+            ClearVisuals(jumpingEnemies, e => e.Visual);
+            ClearVisuals(patrolEnemies,  e => e.Visual);
+            ClearVisuals(flyingEnemies,  e => e.Visual);
             ClearCoins();
             ClearPowerUps();
-            animatedBlocks.Clear();
+        }
+
+        // מסיר מהטופס את ה-PictureBox של כל פריט ברשימה, משחרר אותו, ומרוקן את הרשימה.
+        // Remove each item's PictureBox from the form, dispose it, then clear the list.
+        private void ClearVisuals<T>(List<T> list, Func<T, PictureBox> visual)
+        {
+            foreach (var item in list)
+            {
+                var v = visual(item);
+                if (v != null) { Controls.Remove(v); v.Dispose(); }
+            }
+            list.Clear();
         }
 
     }

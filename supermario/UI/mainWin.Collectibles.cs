@@ -54,7 +54,6 @@ namespace supermario
                 pb.Image = (Sprites.Coin != null && Sprites.Coin.Length > 0) ? Sprites.Coin[0] : null;
                 Controls.Add(pb);
                 pb.SendToBack();
-                animatedBlocks.Add(pb);
                 coins.Add(new Coin(pos, pb));
             }
         }
@@ -77,7 +76,6 @@ namespace supermario
 
                 // Collected
                 coin.IsCollected = true;
-                animatedBlocks.Remove(coin.Visual);
                 Controls.Remove(coin.Visual);
                 coin.Visual.Dispose();
                 coinCount++;
@@ -92,7 +90,6 @@ namespace supermario
             {
                 if (c.Visual != null)
                 {
-                    animatedBlocks.Remove(c.Visual);
                     Controls.Remove(c.Visual);
                     c.Visual.Dispose();
                 }
@@ -134,7 +131,7 @@ namespace supermario
                 var m = spawnedMushrooms[i];
                 if (m.IsCollected) { spawnedMushrooms.RemoveAt(i); continue; }
 
-                if (m.Position.Y > 580)
+                if (m.Position.Y > PIT_DEATH_Y)
                 {
                     Controls.Remove(m.Visual);
                     m.Visual.Dispose();

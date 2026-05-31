@@ -43,33 +43,8 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void InitHud()
         {
-            _hudLabel = new Label
-            {
-                Name = "hudLabel",
-                AutoSize = false,
-                Size = new Size(320, 38),
-                Location = new Point(8, 8),
-                BackColor = Color.FromArgb(160, 20, 20, 40),
-                ForeColor = Color.White,
-                Font = new Font("Courier New", 9f, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft,
-            };
-            Controls.Add(_hudLabel);
-            _hudLabel.BringToFront();
-
-            _scoreLabel = new Label
-            {
-                Name = "scoreLabel",
-                AutoSize = false,
-                Size = new Size(320, 30),
-                Location = new Point(8, 48),
-                BackColor = Color.FromArgb(160, 20, 20, 40),
-                ForeColor = Color.FromArgb(255, 230, 80),
-                Font = new Font("Courier New", 9f, FontStyle.Bold),
-                TextAlign = ContentAlignment.MiddleLeft,
-            };
-            Controls.Add(_scoreLabel);
-            _scoreLabel.BringToFront();
+            _hudLabel   = CreateHudLabel(y: 8,  height: 38, fore: Color.White);
+            _scoreLabel = CreateHudLabel(y: 48, height: 30, fore: Color.FromArgb(255, 230, 80));
 
             // לבבות — PictureBox עם תמונת לב (מלא/ריק). אין ציור GDI+ / hearts as images
             for (int i = 0; i < 3; i++)
@@ -87,6 +62,25 @@ namespace supermario
             }
 
             UpdateHud();
+        }
+
+        // יוצר תווית HUD אחידה (רוחב/רקע/גופן/יישור זהים), מוסיף לטופס ומקדים לחזית.
+        // Creates a uniformly-styled HUD label, adds it to the form and brings it forward.
+        private Label CreateHudLabel(int y, int height, Color fore)
+        {
+            var lbl = new Label
+            {
+                AutoSize  = false,
+                Size      = new Size(320, height),
+                Location  = new Point(8, y),
+                BackColor = Color.FromArgb(160, 20, 20, 40),
+                ForeColor = fore,
+                Font      = new Font("Courier New", 9f, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft,
+            };
+            Controls.Add(lbl);
+            lbl.BringToFront();
+            return lbl;
         }
 
         private void UpdateHud()
