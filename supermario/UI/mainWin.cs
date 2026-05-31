@@ -20,14 +20,12 @@ namespace supermario
         private GameManager gameManager;
         private Timer gameTimer;
 
-        // עצמים בעולם / world objects
         private List<GameObjectS> platforms = new List<GameObjectS>();
         private List<QuestionBlock> questionBlocks = new List<QuestionBlock>();
         private List<Mushroom> spawnedMushrooms = new List<Mushroom>();
         private List<Coin> coins = new List<Coin>();
         private int coinCount = 0;
 
-        // אויבים (רשימה לכל סוג) / enemies (one list per type)
         private List<Goomba> goombas = new List<Goomba>();
         private List<Koopa> koopas = new List<Koopa>();
         private List<FastEnemy> fastEnemies = new List<FastEnemy>();
@@ -35,28 +33,29 @@ namespace supermario
         private List<PlatformPatrolEnemy> patrolEnemies = new List<PlatformPatrolEnemy>();
         private List<FlyingEnemy> flyingEnemies = new List<FlyingEnemy>();
 
-        // רמות / levels
         private PlatformData[] currentLevel;
         private int currentLevelNumber = 1;
         private PlatformData[][] allLevels;
         private Random levelRandom = new Random();
 
-        // קצב המשחק: צעד קבוע של 16ms בכל "טיק" של הטיימר
-        // game pace: one fixed 16 ms step on every timer tick
         private const long FIXED_STEP_MS = 16;
 
-        // אנימציה / animation
         private int globalTick = 0;
         private int questionAnimFrame = 0;
         private int _animStepCount = 0;
         private int coinAnimFrame = 0;
 
-        // כיוון השחקן / player facing
         private bool facingRight = true;
         private bool isWalking = false;
 
         // קלט / input
         private bool moveRight = false, moveLeft = false, jump = false, _prevJump = false;
+
+        // מצב AI / AI mode
+        private ML.NeuralNetwork _aiNet = null;
+        private bool _aiMode = false;
+        private static readonly List<Rectangle> _emptyRects = new List<Rectangle>();
+        private List<Rectangle> _platformWorldRects = new List<Rectangle>();
 
         // מצלמה / camera
         private int cameraX = 0;
@@ -67,36 +66,29 @@ namespace supermario
         private const int PLAYER_START_X = 100;
         private const int GROUND_TOP_Y = 513;
 
-        // מצב מוגדל (פטריה) / super (mushroom) state
         private bool isPlayerSuper = false;
         private Size originalPlayerSize = new Size(68, 68);
         private Size superPlayerSize = new Size(82, 82);
 
-        // מוות ונפילה / death & falling
         private bool isDying = false;
         private float deathTimer = 0f;
         private const float DEATH_ANIMATION_DURATION = 2000f;
         private float maxFallStartY = 0;
         private bool wasGroundedLastFrame = true;
-        // ספי נפילה מהעולם / fall-off-the-world thresholds
-        private const int PIT_DEATH_Y     = 580;   // השחקן/פטריה מתחת לסף = מוות/הסרה / player & mushroom fall-off
-        private const int ENEMY_DESPAWN_Y = 620;   // אויב מתחת לסף (לפני כבידה) מוסר / enemy removed (pre-gravity)
-        private const int ENEMY_FELL_Y    = 600;   // בדיקת נפילת אויב אחרי כבידה / enemy fall check (post-gravity)
-        // מעל סף זה נפילה עולה חיים. קפיצה מלאה מגיעה ל~164px והירידה ברמה 1 היא 120px,
-        // לכן הסף גבוה מכל ירידה מכוונת כדי לא להעניש משחק רגיל.
+        private const int PIT_DEATH_Y     = 580;
+        private const int ENEMY_DESPAWN_Y = 620;
+        private const int ENEMY_FELL_Y    = 600;
         private const float FALL_DAMAGE_THRESHOLD = 220f;
         private bool canTakeFallDamage = true;
         private bool _levelComplete = false;
 
-        // חוסן זמני אחרי פגיעה / brief invincibility after a hit
         private bool isInvincible = false;
         private float invincibleTimer = 0f;
         private const float INVINCIBLE_DURATION = 1500f;
 
-        // HUD
         private Label _hudLabel;
         private Label _scoreLabel;
-        private readonly PictureBox[] _hearts = new PictureBox[3];   // לבבות כתמונות / hearts as images
+        private readonly PictureBox[] _hearts = new PictureBox[3];
         private int _lastHudHealth = -1;
         private bool _lastHudSuper = false;
         private int _lastHudLevel = -1;
@@ -109,18 +101,25 @@ namespace supermario
             InitializeGame();
         }
 
+        public mainWin(ML.NeuralNetwork ai)
+        {
+            _aiNet = ai;
+            _aiMode = ai != null;
+            InitializeComponent();
+            InitializeGame();
+        }
+
         // ════════════════════════════════════════════════════════════════════
         //  אתחול המשחק / Game init
         // ════════════════════════════════════════════════════════════════════
         private void InitializeGame()
         {
-            Sprites.LoadAll();                       // טעינת כל התמונות פעם אחת / load all images once
+            Sprites.LoadAll();
 
             KeyPreview = true;
             DoubleBuffered = true;
             Focus();
 
-            // רקע פרוס מתמונה (במקום ציור GDI+) / tiled background image (instead of GDI+ painting)
             if (Sprites.Background != null)
             {
                 BackgroundImage = Sprites.Background;
@@ -137,7 +136,6 @@ namespace supermario
             currentLevelNumber = 1;
             currentLevel = allLevels[0];
 
-            // השחקן מצויר כתמונה ב-PictureBox (אין מאזין Paint) / player drawn as a PictureBox image
             if (picboxplayer != null)
             {
                 picboxplayer.BackColor = Color.Transparent;
@@ -160,17 +158,20 @@ namespace supermario
             FormClosing += (s, e) => { gameTimer?.Stop(); };
 
             CreateLongLevel();
+            BuildPlatformWorldRects();
 
             gameTimer = new Timer { Interval = (int)FIXED_STEP_MS };
             gameTimer.Tick += GameLoop;
             KeyDown += MainWin_KeyDown;
             KeyUp += MainWin_KeyUp;
 
-            Text = $"Super Mario – Level {currentLevelNumber}";
+            Text = _aiMode
+                ? "Super Mario – AI Mode"
+                : $"Super Mario – Level {currentLevelNumber}";
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  לולאת המשחק / Game loop  (צעד אחד בכל טיק / one step per tick)
+        //  לולאת המשחק / Game loop
         // ════════════════════════════════════════════════════════════════════
         private void GameLoop(object sender, EventArgs e)
         {
@@ -183,7 +184,6 @@ namespace supermario
             UpdateHud();
             CheckWinCondition();
 
-            // אנימציית מטבעות ובלוקים כל 7 פריימים / coin & block animation every 7 frames
             _animStepCount++;
             if (_animStepCount >= 7)
             {
@@ -194,7 +194,6 @@ namespace supermario
             }
         }
 
-        // צעד פיזיקה אחד / one physics step
         private void PhysicsStep()
         {
             if (isInvincible)
@@ -214,7 +213,6 @@ namespace supermario
                 return;
             }
 
-            // נפילה לתהום / fell into a pit
             if (player.Position.Y > PIT_DEATH_Y)
             {
                 player.Position = new Point(player.Position.X, PIT_DEATH_Y);
@@ -223,13 +221,30 @@ namespace supermario
                 return;
             }
 
-            int dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
+            int dir;
+            bool jumpEdge;
+
+            if (_aiMode && _aiNet != null)
+            {
+                var inputs = ML.MarioAgent.ComputeInputs(
+                    player.Position, picboxplayer.Width, picboxplayer.Height,
+                    _platformWorldRects, _emptyRects, player.IsGrounded);
+                double[] outputs = _aiNet.Forward(inputs);
+                dir = outputs[0] > 0.33 ? 1 : outputs[0] < -0.33 ? -1 : 0;
+                bool aiJump = outputs[1] > 0.5;
+                jumpEdge = aiJump && !_prevJump;
+                _prevJump = aiJump;
+            }
+            else
+            {
+                dir = (moveRight ? 1 : 0) + (moveLeft ? -1 : 0);
+                jumpEdge = jump && !_prevJump;
+                _prevJump = jump;
+            }
+
             if (dir != 0) facingRight = (dir > 0);
             isWalking = dir != 0 && player.IsGrounded;
 
-            // זיהוי לחיצת קפיצה (לא להחזיק) / edge-detect the jump key
-            bool jumpEdge = jump && !_prevJump;
-            _prevJump = jump;
             player.Move(dir, jumpEdge);
             CheckPlatformCollisions();
             isWalking = dir != 0 && player.IsGrounded;
@@ -249,8 +264,13 @@ namespace supermario
             UpdatePlayerSprite();
         }
 
-        // מעדכן את תמונות המטבעות ובלוקי השאלה (החלפת Image במקום ציור)
-        // Updates coin & question-block images (swapping Image instead of drawing).
+        private void BuildPlatformWorldRects()
+        {
+            _platformWorldRects.Clear();
+            foreach (var gos in platforms)
+                _platformWorldRects.Add(gos.Bounds);
+        }
+
         private void UpdateAnimatedSprites()
         {
             if (Sprites.Coin != null && Sprites.Coin.Length > 0)
@@ -291,7 +311,7 @@ namespace supermario
             {
                 gameTimer.Stop();
                 gameManager.EndGame();
-                moveRight = moveLeft = jump = false;     // לא להשאיר מקש "לחוץ" / clear held keys
+                moveRight = moveLeft = jump = false;
                 _prevJump = false;
                 Text = $"Super Mario – Level {currentLevelNumber} – PAUSED  [Enter to Resume]";
             }
@@ -309,7 +329,8 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════════
         private void mainWin_Load(object sender, EventArgs e)
         {
-            Text = $"Super Mario – Level {currentLevelNumber}";
+            if (!_aiMode)
+                Text = $"Super Mario – Level {currentLevelNumber}";
             gameManager.StartGame();
             gameTimer.Start();
         }

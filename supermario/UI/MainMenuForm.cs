@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace supermario
@@ -16,16 +17,15 @@ namespace supermario
     {
         public MainMenuForm()
         {
-            Sprites.LoadAll();                               // טעינת התמונות / load images
+            Sprites.LoadAll();
 
             Text = "Super Mario";
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(420, 560);
-            BackColor = Color.FromArgb(92, 148, 252);        // צבע שמיים / sky blue
+            ClientSize = new Size(420, 630);
+            BackColor = Color.FromArgb(92, 148, 252);
 
-            // ── כותרת / title ────────────────────────────────────────────
             var title = new Label
             {
                 Text = "SUPER MARIO",
@@ -39,7 +39,6 @@ namespace supermario
             };
             Controls.Add(title);
 
-            // ── תמונת מריו (מהסקריפט) / Mario picture (from the script) ──
             var mario = new PictureBox
             {
                 Image = Sprites.MarioIdle,
@@ -50,15 +49,14 @@ namespace supermario
             };
             Controls.Add(mario);
 
-            // ── כפתורים / buttons ────────────────────────────────────────
             int y = 250;
-            AddButton("START GAME",  Color.FromArgb(48, 176, 48),  y,       (s, e) => LaunchGame());
-            AddButton("HOW TO PLAY", Color.FromArgb(210, 165, 10), y + 70,  (s, e) => ShowHowToPlay());
-            AddButton("TRAIN AI",    Color.FromArgb(30, 120, 180), y + 140, (s, e) => LaunchTrainer());
-            AddButton("EXIT",        Color.FromArgb(185, 38, 28),  y + 210, (s, e) => Application.Exit());
+            AddButton("START GAME",  Color.FromArgb(48, 176, 48),   y,       (s, e) => LaunchGame());
+            AddButton("HOW TO PLAY", Color.FromArgb(210, 165, 10),  y + 70,  (s, e) => ShowHowToPlay());
+            AddButton("TRAIN AI",    Color.FromArgb(30, 120, 180),  y + 140, (s, e) => LaunchTrainer());
+            AddButton("PLAY WITH AI",Color.FromArgb(120, 40, 180),  y + 210, (s, e) => LaunchWithAI());
+            AddButton("EXIT",        Color.FromArgb(185, 38, 28),   y + 280, (s, e) => Application.Exit());
         }
 
-        // יוצר כפתור פשוט וממרכז אותו אופקית / create a simple, centred button
         private void AddButton(string text, Color back, int y, EventHandler onClick)
         {
             var b = new Button
@@ -75,7 +73,6 @@ namespace supermario
             Controls.Add(b);
         }
 
-        // ── "איך משחקים" — תיבת הודעה פשוטה / simple how-to-play dialog ──
         private void ShowHowToPlay()
         {
             MessageBox.Show(
@@ -90,10 +87,8 @@ namespace supermario
                 "How To Play", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // ── פתיחת המשחק / launch the game ───────────────────────────────
         private void LaunchGame()
         {
-            // try/catch כדי שכשל פתיחה יציג שגיאה ולא ישאיר שולחן עבודה ריק / show errors instead of a blank desktop
             try
             {
                 var game = new mainWin();
@@ -108,7 +103,31 @@ namespace supermario
             }
         }
 
-        // ── פתיחת מסך אימון ה-AI / launch the AI trainer ────────────────
+        private void LaunchWithAI()
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "best_ai.json");
+            if (!File.Exists(path))
+            {
+                MessageBox.Show(
+                    "No saved AI found.\nTrain the AI first — the best result is saved automatically to best_ai.json.",
+                    "No AI Found", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            try
+            {
+                var (net, _, _) = ML.NetworkSerializer.LoadJson(path);
+                var game = new mainWin(net);
+                game.FormClosed += (s, e) => { Show(); BringToFront(); };
+                game.Show();
+                Hide();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to load AI:\n" + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void LaunchTrainer()
         {
             try
