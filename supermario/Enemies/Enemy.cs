@@ -72,12 +72,15 @@ namespace supermario
         // צעד אופקי + היפוך כיוון בקצה העולם / horizontal step, flip at world edge
         protected void WalkHorizontally(float speed)
         {
+            int maxX = WORLD_WIDTH - Visual.Width;
             int newX = Position.X + (int)Math.Round(Direction * speed);
-            if (newX < 0 || newX > WORLD_WIDTH - Visual.Width)
+            if (newX < 0 || newX > maxX)
             {
                 Direction = -Direction;
                 newX = Position.X + (int)Math.Round(Direction * speed);
             }
+            // הצמדה לגבולות כדי שלא יחרוג מהעולם / clamp inside the world bounds
+            if (newX < 0) newX = 0; else if (newX > maxX) newX = maxX;
             Position = new Point(newX, Position.Y);
         }
 

@@ -67,7 +67,10 @@ namespace supermario
 
             // תנועה אופקית במהירות קבועה / constant-speed horizontal movement
             horizontalVelocity = direction * MoveSpeed;
-            preciseX = Clamp(preciseX + horizontalVelocity, 0, MaxX);
+            // עצירת המהירות בקצה הרמה כדי לא "להידבק" לקיר / zero velocity at the edge
+            float newX = preciseX + horizontalVelocity;
+            if (newX < 0 || newX > MaxX) horizontalVelocity = 0;
+            preciseX = Clamp(newX, 0, MaxX);
 
             // קפיצה רק כשעל הקרקע / jump only when grounded
             if (jumpPressed && IsGrounded) Jump();

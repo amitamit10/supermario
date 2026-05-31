@@ -37,6 +37,10 @@ namespace supermario
                     IsGrounded = false;
                 }
             }
+            else
+            {
+                jumpTick = 0;   // איפוס קצב הקפיצה באוויר / reset cadence while airborne
+            }
 
             WalkHorizontally(WALK_SPEED);
         }

@@ -41,12 +41,14 @@ namespace supermario
             if (HasWings)
             {
                 flyTimer += FLY_FREQUENCY;
+                int maxX = WORLD_WIDTH - Visual.Width;
                 int newX = Position.X + (int)Math.Round(Direction * FLY_SPEED);
-                if (newX < 0 || newX > WORLD_WIDTH - Visual.Width)
+                if (newX < 0 || newX > maxX)
                 {
                     Direction = -Direction;
                     newX = Position.X + (int)Math.Round(Direction * FLY_SPEED);
                 }
+                if (newX < 0) newX = 0; else if (newX > maxX) newX = maxX;   // הצמדה לגבול / clamp
                 int newY = baseY + (int)(Math.Sin(flyTimer) * FLY_AMPLITUDE);
                 Position = new Point(newX, newY);
             }

@@ -93,19 +93,36 @@ namespace supermario
         // ── פתיחת המשחק / launch the game ───────────────────────────────
         private void LaunchGame()
         {
-            var game = new mainWin();
-            game.FormClosed += (s, e) => { Show(); BringToFront(); };
-            game.Show();
-            Hide();
+            // try/catch כדי שכשל פתיחה יציג שגיאה ולא ישאיר שולחן עבודה ריק / show errors instead of a blank desktop
+            try
+            {
+                var game = new mainWin();
+                game.FormClosed += (s, e) => { Show(); BringToFront(); };
+                game.Show();
+                Hide();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to start game:\n" + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         // ── פתיחת מסך אימון ה-AI / launch the AI trainer ────────────────
         private void LaunchTrainer()
         {
-            var trainer = new TrainingForm();
-            trainer.FormClosed += (s, e) => { Show(); BringToFront(); };
-            trainer.Show();
-            Hide();
+            try
+            {
+                var trainer = new TrainingForm();
+                trainer.FormClosed += (s, e) => { Show(); BringToFront(); };
+                trainer.Show();
+                Hide();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to open trainer:\n" + ex.Message, "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
