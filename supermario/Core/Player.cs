@@ -61,7 +61,7 @@ namespace supermario
         // ════════════════════════════════════════════════════════════════
         //  תנועה / Movement  (נקרא פעם בכל פריים / called once per frame)
         // ════════════════════════════════════════════════════════════════
-        public void Move(int direction, bool jumpPressed, bool jumpHeld)
+        public void Move(int direction, bool jumpPressed)
         {
             PreviousPosition = Position;
 

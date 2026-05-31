@@ -30,7 +30,7 @@ namespace supermario
         // ── אנימציה ותנועה / Animation & movement ───────────────────────
         private readonly Animator _walk;
         protected readonly float Speed;
-        private const int WORLD_WIDTH = 3000;             // רוחב הרמה בפיקסלים / level width
+        protected const int WORLD_WIDTH = 3000;           // רוחב הרמה בפיקסלים / level width
 
         protected Enemy(Point start, Size size, Image[] walkFrames, float speed, int ticksPerFrame)
         {

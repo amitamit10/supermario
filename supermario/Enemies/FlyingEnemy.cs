@@ -21,7 +21,6 @@ namespace supermario
         private const float FLY_AMPLITUDE = 22f;
         private const float FLY_FREQUENCY = 0.055f;
         private const float WALK_SPEED = 1.2f;
-        private const int WORLD_WIDTH = 3000;
 
         public static readonly Size NormalSize   = new Size(52, 48);
         public static readonly Size SquishedSize = new Size(62, 16);

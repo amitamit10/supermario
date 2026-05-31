@@ -165,7 +165,6 @@ namespace supermario
 
                 Controls.Add(box);
                 box.SendToBack();
-                animatedBlocks.Add(box);
                 questionBlocks.Add(block);
             }
         }
@@ -174,7 +173,7 @@ namespace supermario
         {
             foreach (var b in questionBlocks)
             {
-                if (b.Visual != null) { animatedBlocks.Remove(b.Visual); Controls.Remove(b.Visual); b.Visual.Dispose(); }
+                if (b.Visual != null) { Controls.Remove(b.Visual); b.Visual.Dispose(); }
                 if (b.QuestionLabel != null) { Controls.Remove(b.QuestionLabel); b.QuestionLabel.Dispose(); }
             }
             questionBlocks.Clear();
