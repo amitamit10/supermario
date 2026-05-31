@@ -38,144 +38,42 @@ namespace supermario
 
         private void UpdateGoombas()
         {
-            var playerRect = new Rectangle(
-                player.Position.X, player.Position.Y,
-                picboxplayer.Width, picboxplayer.Height);
+            var playerRect = new Rectangle(player.Position.X, player.Position.Y,
+                                           picboxplayer.Width, picboxplayer.Height);
+            var platRects  = PlatformRects();
+            var blockRects = BlockRects();
 
             for (int i = goombas.Count - 1; i >= 0; i--)
             {
-                var goomba = goombas[i];
+                var g = goombas[i];
 
-                if (!goomba.IsAlive)
+                if (!g.IsAlive)                     { RemoveEnemy(goombas, i); continue; }
+                if (g.Position.Y > ENEMY_DESPAWN_Y) { RemoveEnemy(goombas, i); continue; }
+
+                // אויב מעוך: רק סופר זמן עד היעלמות / squished: just tick the timer
+                if (g.IsSquished)
                 {
-                    Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();
-                    goombas.RemoveAt(i);
+                    if (g.UpdateSquish(FIXED_STEP_MS)) g.Kill();
+                    SyncToScreen(g);
                     continue;
                 }
 
-                if (goomba.Position.Y > 620)
-                {
-                    Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();
-                    goombas.RemoveAt(i);
-                    continue;
-                }
+                g.ApplyGravity();
+                if (g.Position.Y > ENEMY_FELL_Y) { RemoveEnemy(goombas, i); continue; }
 
-                // Squished enemies don't need gravity or platform checks; handle and skip early
-                if (goomba.IsSquished)
-                {
-                    if (goomba.UpdateSquish(FIXED_STEP_MS)) goomba.Kill();
-                    goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
-                    continue;
-                }
+                g.IsGrounded = g.ResolvePlatformCollisions(platRects, allowCeiling: false, out _);
+                g.ResolveBlockCollisions(blockRects, allowCeiling: false);
 
-                if (!goomba.IsGrounded)
-                {
-                    goomba.VerticalVelocity += 0.6f;
-                    if (goomba.VerticalVelocity > 15f) goomba.VerticalVelocity = 15f;
-                    goomba.Position = new Point(goomba.Position.X, goomba.Position.Y + (int)Math.Round(goomba.VerticalVelocity));
-                }
+                g.Update();
+                SyncToScreen(g);
 
-                if (goomba.Position.Y > 600)
-                {
-                    Controls.Remove(goomba.Visual);
-                    goomba.Visual.Dispose();
-                    goombas.RemoveAt(i);
-                    continue;
-                }
-
-                bool gGrounded = false;
-                bool gWallHit = false;
-                var gRect = goomba.Bounds;
-                foreach (var plat in platforms)
-                {
-                    var pr = new Rectangle(
-                        plat.Position.X,
-                        plat.Position.Y,
-                        plat.PictureBox.Width,
-                        plat.PictureBox.Height);
-
-                    if (!gRect.IntersectsWith(pr)) continue;
-
-                    int overlapTop    = gRect.Bottom - pr.Top;
-                    int overlapBottom = pr.Bottom - gRect.Top;
-                    int overlapLeft   = gRect.Right - pr.Left;
-                    int overlapRight  = pr.Right - gRect.Left;
-                    int minOverlap    = Math.Min(Math.Min(overlapTop, overlapBottom), Math.Min(overlapLeft, overlapRight));
-
-                    if (minOverlap == overlapTop && overlapTop < 30)
-                    {
-                        goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
-                        goomba.VerticalVelocity = 0;
-                        gGrounded = true;
-                        break;
-                    }
-                    else if (minOverlap == overlapBottom && goomba.VerticalVelocity >= 0)
-                    {
-                        // Descended past the platform top in a single frame – snap up to land
-                        // instead of silently falling through.
-                        goomba.Position = new Point(goomba.Position.X, pr.Top - goomba.Visual.Height);
-                        goomba.VerticalVelocity = 0;
-                        gGrounded = true;
-                        break;
-                    }
-                    else if (minOverlap == overlapLeft || minOverlap == overlapRight)
-                    {
-                        // Wall hit; push out of the wall and reverse so we don't sit
-                        // embedded for several frames jittering against the platform.
-                        if (!gWallHit)
-                        {
-                            if (minOverlap == overlapLeft)
-                                goomba.Position = new Point(pr.Left - goomba.Visual.Width, goomba.Position.Y);
-                            else
-                                goomba.Position = new Point(pr.Right, goomba.Position.Y);
-                            goomba.ReverseDirection();
-                            gWallHit = true;
-                            gRect = goomba.Bounds;
-                        }
-                        continue;
-                    }
-                }
-                goomba.IsGrounded = gGrounded;
-
-                // Question block wall collision
-                var gBounds2 = goomba.Bounds;
-                foreach (var qb in questionBlocks)
-                {
-                    var br = new Rectangle(qb.Position.X, qb.Position.Y, qb.Visual.Width, qb.Visual.Height);
-                    if (!gBounds2.IntersectsWith(br)) continue;
-                    int qot = gBounds2.Bottom - br.Top;
-                    int qob = br.Bottom - gBounds2.Top;
-                    int qol = gBounds2.Right - br.Left;
-                    int qorr = br.Right - gBounds2.Left;
-                    int qmin = Math.Min(Math.Min(qot, qob), Math.Min(qol, qorr));
-                    if ((qmin == qol || qmin == qorr) && qmin < qot)
-                    { goomba.ReverseDirection(); break; }
-                }
-
-                goomba.Update();
-                goomba.Visual.Location = new Point(goomba.Position.X - cameraX, goomba.Position.Y);
-
+                // התנגשות עם השחקן: דריכה מלמעלה מועכת; אחרת השחקן נפגע.
+                // Player collision: a stomp from above squishes; otherwise the player is hurt.
                 if (isDying) continue;
-                var gWorldRect = new Rectangle(goomba.Position.X, goomba.Position.Y, goomba.Visual.Width, goomba.Visual.Height);
-                if (!playerRect.IntersectsWith(gWorldRect)) continue;
+                if (!playerRect.IntersectsWith(g.Bounds)) continue;
 
-                int playerBottom = player.Position.Y + picboxplayer.Height;
-                int goombaTop    = goomba.Position.Y;
-                bool fallingDown = playerBottom - goombaTop < 24;
-                bool playerAbove = player.Position.Y < goomba.Position.Y + goomba.Visual.Height / 2;
-
-                if (fallingDown && playerAbove && player.VerticalVelocity >= 0)
-                {
-                    goomba.Squish();
-                    player.Bounce();
-                    player.Score += 100;
-                }
-                else
-                {
-                    HitByEnemy();
-                }
+                if (PlayerStomps(g)) { g.Squish(); player.Bounce(); player.Score += 100; }
+                else                 { HitByEnemy(); }
             }
         }
 
