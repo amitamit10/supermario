@@ -26,7 +26,7 @@ namespace supermario
         private const float MaxFallSpeed = 15f;      // מהירות נפילה מרבית / terminal fall speed
 
         // ── מצב גלוי / public state ──────────────────────────────────────
-        public int Health { get; set; }
+        public int Health { get; set; } = 3;
         public int Score { get; set; }
         public bool IsGrounded { get; set; }
         public float MaxX { get; set; } = 2950;
@@ -45,17 +45,12 @@ namespace supermario
         // a plain Action (not an event) so it can be assigned with = without stacking
         public System.Action OnDamageTaken;
 
-        public Player(Point startPosition, System.Drawing.Image playerImage)
+        public Player(Point startPosition)
         {
-            Health = 3;
-            Score = 0;
-            IsGrounded = false;
             position = startPosition;
             PreviousPosition = startPosition;
             preciseX = startPosition.X;
             preciseY = startPosition.Y;
-            VerticalVelocity = 0;
-            horizontalVelocity = 0;
         }
 
         // ════════════════════════════════════════════════════════════════

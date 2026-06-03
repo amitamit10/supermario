@@ -8,24 +8,21 @@ namespace supermario
     //  קפיצה שנייה מועכת אותו.
     //  Flies in a sine wave. First stomp removes the wings (then it falls and
     //  walks), the second stomp squishes it.
-    class FlyingEnemy : Enemy
+    class FlyingEnemy : SquishableEnemy
     {
         public bool HasWings { get; private set; } = true;
-        public bool IsSquished { get; private set; }
 
         private readonly int baseY;
         private float flyTimer;
-        private float squishTimer;
-        private const float SQUISH_DURATION = 600f;
-        private const float FLY_SPEED = 1.8f;
+        private const float FLY_SPEED     = 1.8f;
         private const float FLY_AMPLITUDE = 22f;
         private const float FLY_FREQUENCY = 0.055f;
-        private const float WALK_SPEED = 1.2f;
+        private const float WALK_SPEED    = 1.2f;
 
         public static readonly Size NormalSize   = new Size(52, 48);
         public static readonly Size SquishedSize = new Size(62, 16);
 
-        public FlyingEnemy(Point start) : base(start, NormalSize, Sprites.Flyer, FLY_SPEED, 8)
+        public FlyingEnemy(Point start) : base(start, NormalSize, Sprites.Flyer, FLY_SPEED, 8, SquishedSize, 600f)
         {
             baseY = start.Y;
         }
@@ -69,15 +66,12 @@ namespace supermario
             }
             else if (!IsSquished)
             {
-                IsSquished = true;
-                ShowFlattened(Sprites.Squished, SquishedSize, NormalSize);
+                Squish();
             }
             else
             {
                 Kill();
             }
         }
-
-        public bool UpdateSquish(long stepMs) { squishTimer += stepMs; return squishTimer >= SQUISH_DURATION; }
     }
 }

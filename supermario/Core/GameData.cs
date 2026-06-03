@@ -17,19 +17,11 @@ namespace supermario
         public Point Position { get; set; }
         public PictureBox Visual { get; set; }
         public bool IsCollected { get; set; }
-        public float VelocityX { get; set; }
+        public float VelocityX { get; set; } = 1.8f;
         public float VerticalVelocity { get; set; }
         public bool IsGrounded { get; set; }
 
-        public Mushroom(Point pos, PictureBox visual)
-        {
-            Position = pos;
-            Visual = visual;
-            IsCollected = false;
-            VelocityX = 1.8f;
-            VerticalVelocity = 0f;
-            IsGrounded = false;
-        }
+        public Mushroom(Point pos, PictureBox visual) { Position = pos; Visual = visual; }
     }
 
     // מטבע / coin
@@ -38,7 +30,7 @@ namespace supermario
         public Point Position { get; set; }
         public PictureBox Visual { get; set; }
         public bool IsCollected { get; set; }
-        public Coin(Point pos, PictureBox visual) { Position = pos; Visual = visual; IsCollected = false; }
+        public Coin(Point pos, PictureBox visual) { Position = pos; Visual = visual; }
     }
 
     // בלוק שאלה (מכיל מטבע או פטריה) / question block (holds a coin or a mushroom)
@@ -50,6 +42,6 @@ namespace supermario
         public bool IsHit { get; set; }
         public PowerUpType PowerUpInside { get; set; }
         public QuestionBlock(Point pos, PictureBox visual, Label label, PowerUpType powerUp)
-        { Position = pos; Visual = visual; QuestionLabel = label; IsHit = false; PowerUpInside = powerUp; }
+        { Position = pos; Visual = visual; QuestionLabel = label; PowerUpInside = powerUp; }
     }
 }
