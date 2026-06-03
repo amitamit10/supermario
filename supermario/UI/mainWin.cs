@@ -145,9 +145,8 @@ namespace supermario
                 picboxplayer.BringToFront();
             }
 
-            player = new Player(GetPlayerStartPosition(), null);
+            player = new Player(GetPlayerStartPosition());
             player.IsGrounded = true;
-            player.Health = 3;
             player.MaxX = LEVEL_PIXEL_WIDTH - picboxplayer.Width;
             player.OnDamageTaken = () => { BecomeNormal(); };
 

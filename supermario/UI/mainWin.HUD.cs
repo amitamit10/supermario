@@ -85,8 +85,6 @@ namespace supermario
 
         private void UpdateHud()
         {
-            if (_hudLabel == null || _scoreLabel == null) return;
-
             if (currentLevelNumber != _lastHudLevel || isPlayerSuper != _lastHudSuper)
             {
                 _lastHudLevel = currentLevelNumber;
@@ -107,7 +105,6 @@ namespace supermario
                 _lastHudHealth = player.Health;
                 for (int i = 0; i < 3; i++)
                 {
-                    if (_hearts[i] == null) continue;
                     bool filled = i < player.Health;
                     _hearts[i].Image = filled ? Sprites.HeartFull : Sprites.HeartEmpty;
                 }
